@@ -12,133 +12,169 @@ let marks = [];
 
 // Initialize
 function init() {
-    loadConfig();
-    loadData();
-    updateUI();
-    setDefaultDate();
+    console.log('Initializing WorkLog app...');
+    try {
+        loadConfig();
+        loadData();
+        updateUI();
+        setDefaultDate();
+        console.log('WorkLog app initialized successfully');
+    } catch (error) {
+        console.error('Error initializing app:', error);
+    }
 }
 
 function setDefaultDate() {
-    const today = new Date().toISOString().split('T')[0];
-    const workDateEl = document.getElementById('workDate');
-    const markDateEl = document.getElementById('markDate');
-    if (workDateEl) workDateEl.value = today;
-    if (markDateEl) markDateEl.value = today;
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const workDateEl = document.getElementById('workDate');
+        const markDateEl = document.getElementById('markDate');
+        if (workDateEl) workDateEl.value = today;
+        if (markDateEl) markDateEl.value = today;
+    } catch (error) {
+        console.error('Error setting default date:', error);
+    }
 }
 
 // Tab switching
 function switchTab(tabName) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    
-    event.target.classList.add('active');
-    document.getElementById(tabName).classList.add('active');
-    
-    if (tabName === 'reports') {
-        updateReports();
+    try {
+        const clickedTab = event ? event.target : null;
+        
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        if (clickedTab) {
+            clickedTab.classList.add('active');
+        }
+        
+        const tabContent = document.getElementById(tabName);
+        if (tabContent) {
+            tabContent.classList.add('active');
+        }
+        
+        if (tabName === 'reports') {
+            updateReports();
+        }
+    } catch (error) {
+        console.error('Error switching tabs:', error);
     }
 }
 
 // Configuration management
 function loadConfig() {
-    const saved = localStorage.getItem('worklog_config');
-    if (saved) {
-        config = JSON.parse(saved);
-        const sheetIdEl = document.getElementById('sheetId');
-        const apiKeyEl = document.getElementById('apiKey');
-        if (sheetIdEl) sheetIdEl.value = config.sheetId || '';
-        if (apiKeyEl) apiKeyEl.value = config.apiKey || '';
-        updateSetupStatus();
+    try {
+        const saved = localStorage.getItem('worklog_config');
+        if (saved) {
+            config = JSON.parse(saved);
+            const sheetIdEl = document.getElementById('sheetId');
+            const apiKeyEl = document.getElementById('apiKey');
+            if (sheetIdEl) sheetIdEl.value = config.sheetId || '';
+            if (apiKeyEl) apiKeyEl.value = config.apiKey || '';
+            updateSetupStatus();
+        }
+    } catch (error) {
+        console.error('Error loading config:', error);
     }
 }
 
 function saveConfig() {
-    config.sheetId = document.getElementById('sheetId').value.trim();
-    config.apiKey = document.getElementById('apiKey').value.trim();
-    
-    if (!config.sheetId || !config.apiKey) {
-        showAlert('setupStatus', 'Please enter both Sheet ID and API Key', 'error');
-        return;
+    try {
+        const sheetIdEl = document.getElementById('sheetId');
+        const apiKeyEl = document.getElementById('apiKey');
+        
+        if (!sheetIdEl || !apiKeyEl) {
+            alert('Configuration fields not found');
+            return;
+        }
+        
+        config.sheetId = sheetIdEl.value.trim();
+        config.apiKey = apiKeyEl.value.trim();
+        
+        if (!config.sheetId || !config.apiKey) {
+            showAlert('setupStatus', 'Please enter both Sheet ID and API Key', 'error');
+            return;
+        }
+        
+        localStorage.setItem('worklog_config', JSON.stringify(config));
+        showAlert('setupStatus', 'Configuration saved successfully! Click "Test Connection" to verify.', 'success');
+        updateSetupStatus();
+    } catch (error) {
+        console.error('Error saving config:', error);
+        alert('Error saving configuration: ' + error.message);
     }
-    
-    localStorage.setItem('worklog_config', JSON.stringify(config));
-    showAlert('setupStatus', 'Configuration saved successfully! Click "Test Connection" to verify.', 'success');
-    updateSetupStatus();
 }
 
 function testConnection() {
-    if (!config.sheetId || !config.apiKey) {
-        showAlert('setupStatus', 'Please save your configuration first', 'error');
-        return;
+    try {
+        if (!config.sheetId || !config.apiKey) {
+            showAlert('setupStatus', 'Please save your configuration first', 'error');
+            return;
+        }
+        
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}?key=${config.apiKey}`;
+        
+        showAlert('setupStatus', 'Testing connection...', 'info');
+        
+        fetch(url)
+            .then(response => {
+                if (response.ok) {
+                    config.connected = true;
+                    saveConfigToStorage();
+                    showAlert('setupStatus', '✅ Connection successful! Your app is ready to use.', 'success');
+                    updateSetupStatus();
+                } else {
+                    throw new Error('Connection failed');
+                }
+            })
+            .catch(error => {
+                config.connected = false;
+                saveConfigToStorage();
+                showAlert('setupStatus', '❌ Connection failed. Please check: 1) Sheet ID is correct, 2) API Key is valid, 3) Sheet is shared publicly (Anyone with link can view)', 'error');
+                updateSetupStatus();
+            });
+    } catch (error) {
+        console.error('Error testing connection:', error);
+        showAlert('setupStatus', 'Error: ' + error.message, 'error');
     }
-    
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}?key=${config.apiKey}`;
-    
-    showAlert('setupStatus', 'Testing connection...', 'info');
-    
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => {
-                    throw new Error(err.error?.message || 'Connection failed');
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            config.connected = true;
-            saveConfigToStorage();
-            showAlert('setupStatus', '✅ Connection successful! Your app is ready to use.', 'success');
-            updateSetupStatus();
-        })
-        .catch(error => {
-            config.connected = false;
-            saveConfigToStorage();
-            let errorMsg = '❌ Connection failed. ';
-            if (error.message.includes('API key not valid')) {
-                errorMsg += 'API Key is invalid. Please check your API key from Google Cloud Console.';
-            } else if (error.message.includes('not found')) {
-                errorMsg += 'Sheet not found. Please check your Sheet ID is correct.';
-            } else if (error.message.includes('permission')) {
-                errorMsg += 'Permission denied. Make sure your sheet is shared publicly (Anyone with link can view).';
-            } else {
-                errorMsg += 'Please check: 1) Sheet ID is correct, 2) API Key is valid, 3) Sheet is shared publicly (Anyone with link can view)';
-            }
-            showAlert('setupStatus', errorMsg, 'error');
-            updateSetupStatus();
-        });
 }
 
 function syncWithSheets() {
-    if (!config.connected) {
-        showAlert('setupStatus', 'Please test connection first', 'error');
-        return;
-    }
-    
-    showAlert('setupStatus', 'Syncing with Google Sheets...', 'info');
-    
-    // Read from sheets
-    Promise.all([
-        readFromSheet('Students'),
-        readFromSheet('Hours'),
-        readFromSheet('Marks')
-    ]).then(([studentsData, hoursData, marksData]) => {
-        if (studentsData && studentsData.length > 1) {
-            students = parseStudentsFromSheet(studentsData);
-        }
-        if (hoursData && hoursData.length > 1) {
-            hoursLog = parseHoursFromSheet(hoursData);
-        }
-        if (marksData && marksData.length > 1) {
-            marks = parseMarksFromSheet(marksData);
+    try {
+        if (!config.connected) {
+            showAlert('setupStatus', 'Please test connection first', 'error');
+            return;
         }
         
-        saveData();
-        updateUI();
-        showAlert('setupStatus', '✅ Data synced successfully!', 'success');
-    }).catch(error => {
-        showAlert('setupStatus', '⚠️ Sync completed with some errors. Make sure sheet tabs exist: Students, Hours, Marks', 'error');
-    });
+        showAlert('setupStatus', 'Syncing with Google Sheets...', 'info');
+        
+        // Read from sheets
+        Promise.all([
+            readFromSheet('Students'),
+            readFromSheet('Hours'),
+            readFromSheet('Marks')
+        ]).then(([studentsData, hoursData, marksData]) => {
+            if (studentsData && studentsData.length > 1) {
+                students = parseStudentsFromSheet(studentsData);
+            }
+            if (hoursData && hoursData.length > 1) {
+                hoursLog = parseHoursFromSheet(hoursData);
+            }
+            if (marksData && marksData.length > 1) {
+                marks = parseMarksFromSheet(marksData);
+            }
+            
+            saveData();
+            updateUI();
+            showAlert('setupStatus', '✅ Data synced successfully!', 'success');
+        }).catch(error => {
+            console.error('Sync error:', error);
+            showAlert('setupStatus', '⚠️ Sync completed with some errors. Make sure sheet tabs exist: Students, Hours, Marks', 'error');
+        });
+    } catch (error) {
+        console.error('Error syncing with sheets:', error);
+        showAlert('setupStatus', 'Error: ' + error.message, 'error');
+    }
 }
 
 function readFromSheet(tabName) {
@@ -146,7 +182,10 @@ function readFromSheet(tabName) {
     return fetch(url)
         .then(response => response.json())
         .then(data => data.values || [])
-        .catch(error => []);
+        .catch(error => {
+            console.error(`Error reading ${tabName}:`, error);
+            return [];
+        });
 }
 
 function parseStudentsFromSheet(data) {
@@ -203,127 +242,168 @@ function saveConfigToStorage() {
 
 // Data management
 function loadData() {
-    students = JSON.parse(localStorage.getItem('worklog_students') || '[]');
-    hoursLog = JSON.parse(localStorage.getItem('worklog_hours') || '[]');
-    marks = JSON.parse(localStorage.getItem('worklog_marks') || '[]');
+    try {
+        students = JSON.parse(localStorage.getItem('worklog_students') || '[]');
+        hoursLog = JSON.parse(localStorage.getItem('worklog_hours') || '[]');
+        marks = JSON.parse(localStorage.getItem('worklog_marks') || '[]');
+        console.log('Data loaded:', { students: students.length, hours: hoursLog.length, marks: marks.length });
+    } catch (error) {
+        console.error('Error loading data:', error);
+        students = [];
+        hoursLog = [];
+        marks = [];
+    }
 }
 
 function saveData() {
-    localStorage.setItem('worklog_students', JSON.stringify(students));
-    localStorage.setItem('worklog_hours', JSON.stringify(hoursLog));
-    localStorage.setItem('worklog_marks', JSON.stringify(marks));
+    try {
+        localStorage.setItem('worklog_students', JSON.stringify(students));
+        localStorage.setItem('worklog_hours', JSON.stringify(hoursLog));
+        localStorage.setItem('worklog_marks', JSON.stringify(marks));
+    } catch (error) {
+        console.error('Error saving data:', error);
+        alert('Error saving data: ' + error.message);
+    }
 }
 
 // Student management
 function addStudent() {
-    const name = document.getElementById('studentName').value.trim();
-    const id = document.getElementById('studentId').value.trim();
-    const email = document.getElementById('studentEmail').value.trim();
-    
-    if (!name || !id) {
-        alert('Please enter student name and ID');
-        return;
+    try {
+        const nameEl = document.getElementById('studentName');
+        const idEl = document.getElementById('studentId');
+        const emailEl = document.getElementById('studentEmail');
+        
+        if (!nameEl || !idEl || !emailEl) {
+            alert('Form fields not found');
+            return;
+        }
+        
+        const name = nameEl.value.trim();
+        const id = idEl.value.trim();
+        const email = emailEl.value.trim();
+        
+        if (!name || !id) {
+            alert('Please enter student name and ID');
+            return;
+        }
+        
+        students.push({ name, id, email, addedDate: new Date().toISOString() });
+        saveData();
+        updateUI();
+        
+        nameEl.value = '';
+        idEl.value = '';
+        emailEl.value = '';
+    } catch (error) {
+        console.error('Error adding student:', error);
+        alert('Error adding student: ' + error.message);
     }
-    
-    students.push({ name, id, email, addedDate: new Date().toISOString() });
-    saveData();
-    updateUI();
-    
-    document.getElementById('studentName').value = '';
-    document.getElementById('studentId').value = '';
-    document.getElementById('studentEmail').value = '';
 }
 
 function logHours() {
-    const studentId = document.getElementById('hoursStudent').value;
-    const subject = document.getElementById('subject').value.trim();
-    const date = document.getElementById('workDate').value;
-    const hours = parseFloat(document.getElementById('hoursWorked').value);
-    const rate = parseFloat(document.getElementById('baseRate').value);
-    const notes = document.getElementById('workNotes').value.trim();
-    
-    if (!studentId || !subject || !date || !hours || !rate) {
-        alert('Please fill in all required fields');
-        return;
+    try {
+        const studentId = document.getElementById('hoursStudent').value;
+        const subject = document.getElementById('subject').value.trim();
+        const date = document.getElementById('workDate').value;
+        const hours = parseFloat(document.getElementById('hoursWorked').value);
+        const rate = parseFloat(document.getElementById('baseRate').value);
+        const notes = document.getElementById('workNotes').value.trim();
+        
+        if (!studentId || !subject || !date || !hours || !rate) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        const student = students.find(s => s.id === studentId);
+        if (!student) {
+            alert('Student not found');
+            return;
+        }
+        
+        const earnings = hours * rate;
+        
+        hoursLog.push({
+            studentId,
+            studentName: student.name,
+            subject,
+            date,
+            hours,
+            rate,
+            earnings,
+            notes,
+            timestamp: new Date().toISOString()
+        });
+        
+        saveData();
+        updateUI();
+        
+        document.getElementById('subject').value = '';
+        document.getElementById('hoursWorked').value = '';
+        document.getElementById('baseRate').value = '';
+        document.getElementById('workNotes').value = '';
+    } catch (error) {
+        console.error('Error logging hours:', error);
+        alert('Error logging hours: ' + error.message);
     }
-    
-    const student = students.find(s => s.id === studentId);
-    if (!student) {
-        alert('Student not found');
-        return;
-    }
-    
-    const earnings = hours * rate;
-    
-    hoursLog.push({
-        studentId,
-        studentName: student.name,
-        subject,
-        date,
-        hours,
-        rate,
-        earnings,
-        notes,
-        timestamp: new Date().toISOString()
-    });
-    
-    saveData();
-    updateUI();
-    
-    document.getElementById('subject').value = '';
-    document.getElementById('hoursWorked').value = '';
-    document.getElementById('baseRate').value = '';
-    document.getElementById('workNotes').value = '';
 }
 
 function addMark() {
-    const studentId = document.getElementById('marksStudent').value;
-    const subject = document.getElementById('markSubject').value.trim();
-    const date = document.getElementById('markDate').value;
-    const score = parseFloat(document.getElementById('score').value);
-    const maxScore = parseFloat(document.getElementById('maxScore').value);
-    const comments = document.getElementById('markComments').value.trim();
-    
-    if (!studentId || !subject || !date || isNaN(score) || isNaN(maxScore)) {
-        alert('Please fill in all required fields');
-        return;
+    try {
+        const studentId = document.getElementById('marksStudent').value;
+        const subject = document.getElementById('markSubject').value.trim();
+        const date = document.getElementById('markDate').value;
+        const score = parseFloat(document.getElementById('score').value);
+        const maxScore = parseFloat(document.getElementById('maxScore').value);
+        const comments = document.getElementById('markComments').value.trim();
+        
+        if (!studentId || !subject || !date || isNaN(score) || isNaN(maxScore)) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        const student = students.find(s => s.id === studentId);
+        if (!student) {
+            alert('Student not found');
+            return;
+        }
+        
+        const percentage = (score / maxScore * 100).toFixed(1);
+        
+        marks.push({
+            studentId,
+            studentName: student.name,
+            subject,
+            date,
+            score,
+            maxScore,
+            percentage,
+            comments,
+            timestamp: new Date().toISOString()
+        });
+        
+        saveData();
+        updateUI();
+        
+        document.getElementById('markSubject').value = '';
+        document.getElementById('score').value = '';
+        document.getElementById('maxScore').value = '';
+        document.getElementById('markComments').value = '';
+    } catch (error) {
+        console.error('Error adding mark:', error);
+        alert('Error adding mark: ' + error.message);
     }
-    
-    const student = students.find(s => s.id === studentId);
-    if (!student) {
-        alert('Student not found');
-        return;
-    }
-    
-    const percentage = (score / maxScore * 100).toFixed(1);
-    
-    marks.push({
-        studentId,
-        studentName: student.name,
-        subject,
-        date,
-        score,
-        maxScore,
-        percentage,
-        comments,
-        timestamp: new Date().toISOString()
-    });
-    
-    saveData();
-    updateUI();
-    
-    document.getElementById('markSubject').value = '';
-    document.getElementById('score').value = '';
-    document.getElementById('maxScore').value = '';
-    document.getElementById('markComments').value = '';
 }
 
 // UI Updates
 function updateUI() {
-    updateStudentList();
-    updateStudentSelects();
-    updateHoursList();
-    updateMarksList();
+    try {
+        updateStudentList();
+        updateStudentSelects();
+        updateHoursList();
+        updateMarksList();
+    } catch (error) {
+        console.error('Error updating UI:', error);
+    }
 }
 
 function updateStudentList() {
@@ -406,21 +486,25 @@ function updateMarksList() {
 }
 
 function updateReports() {
-    const totalStudentsEl = document.getElementById('totalStudents');
-    const totalHoursEl = document.getElementById('totalHours');
-    const totalEarningsEl = document.getElementById('totalEarnings');
-    const avgMarkEl = document.getElementById('avgMark');
-    
-    if (totalStudentsEl) totalStudentsEl.textContent = students.length;
-    if (totalHoursEl) totalHoursEl.textContent = hoursLog.reduce((sum, h) => sum + h.hours, 0).toFixed(1);
-    if (totalEarningsEl) totalEarningsEl.textContent = '$' + hoursLog.reduce((sum, h) => sum + h.earnings, 0).toFixed(2);
-    
-    const avgMark = marks.length > 0 
-        ? (marks.reduce((sum, m) => sum + parseFloat(m.percentage), 0) / marks.length).toFixed(1)
-        : 0;
-    if (avgMarkEl) avgMarkEl.textContent = avgMark + '%';
-    
-    updateWeeklyReport();
+    try {
+        const totalStudentsEl = document.getElementById('totalStudents');
+        const totalHoursEl = document.getElementById('totalHours');
+        const totalEarningsEl = document.getElementById('totalEarnings');
+        const avgMarkEl = document.getElementById('avgMark');
+        
+        if (totalStudentsEl) totalStudentsEl.textContent = students.length;
+        if (totalHoursEl) totalHoursEl.textContent = hoursLog.reduce((sum, h) => sum + h.hours, 0).toFixed(1);
+        if (totalEarningsEl) totalEarningsEl.textContent = '$' + hoursLog.reduce((sum, h) => sum + h.earnings, 0).toFixed(2);
+        
+        const avgMark = marks.length > 0 
+            ? (marks.reduce((sum, m) => sum + parseFloat(m.percentage), 0) / marks.length).toFixed(1)
+            : 0;
+        if (avgMarkEl) avgMarkEl.textContent = avgMark + '%';
+        
+        updateWeeklyReport();
+    } catch (error) {
+        console.error('Error updating reports:', error);
+    }
 }
 
 function updateWeeklyReport() {
@@ -459,10 +543,15 @@ function getWeekNumber(date) {
 }
 
 function deleteStudent(index) {
-    if (confirm('Are you sure you want to delete this student?')) {
-        students.splice(index, 1);
-        saveData();
-        updateUI();
+    try {
+        if (confirm('Are you sure you want to delete this student?')) {
+            students.splice(index, 1);
+            saveData();
+            updateUI();
+        }
+    } catch (error) {
+        console.error('Error deleting student:', error);
+        alert('Error deleting student: ' + error.message);
     }
 }
 
@@ -471,42 +560,52 @@ function showAlert(elementId, message, type) {
     if (!element) return;
     
     const alertClass = type === 'error' ? 'alert-error' : type === 'success' ? 'alert-success' : 'alert-info';
-    element.innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+    element.innerHTML = `<div class="alert ${alertClass}">${escapeHtml(message)}</div>`;
 }
 
 function exportToCSV() {
-    const csvData = [
-        ['Students'],
-        ['Name', 'ID', 'Email', 'Added Date'],
-        ...students.map(s => [s.name, s.id, s.email, s.addedDate]),
-        [],
-        ['Hours Log'],
-        ['Student ID', 'Student Name', 'Subject', 'Date', 'Hours', 'Rate', 'Earnings', 'Notes'],
-        ...hoursLog.map(h => [h.studentId, h.studentName, h.subject, h.date, h.hours, h.rate, h.earnings, h.notes]),
-        [],
-        ['Marks'],
-        ['Student ID', 'Student Name', 'Subject', 'Date', 'Score', 'Max Score', 'Percentage', 'Comments'],
-        ...marks.map(m => [m.studentId, m.studentName, m.subject, m.date, m.score, m.maxScore, m.percentage, m.comments])
-    ];
-    
-    const csv = csvData.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `worklog-export-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+        const csvData = [
+            ['Students'],
+            ['Name', 'ID', 'Email', 'Added Date'],
+            ...students.map(s => [s.name, s.id, s.email, s.addedDate]),
+            [],
+            ['Hours Log'],
+            ['Student ID', 'Student Name', 'Subject', 'Date', 'Hours', 'Rate', 'Earnings', 'Notes'],
+            ...hoursLog.map(h => [h.studentId, h.studentName, h.subject, h.date, h.hours, h.rate, h.earnings, h.notes]),
+            [],
+            ['Marks'],
+            ['Student ID', 'Student Name', 'Subject', 'Date', 'Score', 'Max Score', 'Percentage', 'Comments'],
+            ...marks.map(m => [m.studentId, m.studentName, m.subject, m.date, m.score, m.maxScore, m.percentage, m.comments])
+        ];
+        
+        const csv = csvData.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `worklog-export-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error exporting CSV:', error);
+        alert('Error exporting data: ' + error.message);
+    }
 }
 
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
 function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString();
+    try {
+        return new Date(dateString).toLocaleDateString();
+    } catch (error) {
+        return dateString;
+    }
 }
 
 // Initialize on load
@@ -515,3 +614,5 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
+
+console.log('WorkLog script loaded');
