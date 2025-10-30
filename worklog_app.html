@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkLog - Student Tracker & Hours Manager</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 WorkLog</h1>
+            <p class="subtitle">Student Tracker & Hours Management System</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('setup')">⚙️ Setup</button>
+            <button class="tab" onclick="switchTab('students')">👥 Students</button>
+            <button class="tab" onclick="switchTab('hours')">⏰ Hours Tracker</button>
+            <button class="tab" onclick="switchTab('marks')">📝 Marks Register</button>
+            <button class="tab" onclick="switchTab('reports')">📈 Reports</button>
+        </div>
+
+        <div class="content">
+            <!-- Setup Tab -->
+            <div id="setup" class="tab-content active">
+                <h2>Google Sheets Setup</h2>
+                <div id="setupStatus"></div>
+                
+                <div class="form-group">
+                    <label>Google Sheets ID</label>
+                    <input type="text" id="sheetId" placeholder="Enter your Google Sheets ID">
+                    <small style="color: #666; display: block; margin-top: 5px;">
+                        Find this in your Google Sheets URL: docs.google.com/spreadsheets/d/<strong>YOUR_SHEET_ID</strong>/edit
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="text" id="apiKey" placeholder="Enter your Google Sheets API Key">
+                    <small style="color: #666; display: block; margin-top: 5px;">
+                        Get your API key from Google Cloud Console
+                    </small>
+                </div>
+
+                <button class="btn" onclick="saveConfig()">💾 Save Configuration</button>
+                <button class="btn btn-secondary" onclick="testConnection()">🔌 Test Connection</button>
+                <button class="btn btn-success" onclick="syncWithSheets()">🔄 Sync with Sheets</button>
+
+                <div class="alert alert-info" style="margin-top: 20px;">
+                    <strong>Setup Instructions:</strong><br>
+                    1. Create a new Google Sheet with tabs: Students, Hours, Marks<br>
+                    2. Enable Google Sheets API in Google Cloud Console<br>
+                    3. Create an API key and make your sheet publicly readable<br>
+                    4. Enter your Sheet ID and API Key above<br>
+                    5. Click "Sync with Sheets" to sync data
+                </div>
+            </div>
+
+            <!-- Students Tab -->
+            <div id="students" class="tab-content">
+                <h2>Student Register</h2>
+                <div class="form-group">
+                    <label>Student Name</label>
+                    <input type="text" id="studentName" placeholder="Enter student name">
+                </div>
+                <div class="form-group">
+                    <label>Student ID</label>
+                    <input type="text" id="studentId" placeholder="Enter student ID">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="studentEmail" placeholder="student@example.com">
+                </div>
+                <button class="btn" onclick="addStudent()">➕ Add Student</button>
+
+                <div id="studentList" style="margin-top: 30px;">
+                    <h3>Registered Students</h3>
+                    <div id="studentsContainer"></div>
+                </div>
+            </div>
+
+            <!-- Hours Tracker Tab -->
+            <div id="hours" class="tab-content">
+                <h2>Hours & Work Log</h2>
+                <div class="form-group">
+                    <label>Student</label>
+                    <select id="hoursStudent">
+                        <option value="">Select student...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="subject" placeholder="e.g., Mathematics, Programming">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="workDate">
+                </div>
+                <div class="form-group">
+                    <label>Hours Worked</label>
+                    <input type="number" id="hoursWorked" step="0.5" min="0" placeholder="e.g., 2.5">
+                </div>
+                <div class="form-group">
+                    <label>Base Rate ($/hr)</label>
+                    <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 15.00">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="workNotes" rows="3" placeholder="Additional notes..."></textarea>
+                </div>
+                <button class="btn" onclick="logHours()">💼 Log Hours</button>
+
+                <div id="hoursLog" style="margin-top: 30px;">
+                    <h3>Recent Entries</h3>
+                    <div id="hoursContainer"></div>
+                </div>
+            </div>
+
+            <!-- Marks Tab -->
+            <div id="marks" class="tab-content">
+                <h2>Marks Register</h2>
+                <div class="form-group">
+                    <label>Student</label>
+                    <select id="marksStudent">
+                        <option value="">Select student...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="markSubject" placeholder="e.g., Final Exam, Assignment 1">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="markDate">
+                </div>
+                <div class="form-group">
+                    <label>Score</label>
+                    <input type="number" id="score" step="0.1" min="0" max="100" placeholder="e.g., 85">
+                </div>
+                <div class="form-group">
+                    <label>Maximum Score</label>
+                    <input type="number" id="maxScore" step="0.1" min="0" placeholder="e.g., 100">
+                </div>
+                <div class="form-group">
+                    <label>Comments</label>
+                    <textarea id="markComments" rows="3" placeholder="Additional comments..."></textarea>
+                </div>
+                <button class="btn" onclick="addMark()">📝 Add Mark</button>
+
+                <div id="marksList" style="margin-top: 30px;">
+                    <h3>Marks Register</h3>
+                    <div id="marksContainer"></div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reports" class="tab-content">
+                <h2>Reports & Analytics</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3 id="totalStudents">0</h3>
+                        <p>Total Students</p>
+                    </div>
+                    <div class="card">
+                        <h3 id="totalHours">0</h3>
+                        <p>Total Hours Logged</p>
+                    </div>
+                    <div class="card">
+                        <h3 id="totalEarnings">$0</h3>
+                        <p>Total Earnings</p>
+                    </div>
+                    <div class="card">
+                        <h3 id="avgMark">0%</h3>
+                        <p>Average Mark</p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <h3>Weekly Summary</h3>
+                    <table id="weeklyTable">
+                        <thead>
+                            <tr>
+                                <th>Week</th>
+                                <th>Hours</th>
+                                <th>Earnings</th>
+                                <th>Students Active</th>
+                            </tr>
+                        </thead>
+                        <tbody id="weeklyBody"></tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button class="btn" onclick="exportToCSV()">📥 Export Data (CSV)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
