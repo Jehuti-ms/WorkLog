@@ -107,35 +107,72 @@ function saveConfig() {
 
 function testConnection() {
     try {
-        if (!config.sheetId || !config.apiKey) {
-            showAlert('setupStatus', 'Please save your configuration first', 'error');
+        // First load the current config from the form
+        const sheetIdEl = document.getElementById('sheetId');
+        const apiKeyEl = document.getElementById('apiKey');
+        
+        if (!sheetIdEl || !apiKeyEl) {
+            showAlert('setupStatus', 'Configuration fields not found', 'error');
             return;
         }
         
+        const sheetId = sheetIdEl.value.trim();
+        const apiKey = apiKeyEl.value.trim();
+        
+        if (!sheetId || !apiKey) {
+            showAlert('setupStatus', 'Please enter both Sheet ID and API Key, then click Save Configuration first', 'error');
+            return;
+        }
+        
+        // Update config with current values
+        config.sheetId = sheetId;
+        config.apiKey = apiKey;
+        
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}?key=${config.apiKey}`;
         
-        showAlert('setupStatus', 'Testing connection...', 'info');
+        showAlert('setupStatus', '🔄 Testing connection to Google Sheets...', 'info');
+        console.log('Testing connection to:', url);
         
         fetch(url)
             .then(response => {
+                console.log('Response status:', response.status);
                 if (response.ok) {
-                    config.connected = true;
-                    saveConfigToStorage();
-                    showAlert('setupStatus', '✅ Connection successful! Your app is ready to use.', 'success');
-                    updateSetupStatus();
+                    return response.json();
                 } else {
-                    throw new Error('Connection failed');
+                    return response.json().then(data => {
+                        throw new Error(data.error?.message || 'Connection failed');
+                    });
                 }
             })
+            .then(data => {
+                console.log('Sheet data:', data);
+                config.connected = true;
+                saveConfigToStorage();
+                showAlert('setupStatus', `✅ Connection successful! Connected to: ${data.properties?.title || 'Google Sheet'}`, 'success');
+                updateSetupStatus();
+            })
             .catch(error => {
+                console.error('Connection error:', error);
                 config.connected = false;
                 saveConfigToStorage();
-                showAlert('setupStatus', '❌ Connection failed. Please check: 1) Sheet ID is correct, 2) API Key is valid, 3) Sheet is shared publicly (Anyone with link can view)', 'error');
+                
+                let errorMsg = '❌ Connection failed. ';
+                if (error.message.includes('API key not valid')) {
+                    errorMsg += 'Your API Key is invalid. Please check and try again.';
+                } else if (error.message.includes('not found')) {
+                    errorMsg += 'Sheet not found. Please check your Sheet ID.';
+                } else if (error.message.includes('permission')) {
+                    errorMsg += 'Permission denied. Make sure your sheet is shared publicly (Anyone with link can view).';
+                } else {
+                    errorMsg += `Error: ${error.message}`;
+                }
+                
+                showAlert('setupStatus', errorMsg, 'error');
                 updateSetupStatus();
             });
     } catch (error) {
         console.error('Error testing connection:', error);
-        showAlert('setupStatus', 'Error: ' + error.message, 'error');
+        showAlert('setupStatus', '❌ Error: ' + error.message, 'error');
     }
 }
 
