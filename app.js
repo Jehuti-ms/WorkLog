@@ -107,20 +107,39 @@ function saveConfig() {
 
 function testConnection() {
     try {
+        console.log('Test connection clicked');
+        
         // First load the current config from the form
         const sheetIdEl = document.getElementById('sheetId');
         const apiKeyEl = document.getElementById('apiKey');
+        const statusEl = document.getElementById('setupStatus');
+        
+        console.log('Elements found:', {
+            sheetIdEl: !!sheetIdEl,
+            apiKeyEl: !!apiKeyEl,
+            statusEl: !!statusEl
+        });
         
         if (!sheetIdEl || !apiKeyEl) {
-            showAlert('setupStatus', 'Configuration fields not found', 'error');
+            alert('Configuration fields not found!');
+            return;
+        }
+        
+        if (!statusEl) {
+            alert('Status element not found!');
             return;
         }
         
         const sheetId = sheetIdEl.value.trim();
         const apiKey = apiKeyEl.value.trim();
         
+        console.log('Values:', { 
+            sheetId: sheetId ? 'Present' : 'Missing', 
+            apiKey: apiKey ? 'Present' : 'Missing' 
+        });
+        
         if (!sheetId || !apiKey) {
-            showAlert('setupStatus', 'Please enter both Sheet ID and API Key, then click Save Configuration first', 'error');
+            statusEl.innerHTML = '<div class="alert alert-error">❌ Please enter both Sheet ID and API Key first</div>';
             return;
         }
         
@@ -130,25 +149,30 @@ function testConnection() {
         
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}?key=${config.apiKey}`;
         
-        showAlert('setupStatus', '🔄 Testing connection to Google Sheets...', 'info');
+        statusEl.innerHTML = '<div class="alert alert-info">🔄 Testing connection to Google Sheets...</div>';
         console.log('Testing connection to:', url);
         
         fetch(url)
             .then(response => {
-                console.log('Response status:', response.status);
+                console.log('Response received:', response.status, response.statusText);
                 if (response.ok) {
                     return response.json();
                 } else {
                     return response.json().then(data => {
+                        console.error('Error response:', data);
                         throw new Error(data.error?.message || 'Connection failed');
+                    }).catch(() => {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     });
                 }
             })
             .then(data => {
-                console.log('Sheet data:', data);
+                console.log('Success! Sheet data:', data);
                 config.connected = true;
                 saveConfigToStorage();
-                showAlert('setupStatus', `✅ Connection successful! Connected to: ${data.properties?.title || 'Google Sheet'}`, 'success');
+                
+                const sheetName = data.properties?.title || 'Google Sheet';
+                statusEl.innerHTML = `<div class="alert alert-success">✅ Connection successful!<br>Connected to: <strong>${sheetName}</strong></div>`;
                 updateSetupStatus();
             })
             .catch(error => {
@@ -156,23 +180,30 @@ function testConnection() {
                 config.connected = false;
                 saveConfigToStorage();
                 
-                let errorMsg = '❌ Connection failed. ';
+                let errorMsg = '❌ Connection failed.<br>';
                 if (error.message.includes('API key not valid')) {
                     errorMsg += 'Your API Key is invalid. Please check and try again.';
-                } else if (error.message.includes('not found')) {
+                } else if (error.message.includes('not found') || error.message.includes('404')) {
                     errorMsg += 'Sheet not found. Please check your Sheet ID.';
-                } else if (error.message.includes('permission')) {
+                } else if (error.message.includes('permission') || error.message.includes('403')) {
                     errorMsg += 'Permission denied. Make sure your sheet is shared publicly (Anyone with link can view).';
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMsg += 'Network error. Check your internet connection.';
                 } else {
                     errorMsg += `Error: ${error.message}`;
                 }
                 
-                showAlert('setupStatus', errorMsg, 'error');
+                statusEl.innerHTML = `<div class="alert alert-error">${errorMsg}</div>`;
                 updateSetupStatus();
             });
     } catch (error) {
-        console.error('Error testing connection:', error);
-        showAlert('setupStatus', '❌ Error: ' + error.message, 'error');
+        console.error('Exception in testConnection:', error);
+        const statusEl = document.getElementById('setupStatus');
+        if (statusEl) {
+            statusEl.innerHTML = `<div class="alert alert-error">❌ Error: ${error.message}</div>`;
+        } else {
+            alert('Error: ' + error.message);
+        }
     }
 }
 
@@ -594,10 +625,18 @@ function deleteStudent(index) {
 
 function showAlert(elementId, message, type) {
     const element = document.getElementById(elementId);
-    if (!element) return;
+    if (!element) {
+        console.error('Alert element not found:', elementId);
+        console.log('Message:', message);
+        return;
+    }
     
     const alertClass = type === 'error' ? 'alert-error' : type === 'success' ? 'alert-success' : 'alert-info';
-    element.innerHTML = `<div class="alert ${alertClass}">${escapeHtml(message)}</div>`;
+    
+    // Create the alert HTML without escaping it (it contains HTML elements like emojis)
+    element.innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+    
+    console.log('Alert shown:', type, message);
 }
 
 function exportToCSV() {
