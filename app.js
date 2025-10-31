@@ -214,7 +214,8 @@ function syncWithSheets() {
             return;
         }
         
-        showAlert('setupStatus', 'Syncing with Google Sheets...', 'info');
+        const statusEl = document.getElementById('setupStatus');
+        statusEl.innerHTML = '<div class="alert alert-info">🔄 Syncing with Google Sheets...</div>';
         
         // Read from sheets
         Promise.all([
@@ -222,37 +223,96 @@ function syncWithSheets() {
             readFromSheet('Hours'),
             readFromSheet('Marks')
         ]).then(([studentsData, hoursData, marksData]) => {
-            if (studentsData && studentsData.length > 1) {
-                students = parseStudentsFromSheet(studentsData);
+            let syncedTabs = [];
+            let missingTabs = [];
+            
+            if (studentsData && studentsData.length > 0) {
+                if (studentsData.length > 1) {
+                    students = parseStudentsFromSheet(studentsData);
+                    syncedTabs.push('Students');
+                } else {
+                    syncedTabs.push('Students (empty)');
+                }
+            } else {
+                missingTabs.push('Students');
             }
-            if (hoursData && hoursData.length > 1) {
-                hoursLog = parseHoursFromSheet(hoursData);
+            
+            if (hoursData && hoursData.length > 0) {
+                if (hoursData.length > 1) {
+                    hoursLog = parseHoursFromSheet(hoursData);
+                    syncedTabs.push('Hours');
+                } else {
+                    syncedTabs.push('Hours (empty)');
+                }
+            } else {
+                missingTabs.push('Hours');
             }
-            if (marksData && marksData.length > 1) {
-                marks = parseMarksFromSheet(marksData);
+            
+            if (marksData && marksData.length > 0) {
+                if (marksData.length > 1) {
+                    marks = parseMarksFromSheet(marksData);
+                    syncedTabs.push('Marks');
+                } else {
+                    syncedTabs.push('Marks (empty)');
+                }
+            } else {
+                missingTabs.push('Marks');
             }
             
             saveData();
             updateUI();
-            showAlert('setupStatus', '✅ Data synced successfully!', 'success');
+            
+            let message = '';
+            if (missingTabs.length === 0) {
+                message = `✅ Sync complete! Loaded data from: ${syncedTabs.join(', ')}`;
+                statusEl.innerHTML = `<div class="alert alert-success">${message}</div>`;
+            } else {
+                message = `⚠️ Partial sync: Found tabs: ${syncedTabs.join(', ')}<br>Missing tabs: <strong>${missingTabs.join(', ')}</strong><br><br>`;
+                message += 'Please create these tabs in your Google Sheet with the following columns:<br>';
+                if (missingTabs.includes('Students')) {
+                    message += '<br><strong>Students tab:</strong> Name | ID | Email | Added Date';
+                }
+                if (missingTabs.includes('Hours')) {
+                    message += '<br><strong>Hours tab:</strong> Student ID | Student Name | Subject | Topic | Date | Hours | Rate | Earnings | Notes | Timestamp';
+                }
+                if (missingTabs.includes('Marks')) {
+                    message += '<br><strong>Marks tab:</strong> Student ID | Student Name | Subject | Date | Score | Max Score | Percentage | Comments | Timestamp';
+                }
+                statusEl.innerHTML = `<div class="alert alert-error">${message}</div>`;
+            }
+            
+            console.log('Sync result:', { syncedTabs, missingTabs });
         }).catch(error => {
             console.error('Sync error:', error);
-            showAlert('setupStatus', '⚠️ Sync completed with some errors. Make sure sheet tabs exist: Students, Hours, Marks', 'error');
+            statusEl.innerHTML = `<div class="alert alert-error">❌ Sync error: ${error.message}</div>`;
         });
     } catch (error) {
         console.error('Error syncing with sheets:', error);
-        showAlert('setupStatus', 'Error: ' + error.message, 'error');
+        const statusEl = document.getElementById('setupStatus');
+        if (statusEl) {
+            statusEl.innerHTML = `<div class="alert alert-error">❌ Error: ${error.message}</div>`;
+        }
     }
 }
 
 function readFromSheet(tabName) {
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}/values/${tabName}?key=${config.apiKey}`;
     return fetch(url)
-        .then(response => response.json())
-        .then(data => data.values || [])
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else if (response.status === 400) {
+                // Tab doesn't exist
+                console.log(`Tab "${tabName}" not found in sheet`);
+                return { values: null };
+            } else {
+                throw new Error(`Failed to read ${tabName}: ${response.status}`);
+            }
+        })
+        .then(data => data.values || null)
         .catch(error => {
             console.error(`Error reading ${tabName}:`, error);
-            return [];
+            return null;
         });
 }
 
@@ -270,12 +330,13 @@ function parseHoursFromSheet(data) {
         studentId: row[0] || '',
         studentName: row[1] || '',
         subject: row[2] || '',
-        date: row[3] || '',
-        hours: parseFloat(row[4]) || 0,
-        rate: parseFloat(row[5]) || 0,
-        earnings: parseFloat(row[6]) || 0,
-        notes: row[7] || '',
-        timestamp: row[8] || new Date().toISOString()
+        topic: row[3] || '',
+        date: row[4] || '',
+        hours: parseFloat(row[5]) || 0,
+        rate: parseFloat(row[6]) || 0,
+        earnings: parseFloat(row[7]) || 0,
+        notes: row[8] || '',
+        timestamp: row[9] || new Date().toISOString()
     })).filter(h => h.studentId && h.date);
 }
 
@@ -372,13 +433,14 @@ function logHours() {
     try {
         const studentId = document.getElementById('hoursStudent').value;
         const subject = document.getElementById('subject').value.trim();
+        const topic = document.getElementById('topic').value.trim();
         const date = document.getElementById('workDate').value;
         const hours = parseFloat(document.getElementById('hoursWorked').value);
         const rate = parseFloat(document.getElementById('baseRate').value);
         const notes = document.getElementById('workNotes').value.trim();
         
-        if (!studentId || !subject || !date || !hours || !rate) {
-            alert('Please fill in all required fields');
+        if (!studentId || !subject || !topic || !date || !hours || !rate) {
+            alert('Please fill in all required fields (Student, Subject, Topic, Date, Hours, Rate)');
             return;
         }
         
@@ -394,6 +456,7 @@ function logHours() {
             studentId,
             studentName: student.name,
             subject,
+            topic,
             date,
             hours,
             rate,
@@ -406,6 +469,7 @@ function logHours() {
         updateUI();
         
         document.getElementById('subject').value = '';
+        document.getElementById('topic').value = '';
         document.getElementById('hoursWorked').value = '';
         document.getElementById('baseRate').value = '';
         document.getElementById('workNotes').value = '';
@@ -518,15 +582,16 @@ function updateHoursList() {
     }
     
     const recent = hoursLog.slice(-10).reverse();
-    container.innerHTML = '<table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Hours</th><th>Rate</th><th>Earnings</th></tr></thead><tbody>' +
+    container.innerHTML = '<table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Topic</th><th>Hours</th><th>Rate</th><th>Earnings</th></tr></thead><tbody>' +
         recent.map(h => `
             <tr>
                 <td>${formatDate(h.date)}</td>
                 <td>${escapeHtml(h.studentName)}</td>
                 <td>${escapeHtml(h.subject)}</td>
+                <td>${escapeHtml(h.topic || '-')}</td>
                 <td>${h.hours}</td>
-                <td>$${h.rate.toFixed(2)}</td>
-                <td>$${h.earnings.toFixed(2)}</td>
+                <td>${h.rate.toFixed(2)}</td>
+                <td>${h.earnings.toFixed(2)}</td>
             </tr>
         `).join('') + '</tbody></table>';
 }
@@ -647,8 +712,8 @@ function exportToCSV() {
             ...students.map(s => [s.name, s.id, s.email, s.addedDate]),
             [],
             ['Hours Log'],
-            ['Student ID', 'Student Name', 'Subject', 'Date', 'Hours', 'Rate', 'Earnings', 'Notes'],
-            ...hoursLog.map(h => [h.studentId, h.studentName, h.subject, h.date, h.hours, h.rate, h.earnings, h.notes]),
+            ['Student ID', 'Student Name', 'Subject', 'Topic', 'Date', 'Hours', 'Rate', 'Earnings', 'Notes'],
+            ...hoursLog.map(h => [h.studentId, h.studentName, h.subject, h.topic || '', h.date, h.hours, h.rate, h.earnings, h.notes]),
             [],
             ['Marks'],
             ['Student ID', 'Student Name', 'Subject', 'Date', 'Score', 'Max Score', 'Percentage', 'Comments'],
