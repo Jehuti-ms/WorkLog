@@ -1,5 +1,5 @@
 // =========================
-// WorkLog - Google Sheets Integration (FINAL)
+// WorkLog - Google Sheets Integration (FINAL 2-WAY SYNC)
 // =========================
 
 const config = {
@@ -38,6 +38,10 @@ function init() {
             if (el && config[id]) el.value = config[id];
         });
 
+        students = JSON.parse(localStorage.getItem('worklog_students') || '[]');
+        hoursLog = JSON.parse(localStorage.getItem('worklog_hours') || '[]');
+        marks = JSON.parse(localStorage.getItem('worklog_marks') || '[]');
+
         console.log('Initialized config:', config);
     } catch (error) {
         console.error('Error initializing config:', error);
@@ -62,7 +66,7 @@ function saveConfig() {
 }
 
 // =========================
-// Test Google Sheets Connection (Read-Only)
+// Test Connection
 // =========================
 async function testConnection() {
     try {
@@ -85,11 +89,7 @@ async function testConnection() {
             if (missingTabs.length === 0)
                 showAlert('setupStatus', '✅ All required tabs found and readable!', 'success');
             else
-                showAlert(
-                    'setupStatus',
-                    `⚠️ Missing tabs: ${missingTabs.join(', ')}. Use "Initialize Sheets" to create them.`,
-                    'error'
-                );
+                showAlert('setupStatus', `⚠️ Missing tabs: ${missingTabs.join(', ')}. Use "Initialize Sheets".`, 'error');
         } else throw new Error(data.error?.message || 'Unable to access Google Sheet.');
     } catch (error) {
         console.error('Connection test failed:', error);
@@ -98,7 +98,7 @@ async function testConnection() {
 }
 
 // =========================
-// 🚀 Initialize Sheets via Web App
+// 🚀 Initialize Sheets
 // =========================
 async function initializeSheets() {
     try {
@@ -127,7 +127,7 @@ async function initializeSheets() {
 }
 
 // =========================
-// 🔄 Sync Data via Web App
+// 🔄 Sync Data (Read)
 // =========================
 async function syncWithSheets() {
     try {
@@ -163,12 +163,122 @@ async function syncWithSheets() {
 }
 
 // =========================
-// Global Access
+// ➕ Add Student (Write)
+// =========================
+async function addStudent() {
+    try {
+        const name = document.getElementById('studentName').value.trim();
+        const id = document.getElementById('studentId').value.trim();
+        const email = document.getElementById('studentEmail').value.trim();
+
+        if (!name || !id) {
+            alert('Please enter student name and ID');
+            return;
+        }
+
+        const payload = { action: 'addStudent', name, id, email };
+        const res = await fetch(config.webAppUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+
+        showAlert('setupStatus', '✅ Student added to Google Sheet!', 'success');
+        document.getElementById('studentName').value = '';
+        document.getElementById('studentId').value = '';
+        document.getElementById('studentEmail').value = '';
+    } catch (err) {
+        console.error(err);
+        showAlert('setupStatus', `❌ ${err.message}`, 'error');
+    }
+}
+
+// =========================
+// 💼 Log Hours (Write)
+// =========================
+async function logHours() {
+    try {
+        const payload = {
+            action: 'logHours',
+            studentId: document.getElementById('hoursStudent').value,
+            subject: document.getElementById('subject').value.trim(),
+            topic: document.getElementById('topic').value.trim(),
+            date: document.getElementById('workDate').value,
+            hours: parseFloat(document.getElementById('hoursWorked').value),
+            rate: parseFloat(document.getElementById('baseRate').value),
+            notes: document.getElementById('workNotes').value.trim()
+        };
+
+        if (!payload.studentId || !payload.subject || !payload.date || !payload.hours || !payload.rate) {
+            alert('Please fill in all required fields');
+            return;
+        }
+
+        const res = await fetch(config.webAppUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+
+        showAlert('setupStatus', '✅ Hours logged successfully!', 'success');
+    } catch (err) {
+        console.error(err);
+        showAlert('setupStatus', `❌ ${err.message}`, 'error');
+    }
+}
+
+// =========================
+// 📝 Add Mark (Write)
+// =========================
+async function addMark() {
+    try {
+        const payload = {
+            action: 'addMark',
+            studentId: document.getElementById('marksStudent').value,
+            subject: document.getElementById('markSubject').value.trim(),
+            date: document.getElementById('markDate').value,
+            score: parseFloat(document.getElementById('score').value),
+            maxScore: parseFloat(document.getElementById('maxScore').value),
+            comments: document.getElementById('markComments').value.trim()
+        };
+
+        if (!payload.studentId || !payload.subject || !payload.date) {
+            alert('Please fill in all required fields');
+            return;
+        }
+
+        const res = await fetch(config.webAppUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+
+        showAlert('setupStatus', '✅ Mark recorded successfully!', 'success');
+    } catch (err) {
+        console.error(err);
+        showAlert('setupStatus', `❌ ${err.message}`, 'error');
+    }
+}
+
+// =========================
+// Global
 // =========================
 window.saveConfig = saveConfig;
 window.testConnection = testConnection;
 window.initializeSheets = initializeSheets;
 window.syncWithSheets = syncWithSheets;
+window.addStudent = addStudent;
+window.logHours = logHours;
+window.addMark = addMark;
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
