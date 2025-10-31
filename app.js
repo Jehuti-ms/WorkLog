@@ -1,287 +1,342 @@
-// =========================
-// WorkLog - Google Sheets Integration (FINAL 2-WAY SYNC)
-// =========================
+/* ======================================================
+   WorkLog - Student Tracker & Hours Manager
+   Full app.js (CORS proxy version for GitHub Pages)
+   ====================================================== */
 
-const config = {
-    sheetId: '',
-    apiKey: '',
-    webAppUrl: ''
+// ---------- Configuration ----------
+let config = {
+  sheetId: '',
+  apiKey: '',
+  webAppUrl: '',
+  connected: false
 };
 
+// ✅ Add a CORS proxy (used automatically in all fetch calls)
+const CORS_PROXY = "https://corsproxy.io/?";
+
+// ---------- Data Storage ----------
 let students = [];
 let hoursLog = [];
 let marks = [];
 
-// =========================
-// Utility
-// =========================
-function showAlert(id, message, type = 'info') {
-    const el = document.getElementById(id);
-    if (!el) return;
-    let color = '#d1ecf1';
-    if (type === 'error') color = '#f8d7da';
-    else if (type === 'success') color = '#d4edda';
-    el.innerHTML = `<div style="background:${color};padding:10px;border-radius:8px;">${message}</div>`;
-}
-
-// =========================
-// Initialization
-// =========================
+// ---------- Initialization ----------
 function init() {
-    try {
-        const saved = localStorage.getItem('worklogConfig');
-        if (saved) Object.assign(config, JSON.parse(saved));
-
-        const ids = ['sheetId', 'apiKey', 'webAppUrl'];
-        ids.forEach(id => {
-            const el = document.getElementById(id);
-            if (el && config[id]) el.value = config[id];
-        });
-
-        students = JSON.parse(localStorage.getItem('worklog_students') || '[]');
-        hoursLog = JSON.parse(localStorage.getItem('worklog_hours') || '[]');
-        marks = JSON.parse(localStorage.getItem('worklog_marks') || '[]');
-
-        console.log('Initialized config:', config);
-    } catch (error) {
-        console.error('Error initializing config:', error);
-    }
+  console.log("Initializing WorkLog app...");
+  loadConfig();
+  loadData();
+  updateUI();
+  setDefaultDate();
+  console.log("WorkLog app initialized successfully");
 }
 
-// =========================
-// Save Configuration
-// =========================
+function setDefaultDate() {
+  const today = new Date().toISOString().split('T')[0];
+  const workDateEl = document.getElementById('workDate');
+  const markDateEl = document.getElementById('markDate');
+  if (workDateEl) workDateEl.value = today;
+  if (markDateEl) markDateEl.value = today;
+}
+
+// ---------- Tabs ----------
+function switchTab(tabName) {
+  const clickedTab = event ? event.target : null;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  if (clickedTab) clickedTab.classList.add('active');
+  const tabContent = document.getElementById(tabName);
+  if (tabContent) tabContent.classList.add('active');
+  if (tabName === 'reports') updateReports();
+}
+
+// ---------- Config ----------
+function loadConfig() {
+  const saved = localStorage.getItem('worklog_config');
+  if (saved) {
+    config = JSON.parse(saved);
+    document.getElementById('sheetId')?.setAttribute('value', config.sheetId || '');
+    document.getElementById('apiKey')?.setAttribute('value', config.apiKey || '');
+    document.getElementById('webAppUrl')?.setAttribute('value', config.webAppUrl || '');
+    updateSetupStatus();
+  }
+}
+
 function saveConfig() {
-    try {
-        config.sheetId = document.getElementById('sheetId')?.value.trim() || '';
-        config.apiKey = document.getElementById('apiKey')?.value.trim() || '';
-        config.webAppUrl = document.getElementById('webAppUrl')?.value.trim() || '';
-
-        localStorage.setItem('worklogConfig', JSON.stringify(config));
-        showAlert('setupStatus', '💾 Configuration saved successfully!', 'success');
-    } catch (error) {
-        console.error('Error saving config:', error);
-        showAlert('setupStatus', `❌ ${error.message}`, 'error');
-    }
+  const sheetIdEl = document.getElementById('sheetId');
+  const apiKeyEl = document.getElementById('apiKey');
+  const webAppEl = document.getElementById('webAppUrl');
+  if (!sheetIdEl || !apiKeyEl || !webAppEl) {
+    alert("Config fields missing in HTML");
+    return;
+  }
+  config.sheetId = sheetIdEl.value.trim();
+  config.apiKey = apiKeyEl.value.trim();
+  config.webAppUrl = webAppEl.value.trim();
+  localStorage.setItem('worklog_config', JSON.stringify(config));
+  showAlert("setupStatus", "✅ Configuration saved", "success");
+  updateSetupStatus();
 }
 
-// =========================
-// Test Connection
-// =========================
-async function testConnection() {
-    try {
-        if (!config.sheetId || !config.apiKey) {
-            showAlert('setupStatus', 'Please enter both Google Sheet ID and API Key.', 'error');
-            return;
-        }
-
-        showAlert('setupStatus', '🔍 Checking Google Sheet connection...', 'info');
-
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}?key=${config.apiKey}`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (data.sheets) {
-            const foundTabs = data.sheets.map(s => s.properties.title);
-            const requiredTabs = ['Students', 'Hours', 'Marks'];
-            const missingTabs = requiredTabs.filter(t => !foundTabs.includes(t));
-
-            if (missingTabs.length === 0)
-                showAlert('setupStatus', '✅ All required tabs found and readable!', 'success');
-            else
-                showAlert('setupStatus', `⚠️ Missing tabs: ${missingTabs.join(', ')}. Use "Initialize Sheets".`, 'error');
-        } else throw new Error(data.error?.message || 'Unable to access Google Sheet.');
-    } catch (error) {
-        console.error('Connection test failed:', error);
-        showAlert('setupStatus', `❌ ${error.message}`, 'error');
-    }
+function updateSetupStatus() {
+  const status = document.getElementById('setupStatus');
+  if (!status) return;
+  if (config.connected)
+    status.innerHTML = '<div class="alert alert-success">✅ Connected to Google Sheets</div>';
+  else if (config.sheetId && config.apiKey)
+    status.innerHTML = '<div class="alert alert-info">⚙️ Config saved. Click Test or Initialize.</div>';
 }
 
-// =========================
-// 🚀 Initialize Sheets
-// =========================
+function saveConfigToStorage() {
+  localStorage.setItem('worklog_config', JSON.stringify(config));
+}
+
+// ---------- Local Data ----------
+function loadData() {
+  students = JSON.parse(localStorage.getItem('worklog_students') || '[]');
+  hoursLog = JSON.parse(localStorage.getItem('worklog_hours') || '[]');
+  marks = JSON.parse(localStorage.getItem('worklog_marks') || '[]');
+}
+
+function saveData() {
+  localStorage.setItem('worklog_students', JSON.stringify(students));
+  localStorage.setItem('worklog_hours', JSON.stringify(hoursLog));
+  localStorage.setItem('worklog_marks', JSON.stringify(marks));
+}
+
+// ---------- CORS proxy fetch helper ----------
+async function callBackend(action, payload = {}) {
+  if (!config.webAppUrl) throw new Error("Web App URL not set");
+  const url = CORS_PROXY + encodeURIComponent(config.webAppUrl);
+  const body = JSON.stringify({ action, ...payload });
+  console.log(`➡️ Sending to backend: ${action}`, payload);
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  console.log(`⬅️ Backend response (${action}):`, data);
+  return data;
+}
+
+// ---------- Backend operations ----------
 async function initializeSheets() {
-    try {
-        if (!config.webAppUrl) {
-            showAlert('setupStatus', 'Please enter your Web App URL first.', 'error');
-            return;
-        }
-
-        showAlert('setupStatus', '🛠️ Initializing Google Sheet via Web App...', 'info');
-
-        const response = await fetch(config.webAppUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'initializeSheets' })
-        });
-
-        const data = await response.json();
-
-        if (data.success)
-            showAlert('setupStatus', '✅ Google Sheet setup complete! All tabs created.', 'success');
-        else throw new Error(data.message || 'Unknown error during setup');
-    } catch (error) {
-        console.error('Error initializing sheets:', error);
-        showAlert('setupStatus', `❌ ${error.message}`, 'error');
+  const statusEl = document.getElementById("setupStatus");
+  try {
+    statusEl.innerHTML = '<div class="alert alert-info">🚀 Initializing Google Sheet...</div>';
+    const data = await callBackend("initializeSheets");
+    if (data.success) {
+      config.connected = true;
+      saveConfigToStorage();
+      statusEl.innerHTML = '<div class="alert alert-success">✅ Sheets initialized successfully!</div>';
+    } else {
+      statusEl.innerHTML = `<div class="alert alert-error">❌ ${data.message}</div>`;
     }
+  } catch (error) {
+    console.error(error);
+    statusEl.innerHTML = `<div class="alert alert-error">❌ ${error.message}</div>`;
+  }
 }
 
-// =========================
-// 🔄 Sync Data (Read)
-// =========================
 async function syncWithSheets() {
-    try {
-        if (!config.webAppUrl) {
-            showAlert('setupStatus', 'Please enter your Web App URL first.', 'error');
-            return;
-        }
-
-        showAlert('setupStatus', '🔄 Syncing data from Google Sheets...', 'info');
-
-        const response = await fetch(config.webAppUrl + '?action=syncData');
-        const data = await response.json();
-
-        if (!data.success) throw new Error(data.message || 'Sync failed');
-
-        students = data.students || [];
-        hoursLog = data.hours || [];
-        marks = data.marks || [];
-
-        localStorage.setItem('worklog_students', JSON.stringify(students));
-        localStorage.setItem('worklog_hours', JSON.stringify(hoursLog));
-        localStorage.setItem('worklog_marks', JSON.stringify(marks));
-
-        showAlert(
-            'setupStatus',
-            `✅ Sync complete! Loaded ${students.length} students, ${hoursLog.length} hours, ${marks.length} marks.`,
-            'success'
-        );
-    } catch (error) {
-        console.error('Sync error:', error);
-        showAlert('setupStatus', `❌ Sync error: ${error.message}`, 'error');
-    }
+  const statusEl = document.getElementById("setupStatus");
+  try {
+    statusEl.innerHTML = '<div class="alert alert-info">🔄 Syncing with Google Sheets...</div>';
+    const url = CORS_PROXY + encodeURIComponent(config.webAppUrl) + "?action=syncData";
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || "Sync failed");
+    students = data.students || [];
+    hoursLog = data.hours || [];
+    marks = data.marks || [];
+    saveData();
+    updateUI();
+    statusEl.innerHTML = '<div class="alert alert-success">✅ Data synced successfully!</div>';
+  } catch (error) {
+    console.error(error);
+    statusEl.innerHTML = `<div class="alert alert-error">❌ ${error.message}</div>`;
+  }
 }
 
-// =========================
-// ➕ Add Student (Write)
-// =========================
+// ---------- Student ----------
 async function addStudent() {
-    try {
-        const name = document.getElementById('studentName').value.trim();
-        const id = document.getElementById('studentId').value.trim();
-        const email = document.getElementById('studentEmail').value.trim();
+  try {
+    const nameEl = document.getElementById("studentName");
+    const idEl = document.getElementById("studentId");
+    const emailEl = document.getElementById("studentEmail");
+    const name = nameEl.value.trim();
+    const id = idEl.value.trim();
+    const email = emailEl.value.trim();
+    if (!name || !id) return alert("Enter name and ID");
 
-        if (!name || !id) {
-            alert('Please enter student name and ID');
-            return;
-        }
+    const student = { name, id, email, addedDate: new Date().toISOString() };
+    students.push(student);
+    saveData();
+    updateUI();
+    await callBackend("addStudent", { student });
 
-        const payload = { action: 'addStudent', name, id, email };
-        const res = await fetch(config.webAppUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message);
-
-        showAlert('setupStatus', '✅ Student added to Google Sheet!', 'success');
-        document.getElementById('studentName').value = '';
-        document.getElementById('studentId').value = '';
-        document.getElementById('studentEmail').value = '';
-    } catch (err) {
-        console.error(err);
-        showAlert('setupStatus', `❌ ${err.message}`, 'error');
-    }
+    nameEl.value = ''; idEl.value = ''; emailEl.value = '';
+  } catch (err) {
+    alert("Error adding student: " + err.message);
+  }
 }
 
-// =========================
-// 💼 Log Hours (Write)
-// =========================
+// ---------- Hours ----------
 async function logHours() {
-    try {
-        const payload = {
-            action: 'logHours',
-            studentId: document.getElementById('hoursStudent').value,
-            subject: document.getElementById('subject').value.trim(),
-            topic: document.getElementById('topic').value.trim(),
-            date: document.getElementById('workDate').value,
-            hours: parseFloat(document.getElementById('hoursWorked').value),
-            rate: parseFloat(document.getElementById('baseRate').value),
-            notes: document.getElementById('workNotes').value.trim()
-        };
+  try {
+    const studentId = document.getElementById("hoursStudent").value;
+    const subject = document.getElementById("subject").value.trim();
+    const topic = document.getElementById("topic").value.trim();
+    const date = document.getElementById("workDate").value;
+    const hours = parseFloat(document.getElementById("hoursWorked").value);
+    const rate = parseFloat(document.getElementById("baseRate").value);
+    const notes = document.getElementById("workNotes").value.trim();
 
-        if (!payload.studentId || !payload.subject || !payload.date || !payload.hours || !payload.rate) {
-            alert('Please fill in all required fields');
-            return;
-        }
+    if (!studentId || !subject || !topic || !date || !hours || !rate)
+      return alert("Fill in all required fields");
 
-        const res = await fetch(config.webAppUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+    const student = students.find(s => s.id === studentId);
+    if (!student) return alert("Student not found");
 
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message);
+    const entry = {
+      studentId,
+      studentName: student.name,
+      subject,
+      topic,
+      date,
+      hours,
+      rate,
+      earnings: hours * rate,
+      notes,
+      timestamp: new Date().toISOString()
+    };
 
-        showAlert('setupStatus', '✅ Hours logged successfully!', 'success');
-    } catch (err) {
-        console.error(err);
-        showAlert('setupStatus', `❌ ${err.message}`, 'error');
-    }
+    hoursLog.push(entry);
+    saveData();
+    updateUI();
+    await callBackend("logHours", { entry });
+
+    document.getElementById("subject").value = '';
+    document.getElementById("topic").value = '';
+    document.getElementById("hoursWorked").value = '';
+    document.getElementById("baseRate").value = '';
+    document.getElementById("workNotes").value = '';
+  } catch (err) {
+    alert("Error logging hours: " + err.message);
+  }
 }
 
-// =========================
-// 📝 Add Mark (Write)
-// =========================
+// ---------- Marks ----------
 async function addMark() {
-    try {
-        const payload = {
-            action: 'addMark',
-            studentId: document.getElementById('marksStudent').value,
-            subject: document.getElementById('markSubject').value.trim(),
-            date: document.getElementById('markDate').value,
-            score: parseFloat(document.getElementById('score').value),
-            maxScore: parseFloat(document.getElementById('maxScore').value),
-            comments: document.getElementById('markComments').value.trim()
-        };
+  try {
+    const studentId = document.getElementById("marksStudent").value;
+    const subject = document.getElementById("markSubject").value.trim();
+    const date = document.getElementById("markDate").value;
+    const score = parseFloat(document.getElementById("score").value);
+    const maxScore = parseFloat(document.getElementById("maxScore").value);
+    const comments = document.getElementById("markComments").value.trim();
+    if (!studentId || !subject || !date || isNaN(score) || isNaN(maxScore))
+      return alert("Fill in all required fields");
 
-        if (!payload.studentId || !payload.subject || !payload.date) {
-            alert('Please fill in all required fields');
-            return;
-        }
+    const student = students.find(s => s.id === studentId);
+    if (!student) return alert("Student not found");
 
-        const res = await fetch(config.webAppUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+    const mark = {
+      studentId,
+      studentName: student.name,
+      subject,
+      date,
+      score,
+      maxScore,
+      percentage: ((score / maxScore) * 100).toFixed(1),
+      comments,
+      timestamp: new Date().toISOString()
+    };
 
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message);
+    marks.push(mark);
+    saveData();
+    updateUI();
+    await callBackend("addMark", { mark });
 
-        showAlert('setupStatus', '✅ Mark recorded successfully!', 'success');
-    } catch (err) {
-        console.error(err);
-        showAlert('setupStatus', `❌ ${err.message}`, 'error');
-    }
+    document.getElementById("markSubject").value = '';
+    document.getElementById("score").value = '';
+    document.getElementById("maxScore").value = '';
+    document.getElementById("markComments").value = '';
+  } catch (err) {
+    alert("Error adding mark: " + err.message);
+  }
 }
 
-// =========================
-// Global
-// =========================
+// ---------- UI ----------
+function updateUI() {
+  updateStudentList();
+  updateStudentSelects();
+  updateHoursList();
+  updateMarksList();
+}
+
+function updateStudentList() {
+  const container = document.getElementById('studentsContainer');
+  if (!container) return;
+  if (students.length === 0) {
+    container.innerHTML = '<p>No students yet.</p>';
+    return;
+  }
+  container.innerHTML = students.map((s, i) => `
+    <div class="list-item">
+      <div><strong>${s.name}</strong> (ID: ${s.id})<br>
+      <small>${s.email || ''}</small></div>
+      <button class="btn btn-secondary" onclick="deleteStudent(${i})">🗑️</button>
+    </div>
+  `).join('');
+}
+
+function updateStudentSelects() {
+  const opts = students.map(s => `<option value="${s.id}">${s.name} (${s.id})</option>`).join('');
+  document.getElementById('hoursStudent').innerHTML = '<option value="">Select...</option>' + opts;
+  document.getElementById('marksStudent').innerHTML = '<option value="">Select...</option>' + opts;
+}
+
+function updateHoursList() {
+  const container = document.getElementById('hoursContainer');
+  if (!container) return;
+  if (hoursLog.length === 0) {
+    container.innerHTML = '<p>No hours logged.</p>'; return;
+  }
+  const recent = hoursLog.slice(-10).reverse();
+  container.innerHTML = `<table><thead><tr>
+  <th>Date</th><th>Student</th><th>Subject</th><th>Hours</th><th>Earnings</th>
+  </tr></thead><tbody>${recent.map(h=>`
+  <tr><td>${h.date}</td><td>${h.studentName}</td><td>${h.subject}</td><td>${h.hours}</td><td>${h.earnings}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function updateMarksList() {
+  const container = document.getElementById('marksContainer');
+  if (!container) return;
+  if (marks.length === 0) { container.innerHTML = '<p>No marks yet.</p>'; return; }
+  const recent = marks.slice(-10).reverse();
+  container.innerHTML = `<table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Score</th></tr></thead><tbody>
+    ${recent.map(m=>`<tr><td>${m.date}</td><td>${m.studentName}</td><td>${m.subject}</td><td>${m.score}/${m.maxScore}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+function showAlert(elementId, message, type) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  const cls = type === "error" ? "alert-error" : type === "success" ? "alert-success" : "alert-info";
+  el.innerHTML = `<div class="alert ${cls}">${message}</div>`;
+}
+
+// ---------- Boot ----------
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+else init();
+
+// ---------- Expose globally ----------
+window.switchTab = switchTab;
 window.saveConfig = saveConfig;
-window.testConnection = testConnection;
 window.initializeSheets = initializeSheets;
 window.syncWithSheets = syncWithSheets;
 window.addStudent = addStudent;
 window.logHours = logHours;
 window.addMark = addMark;
+window.deleteStudent = i => { students.splice(i, 1); saveData(); updateUI(); };
+window.exportToCSV = () => alert("Export feature omitted in this minimal build.");
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+console.log("WorkLog script loaded");
