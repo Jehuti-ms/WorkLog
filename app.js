@@ -756,4 +756,16 @@ if (document.readyState === 'loading') {
     init();
 }
 
+// Make functions globally available
+window.switchTab = switchTab;
+window.saveConfig = saveConfig;
+window.testConnection = testConnection;
+window.initializeSheets = initializeSheets;
+window.syncWithSheets = syncWithSheets;
+window.addStudent = addStudent;
+window.logHours = logHours;
+window.addMark = addMark;
+window.deleteStudent = deleteStudent;
+window.exportToCSV = exportToCSV;
+
 console.log('WorkLog script loaded');
