@@ -3,8 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WorkLog - Student Tracker & Hours Manager</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>WorkLog - Student Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #667eea;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .list-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .list-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+        }
+
+        .card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .card p {
+            opacity: 0.9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                width: 100%;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -25,10 +295,7 @@
             <!-- Setup Tab -->
             <div id="setup" class="tab-content active">
                 <h2>Google Sheets Setup</h2>
-                
-                <div id="setupStatus" style="min-height: 50px;">
-                    <!-- Status messages will appear here -->
-                </div>
+                <div id="setupStatus"></div>
                 
                 <div class="form-group">
                     <label>Google Sheets ID</label>
@@ -46,37 +313,511 @@
                     </small>
                 </div>
 
-                <!-- ✅ New Web App URL Input -->
-                <div class="form-group">
-                    <label>Web App URL (Google Apps Script)</label>
-                    <input type="text" id="webAppUrl" placeholder="https://script.google.com/macros/s/DEPLOYMENT_ID/exec">
-                    <small style="color: #666; display: block; margin-top: 5px;">
-                        Paste your deployed Google Apps Script Web App URL here (used for authorized read/write access).
-                    </small>
-                </div>
-
                 <button class="btn" onclick="saveConfig()">💾 Save Configuration</button>
                 <button class="btn btn-secondary" onclick="testConnection()">🔌 Test Connection</button>
                 <button class="btn btn-success" onclick="initializeSheets()">🚀 Initialize Sheets</button>
-                <button class="btn btn-success" onclick="syncWithSheets()">🔄 Sync with Sheets</button>
 
                 <div class="alert alert-info" style="margin-top: 20px;">
                     <strong>Setup Instructions:</strong><br>
                     1. Create a new Google Sheet<br>
                     2. Enable Google Sheets API in Google Cloud Console<br>
-                    3. Deploy your Google Apps Script as a Web App (Anyone can access)<br>
-                    4. Enter your Sheet ID, API Key, and Web App URL above<br>
-                    5. Click "Initialize Sheets" to automatically create tabs with headers<br>
-                    6. Click "Sync with Sheets" to load existing data
+                    3. Create an API key and make your sheet publicly readable<br>
+                    4. Enter your Sheet ID and API Key above<br>
+                    5. Click "Initialize Sheets" to create the necessary tabs
                 </div>
             </div>
 
-            <!-- The rest of your tabs remain unchanged -->
-            <!-- Students, Hours, Marks, and Reports tabs go here (no edits needed) -->
+            <!-- Students Tab -->
+            <div id="students" class="tab-content">
+                <h2>Student Register</h2>
+                <div class="form-group">
+                    <label>Student Name</label>
+                    <input type="text" id="studentName" placeholder="Enter student name">
+                </div>
+                <div class="form-group">
+                    <label>Student ID</label>
+                    <input type="text" id="studentId" placeholder="Enter student ID">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="studentEmail" placeholder="student@example.com">
+                </div>
+                <button class="btn" onclick="addStudent()">➕ Add Student</button>
 
+                <div id="studentList" style="margin-top: 30px;">
+                    <h3>Registered Students</h3>
+                    <div id="studentsContainer"></div>
+                </div>
+            </div>
+
+            <!-- Hours Tracker Tab -->
+            <div id="hours" class="tab-content">
+                <h2>Hours & Work Log</h2>
+                <div class="form-group">
+                    <label>Student</label>
+                    <select id="hoursStudent">
+                        <option value="">Select student...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="subject" placeholder="e.g., Mathematics, Programming">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="workDate">
+                </div>
+                <div class="form-group">
+                    <label>Hours Worked</label>
+                    <input type="number" id="hoursWorked" step="0.5" min="0" placeholder="e.g., 2.5">
+                </div>
+                <div class="form-group">
+                    <label>Base Rate ($/hr)</label>
+                    <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 15.00">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="workNotes" rows="3" placeholder="Additional notes..."></textarea>
+                </div>
+                <button class="btn" onclick="logHours()">💼 Log Hours</button>
+
+                <div id="hoursLog" style="margin-top: 30px;">
+                    <h3>Recent Entries</h3>
+                    <div id="hoursContainer"></div>
+                </div>
+            </div>
+
+            <!-- Marks Tab -->
+            <div id="marks" class="tab-content">
+                <h2>Marks Register</h2>
+                <div class="form-group">
+                    <label>Student</label>
+                    <select id="marksStudent">
+                        <option value="">Select student...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="markSubject" placeholder="e.g., Final Exam, Assignment 1">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="markDate">
+                </div>
+                <div class="form-group">
+                    <label>Score</label>
+                    <input type="number" id="score" step="0.1" min="0" max="100" placeholder="e.g., 85">
+                </div>
+                <div class="form-group">
+                    <label>Maximum Score</label>
+                    <input type="number" id="maxScore" step="0.1" min="0" placeholder="e.g., 100">
+                </div>
+                <div class="form-group">
+                    <label>Comments</label>
+                    <textarea id="markComments" rows="3" placeholder="Additional comments..."></textarea>
+                </div>
+                <button class="btn" onclick="addMark()">📝 Add Mark</button>
+
+                <div id="marksList" style="margin-top: 30px;">
+                    <h3>Marks Register</h3>
+                    <div id="marksContainer"></div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reports" class="tab-content">
+                <h2>Reports & Analytics</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3 id="totalStudents">0</h3>
+                        <p>Total Students</p>
+                    </div>
+                    <div class="card">
+                        <h3 id="totalHours">0</h3>
+                        <p>Total Hours Logged</p>
+                    </div>
+                    <div class="card">
+                        <h3 id="totalEarnings">$0</h3>
+                        <p>Total Earnings</p>
+                    </div>
+                    <div class="card">
+                        <h3 id="avgMark">0%</h3>
+                        <p>Average Mark</p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <h3>Weekly Summary</h3>
+                    <table id="weeklyTable">
+                        <thead>
+                            <tr>
+                                <th>Week</th>
+                                <th>Hours</th>
+                                <th>Earnings</th>
+                                <th>Students Active</th>
+                            </tr>
+                        </thead>
+                        <tbody id="weeklyBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script>
+        // Configuration
+        let config = {
+            sheetId: '',
+            apiKey: '',
+            connected: false
+        };
+
+        // Data storage
+        let students = [];
+        let hoursLog = [];
+        let marks = [];
+
+        // Initialize
+        function init() {
+            loadConfig();
+            loadData();
+            updateUI();
+            setDefaultDate();
+        }
+
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('workDate').value = today;
+            document.getElementById('markDate').value = today;
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            if (tabName === 'reports') {
+                updateReports();
+            }
+        }
+
+        // Configuration management
+        function loadConfig() {
+            const saved = localStorage.getItem('worklog_config');
+            if (saved) {
+                config = JSON.parse(saved);
+                document.getElementById('sheetId').value = config.sheetId || '';
+                document.getElementById('apiKey').value = config.apiKey || '';
+                updateSetupStatus();
+            }
+        }
+
+        function saveConfig() {
+            config.sheetId = document.getElementById('sheetId').value.trim();
+            config.apiKey = document.getElementById('apiKey').value.trim();
+            
+            if (!config.sheetId || !config.apiKey) {
+                showAlert('setupStatus', 'Please enter both Sheet ID and API Key', 'error');
+                return;
+            }
+            
+            localStorage.setItem('worklog_config', JSON.stringify(config));
+            showAlert('setupStatus', 'Configuration saved successfully!', 'success');
+            updateSetupStatus();
+        }
+
+        function testConnection() {
+            if (!config.sheetId || !config.apiKey) {
+                showAlert('setupStatus', 'Please save your configuration first', 'error');
+                return;
+            }
+            
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}?key=${config.apiKey}`;
+            
+            fetch(url)
+                .then(response => {
+                    if (response.ok) {
+                        config.connected = true;
+                        saveConfigToStorage();
+                        showAlert('setupStatus', '✅ Connection successful!', 'success');
+                        updateSetupStatus();
+                    } else {
+                        throw new Error('Connection failed');
+                    }
+                })
+                .catch(error => {
+                    config.connected = false;
+                    saveConfigToStorage();
+                    showAlert('setupStatus', '❌ Connection failed. Check your credentials and sheet permissions.', 'error');
+                    updateSetupStatus();
+                });
+        }
+
+        function initializeSheets() {
+            showAlert('setupStatus', 'Note: Sheet initialization requires write access. Please manually create tabs: Students, Hours, Marks', 'info');
+        }
+
+        function updateSetupStatus() {
+            const status = document.getElementById('setupStatus');
+            if (config.connected) {
+                status.innerHTML = '<div class="alert alert-success">✅ Connected to Google Sheets</div>';
+            } else if (config.sheetId && config.apiKey) {
+                status.innerHTML = '<div class="alert alert-info">⚠️ Configuration saved. Click "Test Connection" to verify.</div>';
+            }
+        }
+
+        function saveConfigToStorage() {
+            localStorage.setItem('worklog_config', JSON.stringify(config));
+        }
+
+        // Data management
+        function loadData() {
+            students = JSON.parse(localStorage.getItem('worklog_students') || '[]');
+            hoursLog = JSON.parse(localStorage.getItem('worklog_hours') || '[]');
+            marks = JSON.parse(localStorage.getItem('worklog_marks') || '[]');
+        }
+
+        function saveData() {
+            localStorage.setItem('worklog_students', JSON.stringify(students));
+            localStorage.setItem('worklog_hours', JSON.stringify(hoursLog));
+            localStorage.setItem('worklog_marks', JSON.stringify(marks));
+        }
+
+        // Student management
+        function addStudent() {
+            const name = document.getElementById('studentName').value.trim();
+            const id = document.getElementById('studentId').value.trim();
+            const email = document.getElementById('studentEmail').value.trim();
+            
+            if (!name || !id) {
+                alert('Please enter student name and ID');
+                return;
+            }
+            
+            students.push({ name, id, email, addedDate: new Date().toISOString() });
+            saveData();
+            updateUI();
+            
+            document.getElementById('studentName').value = '';
+            document.getElementById('studentId').value = '';
+            document.getElementById('studentEmail').value = '';
+        }
+
+        function logHours() {
+            const studentId = document.getElementById('hoursStudent').value;
+            const subject = document.getElementById('subject').value.trim();
+            const date = document.getElementById('workDate').value;
+            const hours = parseFloat(document.getElementById('hoursWorked').value);
+            const rate = parseFloat(document.getElementById('baseRate').value);
+            const notes = document.getElementById('workNotes').value.trim();
+            
+            if (!studentId || !subject || !date || !hours || !rate) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            const student = students.find(s => s.id === studentId);
+            const earnings = hours * rate;
+            
+            hoursLog.push({
+                studentId,
+                studentName: student.name,
+                subject,
+                date,
+                hours,
+                rate,
+                earnings,
+                notes,
+                timestamp: new Date().toISOString()
+            });
+            
+            saveData();
+            updateUI();
+            
+            document.getElementById('subject').value = '';
+            document.getElementById('hoursWorked').value = '';
+            document.getElementById('baseRate').value = '';
+            document.getElementById('workNotes').value = '';
+        }
+
+        function addMark() {
+            const studentId = document.getElementById('marksStudent').value;
+            const subject = document.getElementById('markSubject').value.trim();
+            const date = document.getElementById('markDate').value;
+            const score = parseFloat(document.getElementById('score').value);
+            const maxScore = parseFloat(document.getElementById('maxScore').value);
+            const comments = document.getElementById('markComments').value.trim();
+            
+            if (!studentId || !subject || !date || isNaN(score) || isNaN(maxScore)) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            const student = students.find(s => s.id === studentId);
+            const percentage = (score / maxScore * 100).toFixed(1);
+            
+            marks.push({
+                studentId,
+                studentName: student.name,
+                subject,
+                date,
+                score,
+                maxScore,
+                percentage,
+                comments,
+                timestamp: new Date().toISOString()
+            });
+            
+            saveData();
+            updateUI();
+            
+            document.getElementById('markSubject').value = '';
+            document.getElementById('score').value = '';
+            document.getElementById('maxScore').value = '';
+            document.getElementById('markComments').value = '';
+        }
+
+        // UI Updates
+        function updateUI() {
+            updateStudentList();
+            updateStudentSelects();
+            updateHoursList();
+            updateMarksList();
+        }
+
+        function updateStudentList() {
+            const container = document.getElementById('studentsContainer');
+            if (students.length === 0) {
+                container.innerHTML = '<p style="color: #666;">No students registered yet.</p>';
+                return;
+            }
+            
+            container.innerHTML = students.map((s, i) => `
+                <div class="list-item">
+                    <div>
+                        <strong>${s.name}</strong> (ID: ${s.id})<br>
+                        <small style="color: #666;">${s.email || 'No email'}</small>
+                    </div>
+                    <button class="btn btn-secondary" onclick="deleteStudent(${i})">🗑️</button>
+                </div>
+            `).join('');
+        }
+
+        function updateStudentSelects() {
+            const hoursSelect = document.getElementById('hoursStudent');
+            const marksSelect = document.getElementById('marksStudent');
+            
+            const options = students.map(s => 
+                `<option value="${s.id}">${s.name} (${s.id})</option>`
+            ).join('');
+            
+            hoursSelect.innerHTML = '<option value="">Select student...</option>' + options;
+            marksSelect.innerHTML = '<option value="">Select student...</option>' + options;
+        }
+
+        function updateHoursList() {
+            const container = document.getElementById('hoursContainer');
+            if (hoursLog.length === 0) {
+                container.innerHTML = '<p style="color: #666;">No hours logged yet.</p>';
+                return;
+            }
+            
+            const recent = hoursLog.slice(-10).reverse();
+            container.innerHTML = '<table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Hours</th><th>Rate</th><th>Earnings</th></tr></thead><tbody>' +
+                recent.map(h => `
+                    <tr>
+                        <td>${new Date(h.date).toLocaleDateString()}</td>
+                        <td>${h.studentName}</td>
+                        <td>${h.subject}</td>
+                        <td>${h.hours}</td>
+                        <td>$${h.rate.toFixed(2)}</td>
+                        <td>$${h.earnings.toFixed(2)}</td>
+                    </tr>
+                `).join('') + '</tbody></table>';
+        }
+
+        function updateMarksList() {
+            const container = document.getElementById('marksContainer');
+            if (marks.length === 0) {
+                container.innerHTML = '<p style="color: #666;">No marks recorded yet.</p>';
+                return;
+            }
+            
+            const recent = marks.slice(-10).reverse();
+            container.innerHTML = '<table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Score</th><th>Percentage</th></tr></thead><tbody>' +
+                recent.map(m => `
+                    <tr>
+                        <td>${new Date(m.date).toLocaleDateString()}</td>
+                        <td>${m.studentName}</td>
+                        <td>${m.subject}</td>
+                        <td>${m.score}/${m.maxScore}</td>
+                        <td>${m.percentage}%</td>
+                    </tr>
+                `).join('') + '</tbody></table>';
+        }
+
+        function updateReports() {
+            document.getElementById('totalStudents').textContent = students.length;
+            document.getElementById('totalHours').textContent = hoursLog.reduce((sum, h) => sum + h.hours, 0).toFixed(1);
+            document.getElementById('totalEarnings').textContent = '$' + hoursLog.reduce((sum, h) => sum + h.earnings, 0).toFixed(2);
+            
+            const avgMark = marks.length > 0 
+                ? (marks.reduce((sum, m) => sum + parseFloat(m.percentage), 0) / marks.length).toFixed(1)
+                : 0;
+            document.getElementById('avgMark').textContent = avgMark + '%';
+            
+            updateWeeklyReport();
+        }
+
+        function updateWeeklyReport() {
+            const weeks = {};
+            hoursLog.forEach(h => {
+                const week = getWeekNumber(new Date(h.date));
+                if (!weeks[week]) {
+                    weeks[week] = { hours: 0, earnings: 0, students: new Set() };
+                }
+                weeks[week].hours += h.hours;
+                weeks[week].earnings += h.earnings;
+                weeks[week].students.add(h.studentId);
+            });
+            
+            const tbody = document.getElementById('weeklyBody');
+            tbody.innerHTML = Object.keys(weeks).sort().reverse().slice(0, 8).map(week => `
+                <tr>
+                    <td>Week ${week}</td>
+                    <td>${weeks[week].hours.toFixed(1)}</td>
+                    <td>$${weeks[week].earnings.toFixed(2)}</td>
+                    <td>${weeks[week].students.size}</td>
+                </tr>
+            `).join('');
+        }
+
+        function getWeekNumber(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        function deleteStudent(index) {
+            if (confirm('Are you sure you want to delete this student?')) {
+                students.splice(index, 1);
+                saveData();
+                updateUI();
+            }
+        }
+
+        function showAlert(elementId, message, type) {
+            const alertClass = type === 'error' ? 'alert-error' : type === 'success' ? 'alert-success' : 'alert-info';
+            document.getElementById(elementId).innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+        }
+
+        // Initialize on load
+        init();
+    </script>
 </body>
 </html>
