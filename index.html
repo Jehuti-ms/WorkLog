@@ -25,7 +25,10 @@
             <!-- Setup Tab -->
             <div id="setup" class="tab-content active">
                 <h2>Google Sheets Setup</h2>
-                <div id="setupStatus"></div>
+                
+                <div id="setupStatus" style="min-height: 50px;">
+                    <!-- Status messages will appear here -->
+                </div>
                 
                 <div class="form-group">
                     <label>Google Sheets ID</label>
@@ -45,15 +48,17 @@
 
                 <button class="btn" onclick="saveConfig()">💾 Save Configuration</button>
                 <button class="btn btn-secondary" onclick="testConnection()">🔌 Test Connection</button>
+                <button class="btn btn-success" onclick="initializeSheets()">🚀 Initialize Sheets</button>
                 <button class="btn btn-success" onclick="syncWithSheets()">🔄 Sync with Sheets</button>
 
                 <div class="alert alert-info" style="margin-top: 20px;">
                     <strong>Setup Instructions:</strong><br>
-                    1. Create a new Google Sheet with tabs: Students, Hours, Marks<br>
+                    1. Create a new Google Sheet<br>
                     2. Enable Google Sheets API in Google Cloud Console<br>
-                    3. Create an API key and make your sheet publicly readable<br>
+                    3. Create an API key and make your sheet publicly editable (Anyone with link can edit)<br>
                     4. Enter your Sheet ID and API Key above<br>
-                    5. Click "Sync with Sheets" to sync data
+                    5. Click "Initialize Sheets" to automatically create tabs with headers<br>
+                    6. Click "Sync with Sheets" to load existing data
                 </div>
             </div>
 
@@ -92,6 +97,10 @@
                 <div class="form-group">
                     <label>Subject</label>
                     <input type="text" id="subject" placeholder="e.g., Mathematics, Programming">
+                </div>
+                <div class="form-group">
+                    <label>Topic</label>
+                    <input type="text" id="topic" placeholder="e.g., Algebra, Functions, Arrays">
                 </div>
                 <div class="form-group">
                     <label>Date</label>
