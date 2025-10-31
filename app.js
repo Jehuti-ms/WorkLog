@@ -1,15 +1,20 @@
 // =========================
-// WorkLog - Google Sheets Integration
+// WorkLog - Google Sheets Integration (FINAL)
 // =========================
 
-// Config object
 const config = {
     sheetId: '',
     apiKey: '',
     webAppUrl: ''
 };
 
-// Show alert messages in setup panel
+let students = [];
+let hoursLog = [];
+let marks = [];
+
+// =========================
+// Utility
+// =========================
 function showAlert(id, message, type = 'info') {
     const el = document.getElementById(id);
     if (!el) return;
@@ -19,43 +24,34 @@ function showAlert(id, message, type = 'info') {
     el.innerHTML = `<div style="background:${color};padding:10px;border-radius:8px;">${message}</div>`;
 }
 
-// Initialize configuration on load
+// =========================
+// Initialization
+// =========================
 function init() {
     try {
         const saved = localStorage.getItem('worklogConfig');
-        if (saved) {
-            Object.assign(config, JSON.parse(saved));
-            if (document.getElementById('sheetId')) {
-                document.getElementById('sheetId').value = config.sheetId || '';
-            }
-            if (document.getElementById('apiKey')) {
-                document.getElementById('apiKey').value = config.apiKey || '';
-            }
-            if (document.getElementById('webAppUrl')) {
-                document.getElementById('webAppUrl').value = config.webAppUrl || '';
-            }
-        }
+        if (saved) Object.assign(config, JSON.parse(saved));
+
+        const ids = ['sheetId', 'apiKey', 'webAppUrl'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && config[id]) el.value = config[id];
+        });
+
         console.log('Initialized config:', config);
     } catch (error) {
         console.error('Error initializing config:', error);
     }
 }
 
-// Save config to localStorage
+// =========================
+// Save Configuration
+// =========================
 function saveConfig() {
     try {
-        const sheetIdEl = document.getElementById('sheetId');
-        const apiKeyEl = document.getElementById('apiKey');
-        const webAppUrlEl = document.getElementById('webAppUrl');
-
-        if (!sheetIdEl || !apiKeyEl) {
-            showAlert('setupStatus', 'Configuration fields not found in HTML.', 'error');
-            return;
-        }
-
-        config.sheetId = sheetIdEl.value.trim();
-        config.apiKey = apiKeyEl.value.trim();
-        config.webAppUrl = webAppUrlEl ? webAppUrlEl.value.trim() : '';
+        config.sheetId = document.getElementById('sheetId')?.value.trim() || '';
+        config.apiKey = document.getElementById('apiKey')?.value.trim() || '';
+        config.webAppUrl = document.getElementById('webAppUrl')?.value.trim() || '';
 
         localStorage.setItem('worklogConfig', JSON.stringify(config));
         showAlert('setupStatus', '💾 Configuration saved successfully!', 'success');
@@ -65,7 +61,9 @@ function saveConfig() {
     }
 }
 
-// Test Google Sheets connection (read-only)
+// =========================
+// Test Google Sheets Connection (Read-Only)
+// =========================
 async function testConnection() {
     try {
         if (!config.sheetId || !config.apiKey) {
@@ -84,28 +82,24 @@ async function testConnection() {
             const requiredTabs = ['Students', 'Hours', 'Marks'];
             const missingTabs = requiredTabs.filter(t => !foundTabs.includes(t));
 
-            if (missingTabs.length === 0) {
+            if (missingTabs.length === 0)
                 showAlert('setupStatus', '✅ All required tabs found and readable!', 'success');
-            } else {
+            else
                 showAlert(
                     'setupStatus',
-                    `⚠️ Partial sync: Found tabs: ${foundTabs.join(', ')}<br>Missing tabs: ${missingTabs.join(', ')}<br><br>
-                    Please use "Initialize Sheets" to create missing tabs automatically.`,
+                    `⚠️ Missing tabs: ${missingTabs.join(', ')}. Use "Initialize Sheets" to create them.`,
                     'error'
                 );
-            }
-        } else {
-            throw new Error(data.error?.message || 'Unable to access Google Sheet.');
-        }
+        } else throw new Error(data.error?.message || 'Unable to access Google Sheet.');
     } catch (error) {
         console.error('Connection test failed:', error);
-        showAlert('setupStatus', `❌ Error: ${error.message}`, 'error');
+        showAlert('setupStatus', `❌ ${error.message}`, 'error');
     }
 }
 
-// =========================================
-// 🚀 Initialize Google Sheet via Web App
-// =========================================
+// =========================
+// 🚀 Initialize Sheets via Web App
+// =========================
 async function initializeSheets() {
     try {
         if (!config.webAppUrl) {
@@ -123,34 +117,59 @@ async function initializeSheets() {
 
         const data = await response.json();
 
-        if (data.success) {
+        if (data.success)
             showAlert('setupStatus', '✅ Google Sheet setup complete! All tabs created.', 'success');
-        } else {
-            throw new Error(data.message || 'Unknown error during setup');
-        }
+        else throw new Error(data.message || 'Unknown error during setup');
     } catch (error) {
         console.error('Error initializing sheets:', error);
         showAlert('setupStatus', `❌ ${error.message}`, 'error');
     }
 }
 
-// =========================================
-// 🔄 Stub for Sync Function (Optional)
-// =========================================
-function syncWithSheets() {
-    console.log('🔄 Syncing data with Google Sheets...');
-    showAlert('setupStatus', '🔄 Sync started (future feature placeholder).', 'info');
+// =========================
+// 🔄 Sync Data via Web App
+// =========================
+async function syncWithSheets() {
+    try {
+        if (!config.webAppUrl) {
+            showAlert('setupStatus', 'Please enter your Web App URL first.', 'error');
+            return;
+        }
+
+        showAlert('setupStatus', '🔄 Syncing data from Google Sheets...', 'info');
+
+        const response = await fetch(config.webAppUrl + '?action=syncData');
+        const data = await response.json();
+
+        if (!data.success) throw new Error(data.message || 'Sync failed');
+
+        students = data.students || [];
+        hoursLog = data.hours || [];
+        marks = data.marks || [];
+
+        localStorage.setItem('worklog_students', JSON.stringify(students));
+        localStorage.setItem('worklog_hours', JSON.stringify(hoursLog));
+        localStorage.setItem('worklog_marks', JSON.stringify(marks));
+
+        showAlert(
+            'setupStatus',
+            `✅ Sync complete! Loaded ${students.length} students, ${hoursLog.length} hours, ${marks.length} marks.`,
+            'success'
+        );
+    } catch (error) {
+        console.error('Sync error:', error);
+        showAlert('setupStatus', `❌ Sync error: ${error.message}`, 'error');
+    }
 }
 
-// =========================================
-// 📄 Make functions globally accessible
-// =========================================
+// =========================
+// Global Access
+// =========================
 window.saveConfig = saveConfig;
 window.testConnection = testConnection;
 window.initializeSheets = initializeSheets;
 window.syncWithSheets = syncWithSheets;
 
-// Ensure init runs only when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
