@@ -380,4 +380,390 @@ async function logHours() {
     if (config.webAppUrl) {
         try {
             await callBackend('logHours', { entry });
-            addLog(`Hours
+            addLog(`Hours entry synced to Google Sheets`, "success");
+        } catch (error) {
+            addLog(`Failed to sync hours to Google Sheets: ${error.message}`, "error");
+        }
+    }
+    
+    // Clear form
+    document.getElementById('organization').value = '';
+    document.getElementById('subject').value = '';
+    document.getElementById('topic').value = '';
+    document.getElementById('hoursWorked').value = '';
+    document.getElementById('baseRate').value = '';
+    document.getElementById('totalPay').value = '';
+    document.getElementById('workNotes').value = '';
+}
+
+// Marks calculation
+function calculatePercentage() {
+    const score = parseFloat(document.getElementById('score').value) || 0;
+    const maxScore = parseFloat(document.getElementById('maxScore').value) || 0;
+    
+    if (maxScore > 0) {
+        const percentage = (score / maxScore * 100).toFixed(1);
+        document.getElementById('percentage').value = percentage + '%';
+        
+        // Calculate grade
+        let grade = '';
+        if (percentage >= 90) grade = 'A+';
+        else if (percentage >= 80) grade = 'A';
+        else if (percentage >= 70) grade = 'B';
+        else if (percentage >= 60) grade = 'C';
+        else if (percentage >= 50) grade = 'D';
+        else grade = 'F';
+        
+        document.getElementById('grade').value = grade;
+    } else {
+        document.getElementById('percentage').value = '';
+        document.getElementById('grade').value = '';
+    }
+}
+
+function updateStudentDetails() {
+    const studentId = document.getElementById('marksStudent').value;
+    const student = students.find(s => s.id === studentId);
+    const detailsDiv = document.getElementById('studentDetails');
+    
+    if (student) {
+        document.getElementById('selectedStudentName').textContent = student.name;
+        document.getElementById('selectedStudentGender').textContent = student.gender;
+        document.getElementById('selectedStudentId').textContent = student.id;
+        detailsDiv.style.display = 'block';
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+}
+
+async function addMark() {
+    const studentId = document.getElementById('marksStudent').value;
+    const subject = document.getElementById('markSubject').value.trim();
+    const topic = document.getElementById('markTopic').value.trim();
+    const date = document.getElementById('markDate').value;
+    const score = parseFloat(document.getElementById('score').value);
+    const maxScore = parseFloat(document.getElementById('maxScore').value);
+    const percentage = document.getElementById('percentage').value;
+    const grade = document.getElementById('grade').value;
+    const comments = document.getElementById('markComments').value.trim();
+    
+    if (!studentId || !subject || !topic || !date || isNaN(score) || isNaN(maxScore)) {
+        alert('Please fill in all required fields');
+        addLog("Add mark failed: Missing required fields", "error");
+        return;
+    }
+    
+    const student = students.find(s => s.id === studentId);
+    
+    const mark = {
+        studentId,
+        studentName: student.name,
+        gender: student.gender,
+        subject,
+        topic,
+        date,
+        score,
+        maxScore,
+        percentage,
+        grade,
+        comments,
+        timestamp: new Date().toISOString()
+    };
+    
+    marks.push(mark);
+    saveData();
+    updateUI();
+    addLog(`Added mark for ${student.name}: ${score}/${maxScore} (${percentage}) - Grade: ${grade}`, "success");
+    
+    if (config.webAppUrl) {
+        try {
+            await callBackend('addMark', { mark });
+            addLog(`Mark entry synced to Google Sheets`, "success");
+        } catch (error) {
+            addLog(`Failed to sync mark to Google Sheets: ${error.message}`, "error");
+        }
+    }
+    
+    // Clear form
+    document.getElementById('markSubject').value = '';
+    document.getElementById('markTopic').value = '';
+    document.getElementById('score').value = '';
+    document.getElementById('maxScore').value = '';
+    document.getElementById('percentage').value = '';
+    document.getElementById('grade').value = '';
+    document.getElementById('markComments').value = '';
+}
+
+// Attendance management
+function updateAttendanceList() {
+    const container = document.getElementById('attendanceList');
+    if (students.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No students registered yet.</p>';
+        return;
+    }
+    
+    container.innerHTML = students.map(student => `
+        <div class="attendance-item">
+            <div>
+                <input type="checkbox" class="attendance-checkbox" id="attendance_${student.id}" checked>
+                <label for="attendance_${student.id}">
+                    <strong>${student.name}</strong> (${student.id}) - ${student.gender}
+                </label>
+            </div>
+            <div>
+                <small style="color: #666;">${student.email || 'No email'}</small>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function saveAttendance() {
+    const date = document.getElementById('attendanceDate').value;
+    const subject = document.getElementById('attendanceSubject').value.trim();
+    const topic = document.getElementById('attendanceTopic').value.trim();
+    
+    if (!date || !subject || !topic) {
+        alert('Please fill in date, subject and topic');
+        addLog("Save attendance failed: Missing required fields", "error");
+        return;
+    }
+    
+    const attendanceRecords = [];
+    
+    students.forEach(student => {
+        const checkbox = document.getElementById(`attendance_${student.id}`);
+        const status = checkbox.checked ? 'Present' : 'Absent';
+        
+        const record = {
+            date,
+            studentId: student.id,
+            studentName: student.name,
+            gender: student.gender,
+            subject,
+            topic,
+            status,
+            timestamp: new Date().toISOString()
+        };
+        
+        attendanceRecords.push(record);
+    });
+    
+    // Add to attendance log
+    attendance.push(...attendanceRecords);
+    saveData();
+    updateAttendanceUI();
+    addLog(`Saved attendance for ${date}: ${subject} - ${topic}`, "success");
+    
+    if (config.webAppUrl) {
+        try {
+            await callBackend('saveAttendance', { attendance: attendanceRecords });
+            addLog(`Attendance synced to Google Sheets`, "success");
+        } catch (error) {
+            addLog(`Failed to sync attendance to Google Sheets: ${error.message}`, "error");
+        }
+    }
+    
+    // Clear form
+    document.getElementById('attendanceSubject').value = '';
+    document.getElementById('attendanceTopic').value = '';
+}
+
+function updateAttendanceUI() {
+    const container = document.getElementById('attendanceContainer');
+    if (attendance.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No attendance records yet.</p>';
+        return;
+    }
+    
+    const recent = attendance.slice(-20).reverse();
+    container.innerHTML = '<table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Topic</th><th>Status</th></tr></thead><tbody>' +
+        recent.map(a => `
+            <tr>
+                <td>${a.date}</td>
+                <td>${a.studentName}</td>
+                <td>${a.subject}</td>
+                <td>${a.topic}</td>
+                <td><span class="status ${a.status === 'Present' ? 'connected' : 'disconnected'}">${a.status}</span></td>
+            </tr>
+        `).join('') + '</tbody></table>';
+}
+
+// UI Updates
+function updateUI() {
+    updateStudentList();
+    updateStudentSelects();
+    updateHoursList();
+    updateMarksList();
+    updateAttendanceUI();
+}
+
+function updateStudentList() {
+    const container = document.getElementById('studentsContainer');
+    if (students.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No students registered yet.</p>';
+        return;
+    }
+    
+    container.innerHTML = students.map((s, i) => `
+        <div class="list-item">
+            <div>
+                <strong>${s.name}</strong> (${s.id})<br>
+                <small style="color: #666;">${s.gender} | ${s.email || 'No email'} | ${s.phone || 'No phone'}</small>
+            </div>
+            <button class="btn btn-secondary" onclick="deleteStudent(${i})">🗑️</button>
+        </div>
+    `).join('');
+}
+
+function updateStudentSelects() {
+    const hoursSelect = document.getElementById('hoursStudent');
+    const marksSelect = document.getElementById('marksStudent');
+    
+    const options = students.map(s => 
+        `<option value="${s.id}">${s.name} (${s.id}) - ${s.gender}</option>`
+    ).join('');
+    
+    hoursSelect.innerHTML = '<option value="">Select student...</option>' + options;
+    marksSelect.innerHTML = '<option value="">Select student...</option>' + options;
+}
+
+function updateHoursList() {
+    const container = document.getElementById('hoursContainer');
+    if (hoursLog.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No hours logged yet.</p>';
+        return;
+    }
+    
+    const recent = hoursLog.slice(-10).reverse();
+    container.innerHTML = '<table><thead><tr><th>Date</th><th>Organization</th><th>Subject</th><th>Hours</th><th>Total Pay</th></tr></thead><tbody>' +
+        recent.map(h => `
+            <tr>
+                <td>${h.date}</td>
+                <td>${h.organization}</td>
+                <td>${h.subject}</td>
+                <td>${h.hours}</td>
+                <td>$${h.totalPay.toFixed(2)}</td>
+            </tr>
+        `).join('') + '</tbody></table>';
+}
+
+function updateMarksList() {
+    const container = document.getElementById('marksContainer');
+    if (marks.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No marks recorded yet.</p>';
+        return;
+    }
+    
+    const recent = marks.slice(-10).reverse();
+    container.innerHTML = '<table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Topic</th><th>Score</th><th>Grade</th></tr></thead><tbody>' +
+        recent.map(m => `
+            <tr>
+                <td>${m.date}</td>
+                <td>${m.studentName}</td>
+                <td>${m.subject}</td>
+                <td>${m.topic}</td>
+                <td>${m.score}/${m.maxScore} (${m.percentage})</td>
+                <td>${m.grade}</td>
+            </tr>
+        `).join('') + '</tbody></table>';
+}
+
+function updateReports() {
+    document.getElementById('totalStudents').textContent = students.length;
+    document.getElementById('totalHours').textContent = hoursLog.reduce((sum, h) => sum + h.hours, 0).toFixed(1);
+    document.getElementById('totalEarnings').textContent = '$' + hoursLog.reduce((sum, h) => sum + h.totalPay, 0).toFixed(2);
+    
+    const avgMark = marks.length > 0 
+        ? (marks.reduce((sum, m) => sum + parseFloat(m.percentage), 0) / marks.length).toFixed(1)
+        : 0;
+    document.getElementById('avgMark').textContent = avgMark + '%';
+    
+    updateWeeklyReport();
+    updateSubjectReport();
+}
+
+function updateWeeklyReport() {
+    const weeks = {};
+    hoursLog.forEach(h => {
+        const week = getWeekNumber(new Date(h.date));
+        if (!weeks[week]) {
+            weeks[week] = { hours: 0, earnings: 0, students: new Set() };
+        }
+        weeks[week].hours += h.hours;
+        weeks[week].earnings += h.totalPay;
+    });
+    
+    const tbody = document.getElementById('weeklyBody');
+    tbody.innerHTML = Object.keys(weeks).sort().reverse().slice(0, 8).map(week => `
+        <tr>
+            <td>Week ${week}</td>
+            <td>${weeks[week].hours.toFixed(1)}</td>
+            <td>$${weeks[week].earnings.toFixed(2)}</td>
+            <td>${weeks[week].students.size}</td>
+        </tr>
+    `).join('');
+}
+
+function updateSubjectReport() {
+    const subjects = {};
+    
+    // Process hours data
+    hoursLog.forEach(h => {
+        if (!subjects[h.subject]) {
+            subjects[h.subject] = { totalHours: 0, totalEarnings: 0, marks: [] };
+        }
+        subjects[h.subject].totalHours += h.hours;
+        subjects[h.subject].totalEarnings += h.totalPay;
+    });
+    
+    // Process marks data
+    marks.forEach(m => {
+        if (!subjects[m.subject]) {
+            subjects[m.subject] = { totalHours: 0, totalEarnings: 0, marks: [] };
+        }
+        subjects[m.subject].marks.push(parseFloat(m.percentage));
+    });
+    
+    const tbody = document.getElementById('subjectBody');
+    tbody.innerHTML = Object.keys(subjects).map(subject => {
+        const data = subjects[subject];
+        const avgMark = data.marks.length > 0 
+            ? (data.marks.reduce((sum, mark) => sum + mark, 0) / data.marks.length).toFixed(1)
+            : 'N/A';
+            
+        return `
+            <tr>
+                <td>${subject}</td>
+                <td>${avgMark}%</td>
+                <td>${data.totalHours.toFixed(1)}</td>
+                <td>$${data.totalEarnings.toFixed(2)}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+function deleteStudent(index) {
+    if (confirm('Are you sure you want to delete this student?')) {
+        const student = students[index];
+        students.splice(index, 1);
+        saveData();
+        updateUI();
+        addLog(`Deleted student: ${student.name} (${student.id})`, "info");
+    }
+}
+
+function showAlert(elementId, message, type) {
+    const alertClass = type === 'error' ? 'alert-error' : type === 'success' ? 'alert-success' : type === 'warning' ? 'alert-warning' : 'alert-info';
+    document.getElementById(elementId).innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', init);
