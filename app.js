@@ -876,3 +876,46 @@ async function callBackendWithProxy(action, payload = {}) {
         throw new Error(`CORS proxy also failed: ${error.message}`);
     }
 }
+
+// Backend communication with better debugging
+async function callBackend(action, payload = {}) {
+    if (!config.webAppUrl) {
+        throw new Error('Web App URL not configured');
+    }
+
+    addLog(`Sending ${action} request to backend...`, "info");
+    console.log('Backend request:', { action, payload, sheetId: config.sheetId });
+
+    try {
+        const response = await fetch(config.webAppUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: action,
+                ...payload,
+                sheetId: config.sheetId
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('Backend response:', data);
+        
+        if (!data.success) {
+            throw new Error(data.message || 'Backend operation failed');
+        }
+        
+        addLog(`Backend ${action}: ${data.message}`, "success");
+        return data;
+        
+    } catch (error) {
+        console.error('Backend call error:', error);
+        addLog(`Backend call failed for ${action}: ${error.message}`, "error");
+        throw error;
+    }
+}
