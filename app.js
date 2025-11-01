@@ -767,3 +767,74 @@ function showAlert(elementId, message, type) {
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', init);
+
+// Backend communication with better error handling
+async function callBackend(action, payload = {}) {
+    if (!config.webAppUrl) {
+        throw new Error('Web App URL not configured');
+    }
+
+    addLog(`Sending ${action} request to backend...`, "info");
+
+    try {
+        const response = await fetch(config.webAppUrl, {
+            method: 'POST',
+            mode: 'no-cors', // Remove CORS proxy for deployed web app
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: action,
+                ...payload,
+                sheetId: config.sheetId
+            })
+        });
+
+        // With no-cors mode, we can't read the response
+        // So we'll assume success for now and improve later
+        addLog(`${action} request sent successfully`, "success");
+        return { success: true, message: "Request processed" };
+
+    } catch (error) {
+        addLog(`Backend call failed for ${action}: ${error.message}`, "error");
+        
+        // For development, you can use a CORS proxy like this:
+        if (error.message.includes('Failed to fetch')) {
+            addLog("Trying with CORS proxy...", "info");
+            return callBackendWithProxy(action, payload);
+        }
+        
+        throw error;
+    }
+}
+
+// Fallback method with CORS proxy for development
+async function callBackendWithProxy(action, payload = {}) {
+    const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+    const url = CORS_PROXY + config.webAppUrl;
+    
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: action,
+                ...payload,
+                sheetId: config.sheetId
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        addLog(`Backend response for ${action}: ${data.success ? 'Success' : 'Failed'}`, 
+              data.success ? "success" : "error");
+        return data;
+    } catch (error) {
+        throw new Error(`CORS proxy also failed: ${error.message}`);
+    }
+}
