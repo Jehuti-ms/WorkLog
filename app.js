@@ -773,7 +773,45 @@ async function callBackend(action, payload = {}) {
     if (!config.webAppUrl) {
         throw new Error('Web App URL not configured');
     }
+// Backend communication
+async function callBackend(action, payload = {}) {
+    if (!config.webAppUrl) {
+        throw new Error('Web App URL not configured');
+    }
 
+    addLog(`Sending ${action} request to backend...`, "info");
+
+    try {
+        const response = await fetch(config.webAppUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: action,
+                ...payload,
+                sheetId: config.sheetId
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.message || 'Backend operation failed');
+        }
+        
+        addLog(`Backend ${action}: ${data.message}`, "success");
+        return data;
+        
+    } catch (error) {
+        addLog(`Backend call failed for ${action}: ${error.message}`, "error");
+        throw error;
+    }
+}
     addLog(`Sending ${action} request to backend...`, "info");
 
     try {
