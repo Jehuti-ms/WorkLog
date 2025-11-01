@@ -16,6 +16,7 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('setup')">⚙️ Setup</button>
             <button class="tab" onclick="switchTab('students')">👥 Students</button>
+            <button class="tab" onclick="switchTab('attendance')">📅 Attendance</button>
             <button class="tab" onclick="switchTab('hours')">⏰ Hours Tracker</button>
             <button class="tab" onclick="switchTab('marks')">📝 Marks Register</button>
             <button class="tab" onclick="switchTab('reports')">📈 Reports</button>
@@ -64,7 +65,7 @@
                     2. Enable Google Sheets API in Google Cloud Console<br>
                     3. Create an API key and make your sheet publicly readable<br>
                     4. Enter your Sheet ID and API Key above<br>
-                    5. Click "Initialize Sheets" to create the necessary tabs<br>
+                    5. Click "Initialize Sheets" to automatically create all required sheets and headers<br>
                     6. For write operations, deploy the Google Apps Script and enter the Web App URL
                 </div>
 
@@ -91,8 +92,21 @@
                     <input type="text" id="studentId" placeholder="Enter student ID">
                 </div>
                 <div class="form-group">
+                    <label>Gender</label>
+                    <select id="studentGender">
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>Email</label>
                     <input type="email" id="studentEmail" placeholder="student@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="studentPhone" placeholder="Phone number">
                 </div>
                 <button class="btn" onclick="addStudent()">➕ Add Student</button>
 
@@ -102,17 +116,46 @@
                 </div>
             </div>
 
-            <!-- Hours Tracker Tab -->
-            <div id="hours" class="tab-content">
-                <h2>Hours & Work Log</h2>
+            <!-- Attendance Tab -->
+            <div id="attendance" class="tab-content">
+                <h2>Student Attendance</h2>
                 <div class="form-group">
-                    <label>Student</label>
-                    <select id="hoursStudent">
-                        <option value="">Select student...</option>
-                    </select>
+                    <label>Date</label>
+                    <input type="date" id="attendanceDate">
                 </div>
                 <div class="form-group">
                     <label>Subject</label>
+                    <input type="text" id="attendanceSubject" placeholder="e.g., Mathematics, Programming">
+                </div>
+                <div class="form-group">
+                    <label>Topic</label>
+                    <input type="text" id="attendanceTopic" placeholder="e.g., Algebra, Functions">
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h3>Mark Attendance</h3>
+                    <div id="attendanceList" class="attendance-container">
+                        <!-- Attendance list will be populated here -->
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="saveAttendance()" style="margin-top: 20px;">💾 Save Attendance</button>
+
+                <div id="attendanceLog" style="margin-top: 30px;">
+                    <h3>Recent Attendance</h3>
+                    <div id="attendanceContainer"></div>
+                </div>
+            </div>
+
+            <!-- Hours Tracker Tab -->
+            <div id="hours" class="tab-content">
+                <h2>Work Hours & Payment Tracker</h2>
+                <div class="form-group">
+                    <label>Organization/Client</label>
+                    <input type="text" id="organization" placeholder="Enter organization or client name">
+                </div>
+                <div class="form-group">
+                    <label>Subject Taught</label>
                     <input type="text" id="subject" placeholder="e.g., Mathematics, Programming">
                 </div>
                 <div class="form-group">
@@ -125,15 +168,19 @@
                 </div>
                 <div class="form-group">
                     <label>Hours Worked</label>
-                    <input type="number" id="hoursWorked" step="0.5" min="0" placeholder="e.g., 2.5">
+                    <input type="number" id="hoursWorked" step="0.5" min="0" placeholder="e.g., 2.5" onchange="calculateTotalPay()">
                 </div>
                 <div class="form-group">
-                    <label>Base Rate ($/hr)</label>
-                    <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 15.00">
+                    <label>Base Pay ($/hr)</label>
+                    <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 15.00" onchange="calculateTotalPay()">
+                </div>
+                <div class="form-group">
+                    <label>Total Pay</label>
+                    <input type="text" id="totalPay" readonly placeholder="Will be calculated automatically">
                 </div>
                 <div class="form-group">
                     <label>Notes</label>
-                    <textarea id="workNotes" rows="3" placeholder="Additional notes..."></textarea>
+                    <textarea id="workNotes" rows="3" placeholder="Additional notes about the session..."></textarea>
                 </div>
                 <button class="btn" onclick="logHours()">💼 Log Hours</button>
 
@@ -148,25 +195,43 @@
                 <h2>Marks Register</h2>
                 <div class="form-group">
                     <label>Student</label>
-                    <select id="marksStudent">
+                    <select id="marksStudent" onchange="updateStudentDetails()">
                         <option value="">Select student...</option>
                     </select>
                 </div>
+                <div class="student-details" id="studentDetails" style="display: none; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                    <strong>Selected Student:</strong>
+                    <span id="selectedStudentName"></span> |
+                    <span id="selectedStudentGender"></span> |
+                    <span id="selectedStudentId"></span>
+                </div>
                 <div class="form-group">
                     <label>Subject</label>
-                    <input type="text" id="markSubject" placeholder="e.g., Final Exam, Assignment 1">
+                    <input type="text" id="markSubject" placeholder="e.g., Mathematics, Programming">
+                </div>
+                <div class="form-group">
+                    <label>Topic/Assignment</label>
+                    <input type="text" id="markTopic" placeholder="e.g., Final Exam, Assignment 1">
                 </div>
                 <div class="form-group">
                     <label>Date</label>
                     <input type="date" id="markDate">
                 </div>
                 <div class="form-group">
-                    <label>Score</label>
-                    <input type="number" id="score" step="0.1" min="0" max="100" placeholder="e.g., 85">
+                    <label>Marks Obtained</label>
+                    <input type="number" id="score" step="0.1" min="0" placeholder="e.g., 85" onchange="calculatePercentage()">
                 </div>
                 <div class="form-group">
-                    <label>Maximum Score</label>
-                    <input type="number" id="maxScore" step="0.1" min="0" placeholder="e.g., 100">
+                    <label>Maximum Marks</label>
+                    <input type="number" id="maxScore" step="0.1" min="0" placeholder="e.g., 100" onchange="calculatePercentage()">
+                </div>
+                <div class="form-group">
+                    <label>Percentage</label>
+                    <input type="text" id="percentage" readonly placeholder="Will be calculated automatically">
+                </div>
+                <div class="form-group">
+                    <label>Grade</label>
+                    <input type="text" id="grade" readonly placeholder="Grade will be calculated">
                 </div>
                 <div class="form-group">
                     <label>Comments</label>
@@ -214,6 +279,21 @@
                             </tr>
                         </thead>
                         <tbody id="weeklyBody"></tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <h3>Subject-wise Performance</h3>
+                    <table id="subjectTable">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Avg Marks</th>
+                                <th>Total Hours</th>
+                                <th>Total Earnings</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subjectBody"></tbody>
                     </table>
                 </div>
             </div>
