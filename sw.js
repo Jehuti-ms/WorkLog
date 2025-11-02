@@ -13,7 +13,6 @@ const assetsToCache = [
   './icons/icon-512x512.png'
 ];
 
-// Install event
 self.addEventListener('install', event => {
   console.log('Service Worker installing...');
   event.waitUntil(
@@ -24,22 +23,21 @@ self.addEventListener('install', event => {
           .then(() => console.log('All assets cached successfully'))
           .catch(err => {
             console.error('Failed to cache assets:', err);
-            // You can still proceed even if some assets fail
+            // Continue even if some assets fail to cache
           });
       })
   );
 });
 
-// Activate event
 self.addEventListener('activate', event => {
   console.log('Service Worker activating...');
   event.waitUntil(
-    caches.keys().then(cacheNames => {
+    caches.keys().then(keys => {
       return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
+        keys.map(key => {
+          if (key !== cacheName) {
+            console.log('Deleting old cache:', key);
+            return caches.delete(key);
           }
         })
       );
@@ -47,12 +45,10 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch event
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Return cached version or fetch from network
         return response || fetch(event.request);
       })
   );
