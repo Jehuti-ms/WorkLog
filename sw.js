@@ -1,8 +1,9 @@
 // Service Worker for WorkLog App
-const cacheName = 'app-cache-v1';
+const cacheName = 'worklog-app-v2'; // Changed cache name to force update
 const assetsToCache = [
   './',
-  './index.html',
+  './index.html',    // Keep this for the welcome screen
+  './app.html',      // ADD THIS - your main app
   './styles.css',
   './app.js',
   './manifest.json',
@@ -23,10 +24,10 @@ self.addEventListener('install', event => {
           .then(() => console.log('All assets cached successfully'))
           .catch(err => {
             console.error('Failed to cache assets:', err);
-            // Continue even if some assets fail to cache
           });
       })
   );
+  self.skipWaiting(); // ADD THIS - forces immediate activation
 });
 
 self.addEventListener('activate', event => {
@@ -43,6 +44,7 @@ self.addEventListener('activate', event => {
       );
     })
   );
+  self.clients.claim(); // ADD THIS - controls all clients immediately
 });
 
 self.addEventListener('fetch', event => {
