@@ -326,7 +326,7 @@ function updateUI() {
 }
 
 function updateStudentList() {
-    // Update the student count
+    // Update the student count display
     document.getElementById('studentCount').textContent = students.length;
     
     const container = document.getElementById('studentsContainer');
