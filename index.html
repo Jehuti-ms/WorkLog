@@ -11,11 +11,16 @@
         <div class="header">
             <h1>📊 WorkLog</h1>
             <p class="subtitle">Student Tracker & Hours Management System</p>
+            <div class="storage-status">
+                <span class="status connected">💾 Local Storage</span>
+                <button class="btn btn-secondary btn-sm" onclick="exportData()">📤 Export Data</button>
+                <button class="btn btn-secondary btn-sm" onclick="importData()">📥 Import Data</button>
+                <button class="btn btn-warning btn-sm" onclick="clearAllData()">🗑️ Clear All</button>
+            </div>
         </div>
 
         <div class="tabs">
-            <button class="tab active" onclick="switchTab('setup')">⚙️ Setup</button>
-            <button class="tab" onclick="switchTab('students')">👥 Students</button>
+            <button class="tab active" onclick="switchTab('students')">👥 Students</button>
             <button class="tab" onclick="switchTab('attendance')">📅 Attendance</button>
             <button class="tab" onclick="switchTab('hours')">⏰ Hours Tracker</button>
             <button class="tab" onclick="switchTab('marks')">📝 Marks Register</button>
@@ -23,76 +28,19 @@
         </div>
 
         <div class="content">
-            <!-- Setup Tab -->
-            <div id="setup" class="tab-content active">
-                <h2>Google Sheets Setup</h2>
-                <div id="setupStatus"></div>
-                
-                <div class="form-group">
-                    <label>Google Sheets ID</label>
-                    <input type="text" id="sheetId" placeholder="Enter your Google Sheets ID">
-                    <small class="help-text">
-                        Find this in your Google Sheets URL: docs.google.com/spreadsheets/d/<strong>YOUR_SHEET_ID</strong>/edit
-                    </small>
-                </div>
-
-                <div class="form-group">
-                    <label>API Key</label>
-                    <input type="text" id="apiKey" placeholder="Enter your Google Sheets API Key">
-                    <small class="help-text">
-                        Get your API key from Google Cloud Console
-                    </small>
-                </div>
-
-                <div class="form-group">
-                    <label>Web App URL (Optional - for write operations)</label>
-                    <input type="text" id="webAppUrl" placeholder="Enter your Google Apps Script Web App URL">
-                    <small class="help-text">
-                        Required for writing data to Google Sheets. Deploy as web app with execute permissions.
-                    </small>
-                </div>
-
-                <div class="button-group">
-                    <button class="btn" onclick="saveConfig()">💾 Save Configuration</button>
-                    <button class="btn btn-secondary" onclick="testConnection()">🔌 Test Connection</button>
-                    <button class="btn btn-success" onclick="initializeSheets()">🚀 Initialize Sheets</button>
-                    <button class="btn btn-warning" onclick="syncWithSheets()">🔄 Sync Data</button>
-                </div>
-
-                <div class="alert alert-info" style="margin-top: 20px;">
-                    <strong>Setup Instructions:</strong><br>
-                    1. Create a new Google Sheet<br>
-                    2. Enable Google Sheets API in Google Cloud Console<br>
-                    3. Create an API key and make your sheet publicly readable<br>
-                    4. Enter your Sheet ID and API Key above<br>
-                    5. Click "Initialize Sheets" to automatically create all required sheets and headers<br>
-                    6. For write operations, deploy the Google Apps Script and enter the Web App URL
-                </div>
-
-                <div style="margin-top: 20px;">
-                    <h3>Operation Log</h3>
-                    <div id="operationLog" class="log-container">
-                        <div class="log-entry">
-                            <span class="log-time">[System]</span>
-                            <span class="log-message">Application started. Configure your settings above.</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Students Tab -->
-            <div id="students" class="tab-content">
+            <div id="students" class="tab-content active">
                 <h2>Student Register</h2>
                 <div class="form-group">
-                    <label>Student Name</label>
+                    <label>Student Name *</label>
                     <input type="text" id="studentName" placeholder="Enter student name">
                 </div>
                 <div class="form-group">
-                    <label>Student ID</label>
+                    <label>Student ID *</label>
                     <input type="text" id="studentId" placeholder="Enter student ID">
                 </div>
                 <div class="form-group">
-                    <label>Gender</label>
+                    <label>Gender *</label>
                     <select id="studentGender">
                         <option value="">Select Gender</option>
                         <option value="Male">Male</option>
@@ -111,7 +59,7 @@
                 <button class="btn" onclick="addStudent()">➕ Add Student</button>
 
                 <div id="studentList" style="margin-top: 30px;">
-                    <h3>Registered Students</h3>
+                    <h3>Registered Students ({{count}})</h3>
                     <div id="studentsContainer"></div>
                 </div>
             </div>
@@ -120,15 +68,15 @@
             <div id="attendance" class="tab-content">
                 <h2>Student Attendance</h2>
                 <div class="form-group">
-                    <label>Date</label>
+                    <label>Date *</label>
                     <input type="date" id="attendanceDate">
                 </div>
                 <div class="form-group">
-                    <label>Subject</label>
+                    <label>Subject *</label>
                     <input type="text" id="attendanceSubject" placeholder="e.g., Mathematics, Programming">
                 </div>
                 <div class="form-group">
-                    <label>Topic</label>
+                    <label>Topic *</label>
                     <input type="text" id="attendanceTopic" placeholder="e.g., Algebra, Functions">
                 </div>
                 
@@ -151,27 +99,27 @@
             <div id="hours" class="tab-content">
                 <h2>Work Hours & Payment Tracker</h2>
                 <div class="form-group">
-                    <label>Organization/Client</label>
+                    <label>Organization/Client *</label>
                     <input type="text" id="organization" placeholder="Enter organization or client name">
                 </div>
                 <div class="form-group">
-                    <label>Subject Taught</label>
+                    <label>Subject Taught *</label>
                     <input type="text" id="subject" placeholder="e.g., Mathematics, Programming">
                 </div>
                 <div class="form-group">
-                    <label>Topic</label>
+                    <label>Topic *</label>
                     <input type="text" id="topic" placeholder="e.g., Algebra, Functions">
                 </div>
                 <div class="form-group">
-                    <label>Date</label>
+                    <label>Date *</label>
                     <input type="date" id="workDate">
                 </div>
                 <div class="form-group">
-                    <label>Hours Worked</label>
+                    <label>Hours Worked *</label>
                     <input type="number" id="hoursWorked" step="0.5" min="0" placeholder="e.g., 2.5" onchange="calculateTotalPay()">
                 </div>
                 <div class="form-group">
-                    <label>Base Pay ($/hr)</label>
+                    <label>Base Pay ($/hr) *</label>
                     <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 15.00" onchange="calculateTotalPay()">
                 </div>
                 <div class="form-group">
@@ -194,7 +142,7 @@
             <div id="marks" class="tab-content">
                 <h2>Marks Register</h2>
                 <div class="form-group">
-                    <label>Student</label>
+                    <label>Student *</label>
                     <select id="marksStudent" onchange="updateStudentDetails()">
                         <option value="">Select student...</option>
                     </select>
@@ -206,23 +154,23 @@
                     <span id="selectedStudentId"></span>
                 </div>
                 <div class="form-group">
-                    <label>Subject</label>
+                    <label>Subject *</label>
                     <input type="text" id="markSubject" placeholder="e.g., Mathematics, Programming">
                 </div>
                 <div class="form-group">
-                    <label>Topic/Assignment</label>
+                    <label>Topic/Assignment *</label>
                     <input type="text" id="markTopic" placeholder="e.g., Final Exam, Assignment 1">
                 </div>
                 <div class="form-group">
-                    <label>Date</label>
+                    <label>Date *</label>
                     <input type="date" id="markDate">
                 </div>
                 <div class="form-group">
-                    <label>Marks Obtained</label>
+                    <label>Marks Obtained *</label>
                     <input type="number" id="score" step="0.1" min="0" placeholder="e.g., 85" onchange="calculatePercentage()">
                 </div>
                 <div class="form-group">
-                    <label>Maximum Marks</label>
+                    <label>Maximum Marks *</label>
                     <input type="number" id="maxScore" step="0.1" min="0" placeholder="e.g., 100" onchange="calculatePercentage()">
                 </div>
                 <div class="form-group">
@@ -299,6 +247,8 @@
             </div>
         </div>
     </div>
+
+    <input type="file" id="importFile" style="display: none" accept=".json" onchange="handleFileImport(this.files[0])">
 
     <script src="app.js"></script>
 </body>
