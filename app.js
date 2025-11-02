@@ -416,6 +416,7 @@ function updateUI() {
     updateHoursList();
     updateMarksList();
     updateAttendanceUI();
+    calculateTimeTotals();
 }
 
 function updateStudentList() {
@@ -1229,3 +1230,89 @@ function init() {
     showDataStats();
 }
 
+// Calculate weekly and monthly totals
+function calculateTimeTotals() {
+    const now = new Date();
+    const currentWeek = getWeekNumber(now);
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    let weeklyTotal = 0;
+    let monthlyTotal = 0;
+    let weeklyHours = 0;
+    let monthlyHours = 0;
+    
+    hoursLog.forEach(entry => {
+        const entryDate = new Date(entry.date);
+        const entryWeek = getWeekNumber(entryDate);
+        const entryMonth = entryDate.getMonth();
+        const entryYear = entryDate.getFullYear();
+        
+        // Weekly totals (current week)
+        if (entryWeek === currentWeek && entryYear === currentYear) {
+            weeklyTotal += entry.totalPay;
+            weeklyHours += entry.hours;
+        }
+        
+        // Monthly totals (current month)
+        if (entryMonth === currentMonth && entryYear === currentYear) {
+            monthlyTotal += entry.totalPay;
+            monthlyHours += entry.hours;
+        }
+    });
+    
+    // Update the display
+    document.getElementById('weeklyTotal').textContent = '$' + weeklyTotal.toFixed(2);
+    document.getElementById('monthlyTotal').textContent = '$' + monthlyTotal.toFixed(2);
+    document.getElementById('weeklyHours').textContent = weeklyHours.toFixed(1);
+    document.getElementById('monthlyHours').textContent = monthlyHours.toFixed(1);
+}
+
+// Enhanced getWeekNumber function (make sure this exists)
+function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+// Function to get totals for any specific week and month
+function getDetailedTotals() {
+    const now = new Date();
+    const currentWeek = getWeekNumber(now);
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    let weekData = {};
+    let monthData = {};
+    
+    hoursLog.forEach(entry => {
+        const entryDate = new Date(entry.date);
+        const entryWeek = getWeekNumber(entryDate);
+        const entryMonth = entryDate.getMonth();
+        const entryYear = entryDate.getFullYear();
+        
+        // Weekly data
+        const weekKey = `Week ${entryWeek}, ${entryYear}`;
+        if (!weekData[weekKey]) {
+            weekData[weekKey] = { total: 0, hours: 0, entries: 0 };
+        }
+        weekData[weekKey].total += entry.totalPay;
+        weekData[weekKey].hours += entry.hours;
+        weekData[weekKey].entries += 1;
+        
+        // Monthly data
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        const monthKey = `${monthNames[entryMonth]} ${entryYear}`;
+        if (!monthData[monthKey]) {
+            monthData[monthKey] = { total: 0, hours: 0, entries: 0 };
+        }
+        monthData[monthKey].total += entry.totalPay;
+        monthData[monthKey].hours += entry.hours;
+        monthData[monthKey].entries += 1;
+    });
+    
+    return { weekData, monthData };
+}
