@@ -8,6 +8,7 @@ let attendance = [];
 function init() {
     console.log("Initializing WorkLog application...");
     loadAllData();
+    debugData(); // Add this line
     updateUI();
     setDefaultDate();
     showDataStats();
@@ -132,7 +133,7 @@ function logHours() {
     const totalPay = hours * rate;
     
     const entry = {
-        id: generateId(), // Make sure this is working
+        id: generateId(), // This should always generate an ID
         organization,
         subject,
         topic,
@@ -244,6 +245,98 @@ function addMark() {
     alert('✅ Mark added successfully!');
 }
 
+function updateMarksList() {
+    const container = document.getElementById('marksContainer');
+    if (marks.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No marks recorded yet.</p>';
+        return;
+    }
+    
+    const recent = marks.slice(-20).reverse();
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        // Mobile card layout for marks
+        container.innerHTML = `
+            <div class="mobile-entries">
+                ${recent.map(mark => {
+                    const markId = mark.id || generateId();
+                    if (!mark.id) {
+                        mark.id = markId;
+                        saveAllData();
+                    }
+                    return `
+                    <div class="mobile-entry-card">
+                        <div class="entry-header">
+                            <div class="entry-main">
+                                <strong>${mark.studentName}</strong>
+                                <span class="entry-date">${mark.date}</span>
+                            </div>
+                            <div class="entry-amount">${mark.percentage}</div>
+                        </div>
+                        <div class="entry-details">
+                            <div><strong>Subject:</strong> ${mark.subject}</div>
+                            <div><strong>Topic:</strong> ${mark.topic || '-'}</div>
+                            <div><strong>Score:</strong> ${mark.score}/${mark.maxScore}</div>
+                            <div><strong>Grade:</strong> ${mark.grade}</div>
+                            ${mark.comments ? `<div><strong>Comments:</strong> ${mark.comments}</div>` : ''}
+                        </div>
+                        <div class="entry-actions">
+                            <button class="btn btn-sm" onclick="editMark('${markId}')">✏️ Edit</button>
+                            <button class="btn btn-secondary btn-sm" onclick="deleteMark('${markId}')">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `}).join('')}
+            </div>
+        `;
+    } else {
+        // Desktop table layout for marks
+        container.innerHTML = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Student</th>
+                            <th>Subject</th>
+                            <th>Topic</th>
+                            <th>Score</th>
+                            <th>Percentage</th>
+                            <th>Grade</th>
+                            <th>Comments</th>
+                            <th class="actions-cell">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${recent.map(mark => {
+                            const markId = mark.id || generateId();
+                            if (!mark.id) {
+                                mark.id = markId;
+                                saveAllData();
+                            }
+                            return `
+                            <tr>
+                                <td>${mark.date}</td>
+                                <td>${mark.studentName}</td>
+                                <td>${mark.subject}</td>
+                                <td>${mark.topic || '-'}</td>
+                                <td>${mark.score}/${mark.maxScore}</td>
+                                <td>${mark.percentage}</td>
+                                <td>${mark.grade}</td>
+                                <td class="notes-cell">${mark.comments || '-'}</td>
+                                <td class="actions-cell">
+                                    <button class="btn btn-sm" onclick="editMark('${markId}')">✏️ Edit</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="deleteMark('${markId}')">🗑️ Delete</button>
+                                </td>
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+}
+
 // Attendance management
 function updateAttendanceList() {
     const container = document.getElementById('attendanceList');
@@ -301,13 +394,19 @@ function saveAttendance() {
     // Add to attendance log
     attendance.push(...attendanceRecords);
     saveAllData();
-    updateAttendanceUI();
+    updateAttendanceUI(); // This will immediately update the table
     
-    // Clear form
-    document.getElementById('attendanceSubject').value = '';
-    document.getElementById('attendanceTopic').value = '';
+    // Clear form but keep subject and topic for quick reuse
+    document.getElementById('attendanceSubject').value = subject; // Keep subject
+    document.getElementById('attendanceTopic').value = topic; // Keep topic
     
     alert(`✅ Attendance saved for ${attendanceRecords.length} students!`);
+    
+    // Auto-scroll to show the new attendance records
+    document.getElementById('attendanceContainer').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
 }
 
 // UI Updates
@@ -361,10 +460,16 @@ function updateHoursList() {
     const isMobile = window.innerWidth <= 768;
     
     if (isMobile) {
-        // Mobile-friendly card layout
+        // Mobile card layout
         container.innerHTML = `
             <div class="mobile-entries">
-                ${recent.map(entry => `
+                ${recent.map(entry => {
+                    const entryId = entry.id || generateId(); // Ensure ID exists
+                    if (!entry.id) {
+                        entry.id = entryId; // Fix missing ID
+                        saveAllData();
+                    }
+                    return `
                     <div class="mobile-entry-card">
                         <div class="entry-header">
                             <div class="entry-main">
@@ -380,11 +485,11 @@ function updateHoursList() {
                             ${entry.notes ? `<div><strong>Notes:</strong> ${entry.notes}</div>` : ''}
                         </div>
                         <div class="entry-actions">
-                            <button class="btn btn-sm" onclick="editHours('${entry.id}')">✏️ Edit</button>
-                            <button class="btn btn-secondary btn-sm" onclick="deleteHours('${entry.id}')">🗑️ Delete</button>
+                            <button class="btn btn-sm" onclick="editHours('${entryId}')">✏️ Edit</button>
+                            <button class="btn btn-secondary btn-sm" onclick="deleteHours('${entryId}')">🗑️ Delete</button>
                         </div>
                     </div>
-                `).join('')}
+                `}).join('')}
             </div>
         `;
     } else {
@@ -406,7 +511,13 @@ function updateHoursList() {
                         </tr>
                     </thead>
                     <tbody>
-                        ${recent.map(entry => `
+                        ${recent.map(entry => {
+                            const entryId = entry.id || generateId(); // Ensure ID exists
+                            if (!entry.id) {
+                                entry.id = entryId; // Fix missing ID
+                                saveAllData();
+                            }
+                            return `
                             <tr>
                                 <td>${entry.date}</td>
                                 <td>${entry.organization}</td>
@@ -417,11 +528,11 @@ function updateHoursList() {
                                 <td>$${entry.totalPay.toFixed(2)}</td>
                                 <td class="notes-cell">${entry.notes || '-'}</td>
                                 <td class="actions-cell">
-                                    <button class="btn btn-sm" onclick="editHours('${entry.id}')">✏️ Edit</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="deleteHours('${entry.id}')">🗑️ Delete</button>
+                                    <button class="btn btn-sm" onclick="editHours('${entryId}')">✏️ Edit</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="deleteHours('${entryId}')">🗑️ Delete</button>
                                 </td>
                             </tr>
-                        `).join('')}
+                        `}).join('')}
                     </tbody>
                 </table>
             </div>
@@ -437,16 +548,81 @@ function updateAttendanceUI() {
     }
     
     const recent = attendance.slice(-20).reverse();
-    container.innerHTML = '<table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Topic</th><th>Status</th></tr></thead><tbody>' +
-        recent.map(a => `
-            <tr>
-                <td>${a.date}</td>
-                <td>${a.studentName}</td>
-                <td>${a.subject}</td>
-                <td>${a.topic}</td>
-                <td><span class="status ${a.status === 'Present' ? 'connected' : 'disconnected'}">${a.status}</span></td>
-            </tr>
-        `).join('') + '</tbody></table>';
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        // Mobile card layout for attendance
+        container.innerHTML = `
+            <div class="mobile-entries">
+                ${recent.map(record => {
+                    const recordId = record.id || generateId();
+                    if (!record.id) {
+                        record.id = recordId;
+                        saveAllData();
+                    }
+                    return `
+                    <div class="mobile-entry-card">
+                        <div class="entry-header">
+                            <div class="entry-main">
+                                <strong>${record.studentName}</strong>
+                                <span class="entry-date">${record.date}</span>
+                            </div>
+                            <div class="entry-amount ${record.status === 'Present' ? 'status-connected' : 'status-disconnected'}">
+                                ${record.status}
+                            </div>
+                        </div>
+                        <div class="entry-details">
+                            <div><strong>Subject:</strong> ${record.subject}</div>
+                            <div><strong>Topic:</strong> ${record.topic || '-'}</div>
+                        </div>
+                        <div class="entry-actions">
+                            <button class="btn btn-sm" onclick="editAttendance('${recordId}')">✏️ Edit</button>
+                            <button class="btn btn-secondary btn-sm" onclick="deleteAttendance('${recordId}')">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `}).join('')}
+            </div>
+        `;
+    } else {
+        // Desktop table layout for attendance
+        container.innerHTML = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Student</th>
+                            <th>Subject</th>
+                            <th>Topic</th>
+                            <th>Status</th>
+                            <th class="actions-cell">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${recent.map(record => {
+                            const recordId = record.id || generateId();
+                            if (!record.id) {
+                                record.id = recordId;
+                                saveAllData();
+                            }
+                            return `
+                            <tr>
+                                <td>${record.date}</td>
+                                <td>${record.studentName}</td>
+                                <td>${record.subject}</td>
+                                <td>${record.topic || '-'}</td>
+                                <td><span class="status ${record.status === 'Present' ? 'connected' : 'disconnected'}">${record.status}</span></td>
+                                <td class="actions-cell">
+                                    <button class="btn btn-sm" onclick="editAttendance('${recordId}')">✏️ Edit</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="deleteAttendance('${recordId}')">🗑️ Delete</button>
+                                </td>
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
 }
 
 // Reports
@@ -554,7 +730,7 @@ function updateSubjectReport() {
 }
 
 function generateId() {
-    return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    return 'worklog_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
 function deleteStudent(index) {
@@ -707,13 +883,25 @@ if (isRunningAsPWA()) {
 
 function editHours(entryId) {
     console.log('Edit clicked for ID:', entryId);
+    console.log('All hours entries:', hoursLog);
+    
+    if (!entryId || entryId === 'undefined') {
+        alert('Error: Entry ID is missing. Please try again.');
+        return;
+    }
     
     const entry = hoursLog.find(e => e.id === entryId);
     console.log('Found entry:', entry);
     
     if (!entry) {
-        alert('Entry not found!');
-        return;
+        // Try to find by index as fallback
+        const entryIndex = hoursLog.findIndex(e => e.id === entryId);
+        console.log('Entry index:', entryIndex);
+        
+        if (entryIndex === -1) {
+            alert('Error: Entry not found. The data might be corrupted.');
+            return;
+        }
     }
 
     // Populate the form with existing data
@@ -730,12 +918,7 @@ function editHours(entryId) {
     
     // Change the button to "Update" instead of "Log Hours"
     const logButton = document.querySelector('#hours .btn');
-    const originalText = logButton.textContent;
-    const originalOnclick = logButton.onclick;
-    
     logButton.textContent = '💾 Update Entry';
-    logButton.setAttribute('data-original-text', originalText);
-    logButton.setAttribute('data-original-onclick', originalOnclick.toString());
     logButton.onclick = function() { 
         console.log('Update clicked for ID:', entryId);
         updateHours(entryId); 
@@ -751,14 +934,10 @@ function editHours(entryId) {
         logButton.parentNode.appendChild(cancelButton);
     }
     
-    // Store the current editing ID
-    logButton.setAttribute('data-editing-id', entryId);
-    
     // Scroll to hours tab and form
     switchTab('hours');
-    document.getElementById('hours').scrollIntoView({ behavior: 'smooth' });
     
-    console.log('Form populated for editing');
+    console.log('Form populated for editing entry:', entryId);
 }
 
 function updateHours(entryId) {
@@ -869,11 +1048,184 @@ function deleteHours(entryId) {
 }
 
 // Make table responsive on window resize
+// Improved responsive event handling
+let resizeTimeout;
 window.addEventListener('resize', function() {
-    // Re-render the hours list when screen size changes
-    if (document.getElementById('hours').classList.contains('active')) {
-        updateHoursList();
-    }
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(function() {
+        console.log('Screen orientation changed, updating UI...');
+        
+        // Only update the currently active tab
+        const activeTab = document.querySelector('.tab-content.active');
+        if (activeTab) {
+            const tabId = activeTab.id;
+            switch(tabId) {
+                case 'hours':
+                    updateHoursList();
+                    break;
+                case 'marks':
+                    updateMarksList();
+                    break;
+                case 'attendance':
+                    updateAttendanceUI();
+                    break;
+                case 'reports':
+                    updateReports();
+                    break;
+            }
+        }
+    }, 250); // Wait 250ms after resize stops
 });
 
+function debugData() {
+    console.log('=== DEBUG DATA ===');
+    console.log('Hours Log:', hoursLog);
+    console.log('Hours entries with IDs:');
+    hoursLog.forEach((entry, index) => {
+        console.log(`Entry ${index}:`, {
+            id: entry.id,
+            organization: entry.organization,
+            hasId: !!entry.id,
+            hasTimestamp: !!entry.timestamp
+        });
+    });
+    console.log('=== END DEBUG ===');
+}
+
+function fixMissingIds() {
+    let fixedCount = 0;
+    
+    // Fix hours log entries
+    hoursLog.forEach(entry => {
+        if (!entry.id) {
+            entry.id = generateId();
+            fixedCount++;
+        }
+    });
+    
+    // Fix marks entries
+    marks.forEach(entry => {
+        if (!entry.id) {
+            entry.id = generateId();
+            fixedCount++;
+        }
+    });
+    
+    // Fix attendance entries
+    attendance.forEach(entry => {
+        if (!entry.id) {
+            entry.id = generateId();
+            fixedCount++;
+        }
+    });
+    
+    if (fixedCount > 0) {
+        console.log(`Fixed ${fixedCount} entries with missing IDs`);
+        saveAllData();
+    }
+}
+
+// Update your init function to include this
+function init() {
+    console.log("Initializing WorkLog application...");
+    loadAllData();
+    fixMissingIds(); // Add this line
+    debugData();
+    updateUI();
+    setDefaultDate();
+    showDataStats();
+}
+
+// Smart field memory system
+let fieldMemory = {
+    organization: '',
+    baseRate: '',
+    subject: '',
+    topic: ''
+};
+
+function loadFieldMemory() {
+    const saved = localStorage.getItem('worklog_field_memory');
+    if (saved) {
+        fieldMemory = JSON.parse(saved);
+    }
+    applyFieldMemory();
+}
+
+function saveFieldMemory() {
+    localStorage.setItem('worklog_field_memory', JSON.stringify(fieldMemory));
+}
+
+function applyFieldMemory() {
+    if (fieldMemory.organization) {
+        document.getElementById('organization').value = fieldMemory.organization;
+    }
+    if (fieldMemory.baseRate) {
+        document.getElementById('baseRate').value = fieldMemory.baseRate;
+    }
+    if (fieldMemory.subject) {
+        document.getElementById('subject').value = fieldMemory.subject;
+    }
+    if (fieldMemory.topic) {
+        document.getElementById('topic').value = fieldMemory.topic;
+    }
+}
+
+function updateFieldMemory() {
+    fieldMemory.organization = document.getElementById('organization').value.trim();
+    fieldMemory.baseRate = document.getElementById('baseRate').value.trim();
+    fieldMemory.subject = document.getElementById('subject').value.trim();
+    fieldMemory.topic = document.getElementById('topic').value.trim();
+    saveFieldMemory();
+}
+
+// Update the logHours function to save field memory
+function logHours() {
+    const organization = document.getElementById('organization').value.trim();
+    const subject = document.getElementById('subject').value.trim();
+    const topic = document.getElementById('topic').value.trim();
+    const date = document.getElementById('workDate').value;
+    const hours = parseFloat(document.getElementById('hoursWorked').value);
+    const rate = parseFloat(document.getElementById('baseRate').value);
+    const notes = document.getElementById('workNotes').value.trim();
+    
+    if (!organization || !subject || !date || !hours || !rate) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    const totalPay = hours * rate;
+    
+    const entry = {
+        id: generateId(),
+        organization,
+        subject,
+        topic,
+        date,
+        hours,
+        rate,
+        totalPay,
+        notes,
+        timestamp: new Date().toISOString()
+    };
+    
+    hoursLog.push(entry);
+    saveAllData();
+    updateFieldMemory(); // Save the field values
+    updateUI();
+    resetHoursForm();
+    
+    alert('✅ Hours logged successfully!');
+}
+
+// Update init function to load field memory
+function init() {
+    console.log("Initializing WorkLog application...");
+    loadAllData();
+    fixMissingIds();
+    loadFieldMemory(); // Add this line
+    updateUI();
+    setDefaultDate();
+    showDataStats();
+}
 
