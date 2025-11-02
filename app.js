@@ -37,23 +37,23 @@ function setupEventListeners() {
     });
 
     // Modal close buttons
-document.querySelectorAll('.modal .close').forEach(closeBtn => {
-    closeBtn.addEventListener('click', function() {
-        const modal = this.closest('.modal');
-        if (modal) {
-            modal.style.display = 'none';
-        }
+    document.querySelectorAll('.modal .close').forEach(closeBtn => {
+        closeBtn.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        });
     });
-});
 
-// Close modal when clicking outside
-document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', function(e) {
-        if (e.target === this) {
-            this.style.display = 'none';
-        }
+    // Close modal when clicking outside
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
     });
-});
 }
 
 // ============================================================================
@@ -96,8 +96,7 @@ function generateId() {
     return 'worklog_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-
-// Week number calculation - Define this early
+// Week number calculation
 function getWeekNumber(date) {
     // Make sure we have a valid date object
     if (!(date instanceof Date) || isNaN(date)) {
@@ -150,6 +149,109 @@ let payments = [];
 let paymentActivity = [];
 
 // ============================================================================
+// DATA MANAGEMENT FUNCTIONS
+// ============================================================================
+
+function fixMissingIds() {
+    let fixedCount = 0;
+    
+    // Fix hours log entries
+    hoursLog.forEach(entry => {
+        if (!entry.id) {
+            entry.id = generateId();
+            fixedCount++;
+        }
+    });
+    
+    // Fix marks entries
+    marks.forEach(entry => {
+        if (!entry.id) {
+            entry.id = generateId();
+            fixedCount++;
+        }
+    });
+    
+    // Fix attendance entries
+    attendance.forEach(entry => {
+        if (!entry.id) {
+            entry.id = generateId();
+            fixedCount++;
+        }
+    });
+
+    // Fix payment entries
+    payments.forEach(entry => {
+        if (!entry.id) {
+            entry.id = generateId();
+            fixedCount++;
+        }
+    });
+    
+    if (fixedCount > 0) {
+        console.log(`Fixed ${fixedCount} entries with missing IDs`);
+        saveAllData();
+    }
+}
+
+// Smart field memory system
+let fieldMemory = {
+    organization: '',
+    baseRate: '',
+    subject: '',
+    topic: ''
+};
+
+function loadFieldMemory() {
+    const saved = localStorage.getItem('worklog_field_memory');
+    if (saved) {
+        fieldMemory = JSON.parse(saved);
+    }
+    applyFieldMemory();
+}
+
+function saveFieldMemory() {
+    localStorage.setItem('worklog_field_memory', JSON.stringify(fieldMemory));
+}
+
+function applyFieldMemory() {
+    if (fieldMemory.organization) {
+        document.getElementById('organization').value = fieldMemory.organization;
+    }
+    if (fieldMemory.baseRate) {
+        document.getElementById('baseRate').value = fieldMemory.baseRate;
+    }
+    if (fieldMemory.subject) {
+        document.getElementById('subject').value = fieldMemory.subject;
+    }
+    if (fieldMemory.topic) {
+        document.getElementById('topic').value = fieldMemory.topic;
+    }
+}
+
+function updateFieldMemory() {
+    fieldMemory.organization = document.getElementById('organization').value.trim();
+    fieldMemory.baseRate = document.getElementById('baseRate').value.trim();
+    fieldMemory.subject = document.getElementById('subject').value.trim();
+    fieldMemory.topic = document.getElementById('topic').value.trim();
+    saveFieldMemory();
+}
+
+function debugData() {
+    console.log('=== DEBUG DATA ===');
+    console.log('Hours Log:', hoursLog);
+    console.log('Hours entries with IDs:');
+    hoursLog.forEach((entry, index) => {
+        console.log(`Entry ${index}:`, {
+            id: entry.id,
+            organization: entry.organization,
+            hasId: !!entry.id,
+            hasTimestamp: !!entry.timestamp
+        });
+    });
+    console.log('=== END DEBUG ===');
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -162,29 +264,6 @@ function init() {
     updateUI();
     setDefaultDate();
     showDataStats();
-    
-    // Add event listeners for payment forms
-    setupPaymentEventListeners();
-}
-
-// Setup payment form event listeners
-function setupPaymentEventListeners() {
-    const paymentForm = document.getElementById('paymentForm');
-    const attendanceSessionForm = document.getElementById('attendanceSessionForm');
-    
-    if (paymentForm) {
-        paymentForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            recordPayment();
-        });
-    }
-    
-    if (attendanceSessionForm) {
-        attendanceSessionForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            saveSessionAttendance();
-        });
-    }
 }
 
 // ============================================================================
@@ -580,7 +659,7 @@ function logPaymentActivity(message) {
 }
 
 // ============================================================================
-// EXISTING WORKLOG FUNCTIONALITY (your original code)
+// EXISTING WORKLOG FUNCTIONALITY
 // ============================================================================
 
 // Data management - Local Storage
@@ -712,6 +791,29 @@ function logHours() {
     resetHoursForm();
     
     alert('✅ Hours logged successfully!');
+}
+
+function resetHoursForm() {
+    console.log('Resetting hours form');
+    
+    // Clear form but keep remembered fields
+    document.getElementById('workDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('hoursWorked').value = '';
+    document.getElementById('totalPay').value = '';
+    document.getElementById('workNotes').value = '';
+    
+    // Reset button to "Log Hours"
+    const logButton = document.querySelector('#hours .btn');
+    logButton.textContent = '💼 Log Hours';
+    logButton.onclick = logHours;
+    
+    // Remove cancel button if it exists
+    const cancelButton = document.querySelector('#hours .cancel-btn');
+    if (cancelButton) {
+        cancelButton.remove();
+    }
+    
+    console.log('Hours form reset');
 }
 
 // Update the deleteHours function too
@@ -907,6 +1009,23 @@ function updateMarksList() {
                 </table>
             </div>
         `;
+    }
+}
+
+// Stub functions for edit/delete marks (you can implement these)
+function editMark(markId) {
+    alert('Edit mark functionality to be implemented');
+}
+
+function deleteMark(markId) {
+    if (confirm('Are you sure you want to delete this mark?')) {
+        const markIndex = marks.findIndex(m => m.id === markId);
+        if (markIndex !== -1) {
+            marks.splice(markIndex, 1);
+            saveAllData();
+            updateUI();
+            alert('✅ Mark deleted successfully!');
+        }
     }
 }
 
@@ -1115,6 +1234,11 @@ function updateHoursList() {
     }
 }
 
+// Stub functions for edit hours (you can implement these)
+function editHours(entryId) {
+    alert('Edit hours functionality to be implemented');
+}
+
 function updateAttendanceUI() {
     const container = document.getElementById('attendanceContainer');
     if (attendance.length === 0) {
@@ -1192,12 +1316,113 @@ function updateAttendanceUI() {
                                     <button class="btn btn-secondary btn-sm" onclick="deleteAttendance('${recordId}')">🗑️ Delete</button>
                                 </td>
                             </tr>
-                        `}).join('')}
+                        `).join('')}
                     </tbody>
                 </table>
             </div>
         `;
     }
+}
+
+// Stub functions for edit/delete attendance (you can implement these)
+function editAttendance(recordId) {
+    alert('Edit attendance functionality to be implemented');
+}
+
+function deleteAttendance(recordId) {
+    if (confirm('Are you sure you want to delete this attendance record?')) {
+        const recordIndex = attendance.findIndex(a => a.id === recordId);
+        if (recordIndex !== -1) {
+            attendance.splice(recordIndex, 1);
+            saveAllData();
+            updateUI();
+            alert('✅ Attendance record deleted successfully!');
+        }
+    }
+}
+
+function deleteStudent(index) {
+    if (confirm('Are you sure you want to delete this student?')) {
+        students.splice(index, 1);
+        saveAllData();
+        updateUI();
+    }
+}
+
+// Calculate weekly and monthly totals
+function calculateTimeTotals() {
+    console.log('=== CALCULATING TOTALS ===');
+    console.log('Total hours entries:', hoursLog.length);
+    const now = new Date();
+    console.log('Current date:', now);
+    console.log('Current week number:', getWeekNumber(now));
+    console.log('Current month:', now.getMonth() + 1);  
+    const currentYear = now.getFullYear();
+    
+    let weeklyTotal = 0;
+    let monthlyTotal = 0;
+    let weeklyHours = 0;
+    let monthlyHours = 0;
+    
+    console.log('Calculating totals for:', {
+        currentWeek,
+        currentMonth: currentMonth + 1, // Months are 0-indexed
+        currentYear,
+        totalEntries: hoursLog.length
+    });
+    
+    hoursLog.forEach(entry => {
+        try {
+            const entryDate = new Date(entry.date);
+            const entryWeek = getWeekNumber(entryDate);
+            const entryMonth = entryDate.getMonth();
+            const entryYear = entryDate.getFullYear();
+            
+            // Debug log for first few entries
+            if (hoursLog.indexOf(entry) < 3) {
+                console.log('Entry analysis:', {
+                    date: entry.date,
+                    entryWeek,
+                    entryMonth: entryMonth + 1,
+                    entryYear,
+                    totalPay: entry.totalPay,
+                    hours: entry.hours
+                });
+            }
+            
+            // Weekly totals (current week)
+            if (entryWeek === currentWeek && entryYear === currentYear) {
+                weeklyTotal += entry.totalPay || 0;
+                weeklyHours += entry.hours || 0;
+            }
+            
+            // Monthly totals (current month)
+            if (entryMonth === currentMonth && entryYear === currentYear) {
+                monthlyTotal += entry.totalPay || 0;
+                monthlyHours += entry.hours || 0;
+            }
+        } catch (error) {
+            console.error('Error processing entry:', entry, error);
+        }
+    });
+    
+    console.log('Final totals:', {
+        weeklyTotal,
+        monthlyTotal,
+        weeklyHours,
+        monthlyHours
+    });
+    
+    // Update the display
+    const weeklyTotalEl = document.getElementById('weeklyTotal');
+    const monthlyTotalEl = document.getElementById('monthlyTotal');
+    const weeklyHoursEl = document.getElementById('weeklyHours');
+    const monthlyHoursEl = document.getElementById('monthlyHours');
+    
+    if (weeklyTotalEl) weeklyTotalEl.textContent = '$' + weeklyTotal.toFixed(2);
+    if (monthlyTotalEl) monthlyTotalEl.textContent = '$' + monthlyTotal.toFixed(2);
+    if (weeklyHoursEl) weeklyHoursEl.textContent = weeklyHours.toFixed(1);
+    if (monthlyHoursEl) monthlyHoursEl.textContent = monthlyHours.toFixed(1);
 }
 
 // Reports
@@ -1343,14 +1568,6 @@ function updateSubjectReport() {
     }).join('');
 }
 
-function deleteStudent(index) {
-    if (confirm('Are you sure you want to delete this student?')) {
-        students.splice(index, 1);
-        saveAllData();
-        updateUI();
-    }
-}
-
 // Data Export/Import
 function exportData() {
     const data = {
@@ -1435,8 +1652,6 @@ function clearAllData() {
         alert('✅ All data cleared!');
     }
 }
-
-// [Rest of your existing functions... editHours, calculateTimeTotals, etc.]
 
 // ============================================================================
 // INITIALIZE THE APPLICATION
