@@ -590,3 +590,22 @@ td:last-child {
         min-width: 600px;
     }
 }
+
+/* Status colors for mobile cards */
+.status-connected {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.status-disconnected {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* Auto-fill indicator */
+.auto-fill-hint {
+    font-size: 0.8em;
+    color: #28a745;
+    margin-left: 5px;
+}
+
