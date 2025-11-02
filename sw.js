@@ -17,10 +17,15 @@ const assetsToCache = [
 self.addEventListener('install', event => {
   console.log('Service Worker installing...');
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(cacheName)
       .then(cache => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        return cache.addAll(assetsToCache)
+          .then(() => console.log('All assets cached successfully'))
+          .catch(err => {
+            console.error('Failed to cache assets:', err);
+            // You can still proceed even if some assets fail
+          });
       })
   );
 });
