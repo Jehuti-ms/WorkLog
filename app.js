@@ -1,16 +1,64 @@
 // ============================================================================
-// CORE FUNCTIONS - Define these first to prevent reference errors
+// EVENT LISTENER SETUP - Run immediately when script loads
 // ============================================================================
 
-// Tab switching - Define this FIRST
+// Set up tab system immediately
+document.addEventListener('DOMContentLoaded', function() {
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Tab system
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            switchTab(tabName);
+        });
+    });
+    
+    // Storage buttons
+    const exportBtn = document.getElementById('exportDataBtn');
+    const importBtn = document.getElementById('importDataBtn');
+    const clearBtn = document.getElementById('clearAllDataBtn');
+    
+    if (exportBtn) exportBtn.addEventListener('click', exportData);
+    if (importBtn) importBtn.addEventListener('click', importData);
+    if (clearBtn) clearBtn.addEventListener('click', clearAllData);
+    
+    // Payment modal buttons
+    const recordPaymentBtn = document.getElementById('recordPaymentBtn');
+    const markSessionBtn = document.getElementById('markSessionBtn');
+    
+    if (recordPaymentBtn) recordPaymentBtn.addEventListener('click', function() {
+        openModal('paymentModal');
+    });
+    if (markSessionBtn) markSessionBtn.addEventListener('click', function() {
+        openModal('attendanceSessionModal');
+    });
+}
+
+// ============================================================================
+// CORE FUNCTIONS - Define these next
+// ============================================================================
+
+// Tab switching function
 function switchTab(tabName) {
+    console.log('Switching to tab:', tabName);
+    
     // Remove active class from all tabs and content
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     
     // Add active class to clicked tab and corresponding content
-    event.target.classList.add('active');
-    document.getElementById(tabName).classList.add('active');
+    const activeTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+    if (activeTab) {
+        activeTab.classList.add('active');
+    }
+    
+    const activeContent = document.getElementById(tabName);
+    if (activeContent) {
+        activeContent.classList.add('active');
+    }
     
     // Update specific tab content if needed
     if (tabName === 'reports') {
@@ -18,17 +66,17 @@ function switchTab(tabName) {
     } else if (tabName === 'attendance') {
         updateAttendanceList();
     } else if (tabName === 'hours') {
-        // Force refresh totals when switching to hours tab
         calculateTimeTotals();
     } else if (tabName === 'payments') {
         updatePaymentUI();
     }
 }
 
-// Generate ID function - Define this early too
+// Generate ID function
 function generateId() {
     return 'worklog_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
+
 
 // Week number calculation - Define this early
 function getWeekNumber(date) {
