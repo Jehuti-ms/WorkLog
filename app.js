@@ -1246,9 +1246,12 @@ function init() {
 
 // Calculate weekly and monthly totals
 function calculateTimeTotals() {
+    console.log('=== CALCULATING TOTALS ===');
+    console.log('Total hours entries:', hoursLog.length);
     const now = new Date();
-    const currentWeek = getWeekNumber(now);
-    const currentMonth = now.getMonth();
+    console.log('Current date:', now);
+    console.log('Current week number:', getWeekNumber(now));
+    console.log('Current month:', now.getMonth() + 1);  
     const currentYear = now.getFullYear();
     
     let weeklyTotal = 0;
