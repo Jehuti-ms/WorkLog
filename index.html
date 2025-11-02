@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkLog - Student Management</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    
+    <!-- Icons -->
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link rel="icon" href="./icons/icon-192x192.png" type="image/png">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .welcome-container {
+            max-width: 500px;
+            width: 100%;
+            padding: 40px 30px;
+            text-align: center;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+        }
+        
+        .features {
+            text-align: left;
+            margin: 40px 0;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+        }
+        
+        .feature-item {
+            margin: 15px 0;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .feature-item::before {
+            content: "✅";
+            margin-right: 12px;
+            font-size: 1.1rem;
+        }
+        
+        .welcome-btn {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            margin: 12px 0;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .welcome-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary { 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        
+        .btn-secondary { 
+            background: #6c757d;
+        }
+        
+        #instructions {
+            margin-top: 25px;
+            text-align: left;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            display: none;
+        }
+        
+        #instructions h3 {
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+        
+        #instructions ol {
+            margin-left: 20px;
+            line-height: 1.6;
+        }
+        
+        #instructions li {
+            margin: 12px 0;
+            padding-left: 8px;
+        }
+        
+        .tip-box {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        @media (max-width: 600px) {
+            .welcome-container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .logo {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-container">
+        <div class="logo">📊</div>
+        <h1>WorkLog</h1>
+        <p class="subtitle">Student Tracker & Payment Management</p>
+        
+        <div class="features">
+            <div class="feature-item">Track student attendance & payments</div>
+            <div class="feature-item">Log teaching hours & earnings</div>
+            <div class="feature-item">Record marks & grades</div>
+            <div class="feature-item">Calculate student balances automatically</div>
+            <div class="feature-item">Export/import your data safely</div>
+            <div class="feature-item">Works offline - PWA ready</div>
+        </div>
+
+        <a href="app.html" class="welcome-btn btn-primary">🚀 Launch WorkLog</a>
+        <button class="welcome-btn btn-secondary" onclick="showInstructions()">📖 How to Use</button>
+        
+        <div id="instructions">
+            <h3>Quick Start Guide</h3>
+            <ol>
+                <li><strong>Add Students:</strong> Go to Students tab, fill details and set base rates</li>
+                <li><strong>Track Attendance:</strong> Use Attendance tab to mark session presence</li>
+                <li><strong>Record Payments:</strong> Use Payments tab when students make payments</li>
+                <li><strong>Log Hours:</strong> Track your teaching hours and calculate earnings</li>
+                <li><strong>Record Marks:</strong> Keep track of student grades and performance</li>
+                <li><strong>View Reports:</strong> Check analytics and financial summaries</li>
+            </ol>
+            <div class="tip-box">
+                <strong>💡 Pro Tip:</strong> Export your data regularly to keep backups safe. All data is stored locally in your browser.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showInstructions() {
+            const instructions = document.getElementById('instructions');
+            const isHidden = instructions.style.display === 'none' || !instructions.style.display;
+            
+            if (isHidden) {
+                instructions.style.display = 'block';
+                event.target.textContent = '📖 Hide Instructions';
+            } else {
+                instructions.style.display = 'none';
+                event.target.textContent = '📖 How to Use';
+            }
+        }
+        
+        // PWA installation prompt
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed');
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
