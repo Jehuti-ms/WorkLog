@@ -147,15 +147,7 @@ function logHours() {
     hoursLog.push(entry);
     saveAllData();
     updateUI();
-    
-    // Clear form
-    document.getElementById('organization').value = '';
-    document.getElementById('subject').value = '';
-    document.getElementById('topic').value = '';
-    document.getElementById('hoursWorked').value = '';
-    document.getElementById('baseRate').value = '';
-    document.getElementById('totalPay').value = '';
-    document.getElementById('workNotes').value = '';
+    resetHoursForm();
     
     alert('✅ Hours logged successfully!');
 }
@@ -363,39 +355,42 @@ function updateHoursList() {
         return;
     }
     
-    const recent = hoursLog.slice(-10).reverse();
-    container.innerHTML = '<table><thead><tr><th>Date</th><th>Organization</th><th>Subject</th><th>Topic</th><th>Hours</th><th>Total Pay</th></tr></thead><tbody>' +
-        recent.map(h => `
-            <tr>
-                <td>${h.date}</td>
-                <td>${h.organization}</td>
-                <td>${h.subject}</td>
-                <td>${h.topic}</td>
-                <td>${h.hours}</td>
-                <td>$${h.totalPay.toFixed(2)}</td>
-            </tr>
-        `).join('') + '</tbody></table>';
-}
-
-function updateMarksList() {
-    const container = document.getElementById('marksContainer');
-    if (marks.length === 0) {
-        container.innerHTML = '<p style="color: #666;">No marks recorded yet.</p>';
-        return;
-    }
-    
-    const recent = marks.slice(-10).reverse();
-    container.innerHTML = '<table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Topic</th><th>Score</th><th>Grade</th></tr></thead><tbody>' +
-        recent.map(m => `
-            <tr>
-                <td>${m.date}</td>
-                <td>${m.studentName}</td>
-                <td>${m.subject}</td>
-                <td>${m.topic}</td>
-                <td>${m.score}/${m.maxScore} (${m.percentage})</td>
-                <td>${m.grade}</td>
-            </tr>
-        `).join('') + '</tbody></table>';
+    const recent = hoursLog.slice(-20).reverse(); // Show more entries
+    container.innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Organization</th>
+                    <th>Subject</th>
+                    <th>Topic</th>
+                    <th>Hours</th>
+                    <th>Rate</th>
+                    <th>Total Pay</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${recent.map((entry, index) => `
+                    <tr id="hours-row-${entry.id}">
+                        <td>${entry.date}</td>
+                        <td>${entry.organization}</td>
+                        <td>${entry.subject}</td>
+                        <td>${entry.topic}</td>
+                        <td>${entry.hours}</td>
+                        <td>$${entry.rate.toFixed(2)}</td>
+                        <td>$${entry.totalPay.toFixed(2)}</td>
+                        <td class="notes-cell">${entry.notes || '-'}</td>
+                        <td>
+                            <button class="btn btn-sm" onclick="editHours('${entry.id}')">✏️ Edit</button>
+                            <button class="btn btn-secondary btn-sm" onclick="deleteHours('${entry.id}')">🗑️ Delete</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
 }
 
 function updateAttendanceUI() {
@@ -672,5 +667,121 @@ function isRunningAsPWA() {
 if (isRunningAsPWA()) {
   document.body.classList.add('pwa-mode');
   console.log('Running as installed PWA');
+}
+
+function editHours(entryId) {
+    const entry = hoursLog.find(e => e.id === entryId);
+    if (!entry) {
+        alert('Entry not found!');
+        return;
+    }
+
+    // Populate the form with existing data
+    document.getElementById('organization').value = entry.organization;
+    document.getElementById('subject').value = entry.subject;
+    document.getElementById('topic').value = entry.topic;
+    document.getElementById('workDate').value = entry.date;
+    document.getElementById('hoursWorked').value = entry.hours;
+    document.getElementById('baseRate').value = entry.rate;
+    document.getElementById('workNotes').value = entry.notes || '';
+    
+    // Calculate and show total pay
+    calculateTotalPay();
+    
+    // Change the button to "Update" instead of "Log Hours"
+    const logButton = document.querySelector('#hours .btn');
+    logButton.textContent = '💾 Update Entry';
+    logButton.onclick = function() { updateHours(entryId); };
+    
+    // Add cancel button
+    let cancelButton = document.querySelector('#hours .cancel-btn');
+    if (!cancelButton) {
+        cancelButton = document.createElement('button');
+        cancelButton.className = 'btn btn-secondary cancel-btn';
+        cancelButton.textContent = '❌ Cancel';
+        cancelButton.onclick = cancelEdit;
+        logButton.parentNode.appendChild(cancelButton);
+    }
+    
+    // Scroll to hours tab and form
+    switchTab('hours');
+    document.getElementById('hours').scrollIntoView({ behavior: 'smooth' });
+}
+
+function updateHours(entryId) {
+    const organization = document.getElementById('organization').value.trim();
+    const subject = document.getElementById('subject').value.trim();
+    const topic = document.getElementById('topic').value.trim();
+    const date = document.getElementById('workDate').value;
+    const hours = parseFloat(document.getElementById('hoursWorked').value);
+    const rate = parseFloat(document.getElementById('baseRate').value);
+    const notes = document.getElementById('workNotes').value.trim();
+    
+    if (!organization || !subject || !date || !hours || !rate) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    const totalPay = hours * rate;
+    const entryIndex = hoursLog.findIndex(e => e.id === entryId);
+    
+    if (entryIndex !== -1) {
+        // Update the entry
+        hoursLog[entryIndex] = {
+            ...hoursLog[entryIndex],
+            organization,
+            subject,
+            topic,
+            date,
+            hours,
+            rate,
+            totalPay,
+            notes,
+            updatedAt: new Date().toISOString()
+        };
+        
+        saveAllData();
+        updateUI();
+        resetHoursForm();
+        
+        alert('✅ Hours entry updated successfully!');
+    }
+}
+
+function cancelEdit() {
+    resetHoursForm();
+    const cancelButton = document.querySelector('#hours .cancel-btn');
+    if (cancelButton) {
+        cancelButton.remove();
+    }
+}
+
+function resetHoursForm() {
+    // Clear form
+    document.getElementById('organization').value = '';
+    document.getElementById('subject').value = '';
+    document.getElementById('topic').value = '';
+    document.getElementById('workDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('hoursWorked').value = '';
+    document.getElementById('baseRate').value = '';
+    document.getElementById('totalPay').value = '';
+    document.getElementById('workNotes').value = '';
+    
+    // Reset button to "Log Hours"
+    const logButton = document.querySelector('#hours .btn');
+    logButton.textContent = '💼 Log Hours';
+    logButton.onclick = logHours;
+}
+
+function deleteHours(entryId) {
+    if (confirm('Are you sure you want to delete this hours entry? This action cannot be undone.')) {
+        const entryIndex = hoursLog.findIndex(e => e.id === entryId);
+        if (entryIndex !== -1) {
+            const deletedEntry = hoursLog.splice(entryIndex, 1)[0];
+            saveAllData();
+            updateUI();
+            alert(`✅ Hours entry for ${deletedEntry.organization} deleted successfully!`);
+        }
+    }
 }
 
