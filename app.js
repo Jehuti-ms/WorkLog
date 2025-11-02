@@ -154,3 +154,645 @@ function updateReports() {}
 
 // Start the app when page loads
 document.addEventListener('DOMContentLoaded', init);
+
+// ============================================================================
+// DATA EXPORT/IMPORT FUNCTIONS
+// ============================================================================
+
+function exportData() {
+    const data = {
+        students,
+        hoursLog,
+        marks,
+        attendance,
+        payments,
+        paymentActivity,
+        exportDate: new Date().toISOString(),
+        version: '2.0'
+    };
+    
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `worklog-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    alert('✅ Data exported successfully!');
+}
+
+function importData() {
+    document.getElementById('importFile').click();
+}
+
+function handleFileImport(file) {
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            if (confirm(`Import data? This will replace:\n- ${data.students?.length || 0} students\n- ${data.hoursLog?.length || 0} hours\n- ${data.marks?.length || 0} marks\n- ${data.attendance?.length || 0} attendance records\n- ${data.payments?.length || 0} payments`)) {
+                students = data.students || [];
+                hoursLog = data.hoursLog || [];
+                marks = data.marks || [];
+                attendance = data.attendance || [];
+                payments = data.payments || [];
+                paymentActivity = data.paymentActivity || [];
+                
+                saveAllData();
+                updateUI();
+                updatePaymentUI();
+                alert('✅ Data imported successfully!');
+            }
+        } catch (error) {
+            alert('❌ Error importing data: Invalid file format');
+        }
+    };
+    reader.readAsText(file);
+}
+
+function clearAllData() {
+    if (confirm('⚠️ Are you sure you want to clear ALL data? This cannot be undone!')) {
+        students = [];
+        hoursLog = [];
+        marks = [];
+        attendance = [];
+        payments = [];
+        paymentActivity = [];
+        
+        saveAllData();
+        updateUI();
+        updatePaymentUI();
+        
+        // Clear summary displays
+        document.getElementById('weeklyTotal').textContent = '$0';
+        document.getElementById('monthlyTotal').textContent = '$0';
+        document.getElementById('weeklyHours').textContent = '0';
+        document.getElementById('monthlyHours').textContent = '0';
+        
+        // Clear breakdown container
+        const breakdownContainer = document.getElementById('breakdownContainer');
+        if (breakdownContainer) {
+            breakdownContainer.innerHTML = '<p style="color: #666; text-align: center;">Select a breakdown option above</p>';
+        }
+        
+        alert('✅ All data cleared!');
+    }
+}
+
+// ============================================================================
+// STUDENT MANAGEMENT FUNCTIONS
+// ============================================================================
+
+function addStudent() {
+    const name = document.getElementById('studentName').value.trim();
+    const id = document.getElementById('studentId').value.trim();
+    const gender = document.getElementById('studentGender').value;
+    const email = document.getElementById('studentEmail').value.trim();
+    const phone = document.getElementById('studentPhone').value.trim();
+    const baseRate = parseFloat(document.getElementById('studentBaseRate').value) || 0;
+    
+    if (!name || !id || !gender) {
+        alert('Please enter student name, ID and gender');
+        return;
+    }
+    
+    // Check if student ID already exists
+    if (students.find(s => s.id === id)) {
+        alert('Student ID already exists. Please use a different ID.');
+        return;
+    }
+    
+    const student = { 
+        name, 
+        id, 
+        gender, 
+        email, 
+        phone, 
+        baseRate,
+        registrationDate: new Date().toISOString().split('T')[0],
+        status: 'Active'
+    };
+    
+    students.push(student);
+    saveAllData();
+    updateUI();
+    
+    // Clear form
+    document.getElementById('studentName').value = '';
+    document.getElementById('studentId').value = '';
+    document.getElementById('studentGender').value = '';
+    document.getElementById('studentEmail').value = '';
+    document.getElementById('studentPhone').value = '';
+    document.getElementById('studentBaseRate').value = '';
+    
+    // Log activity
+    logPaymentActivity(`Added student: ${name} (Base rate: $${baseRate.toFixed(2)}/session)`);
+    
+    alert('✅ Student added successfully!');
+}
+
+function updateStudentList() {
+    document.getElementById('studentCount').textContent = students.length;
+    
+    const container = document.getElementById('studentsContainer');
+    if (students.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No students registered yet.</p>';
+        return;
+    }
+    
+    container.innerHTML = students.map((s, i) => `
+        <div class="list-item">
+            <div>
+                <strong>${s.name}</strong> (${s.id})<br>
+                <small style="color: #666;">${s.gender} | ${s.email || 'No email'} | ${s.phone || 'No phone'} | Rate: $${s.baseRate || 0}/session</small>
+            </div>
+            <button class="btn btn-secondary" onclick="deleteStudent(${i})">🗑️</button>
+        </div>
+    `).join('');
+}
+
+function deleteStudent(index) {
+    if (confirm('Are you sure you want to delete this student?')) {
+        const student = students[index];
+        students.splice(index, 1);
+        saveAllData();
+        updateUI();
+        logPaymentActivity(`Deleted student: ${student.name}`);
+        alert('✅ Student deleted successfully!');
+    }
+}
+
+// ============================================================================
+// HOURS TRACKING FUNCTIONS
+// ============================================================================
+
+function calculateTotalPay() {
+    const hours = parseFloat(document.getElementById('hoursWorked').value) || 0;
+    const rate = parseFloat(document.getElementById('baseRate').value) || 0;
+    const totalPay = hours * rate;
+    document.getElementById('totalPay').value = '$' + totalPay.toFixed(2);
+}
+
+function logHours() {
+    const organization = document.getElementById('organization').value.trim();
+    const subject = document.getElementById('subject').value.trim();
+    const topic = document.getElementById('topic').value.trim();
+    const date = document.getElementById('workDate').value;
+    const hours = parseFloat(document.getElementById('hoursWorked').value);
+    const rate = parseFloat(document.getElementById('baseRate').value);
+    const notes = document.getElementById('workNotes').value.trim();
+    
+    if (!organization || !subject || !date || !hours || !rate) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    const totalPay = hours * rate;
+    
+    const entry = {
+        id: generateId(),
+        organization,
+        subject,
+        topic,
+        date,
+        hours,
+        rate,
+        totalPay,
+        notes,
+        timestamp: new Date().toISOString()
+    };
+    
+    hoursLog.push(entry);
+    saveAllData();
+    updateFieldMemory();
+    updateUI();
+    calculateTimeTotals();
+    resetHoursForm();
+    
+    alert('✅ Hours logged successfully!');
+}
+
+function resetHoursForm() {
+    document.getElementById('workDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('hoursWorked').value = '';
+    document.getElementById('totalPay').value = '';
+    document.getElementById('workNotes').value = '';
+}
+
+function updateHoursList() {
+    const container = document.getElementById('hoursContainer');
+    if (hoursLog.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No hours logged yet.</p>';
+        return;
+    }
+    
+    const recent = hoursLog.slice(-20).reverse();
+    
+    container.innerHTML = recent.map(entry => {
+        const entryId = entry.id || generateId();
+        if (!entry.id) {
+            entry.id = entryId;
+            saveAllData();
+        }
+        return `
+            <div class="mobile-entry-card">
+                <div class="entry-header">
+                    <div class="entry-main">
+                        <strong>${entry.organization}</strong>
+                        <span class="entry-date">${entry.date}</span>
+                    </div>
+                    <div class="entry-amount">$${entry.totalPay.toFixed(2)}</div>
+                </div>
+                <div class="entry-details">
+                    <div><strong>Subject:</strong> ${entry.subject}</div>
+                    <div><strong>Topic:</strong> ${entry.topic || '-'}</div>
+                    <div><strong>Hours:</strong> ${entry.hours} @ $${entry.rate.toFixed(2)}/hr</div>
+                    ${entry.notes ? `<div><strong>Notes:</strong> ${entry.notes}</div>` : ''}
+                </div>
+                <div class="entry-actions">
+                    <button class="btn btn-sm" onclick="editHours('${entryId}')">✏️ Edit</button>
+                    <button class="btn btn-secondary btn-sm" onclick="deleteHours('${entryId}')">🗑️ Delete</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function deleteHours(entryId) {
+    if (confirm('Are you sure you want to delete this hours entry?')) {
+        const entryIndex = hoursLog.findIndex(e => e.id === entryId);
+        if (entryIndex !== -1) {
+            hoursLog.splice(entryIndex, 1);
+            saveAllData();
+            updateUI();
+            calculateTimeTotals();
+            alert('✅ Hours entry deleted successfully!');
+        }
+    }
+}
+
+// ============================================================================
+// MARKS MANAGEMENT FUNCTIONS
+// ============================================================================
+
+function calculatePercentage() {
+    const score = parseFloat(document.getElementById('score').value) || 0;
+    const maxScore = parseFloat(document.getElementById('maxScore').value) || 0;
+    
+    if (maxScore > 0) {
+        const percentage = (score / maxScore * 100).toFixed(1);
+        document.getElementById('percentage').value = percentage + '%';
+        
+        let grade = '';
+        if (percentage >= 90) grade = 'A+';
+        else if (percentage >= 80) grade = 'A';
+        else if (percentage >= 70) grade = 'B';
+        else if (percentage >= 60) grade = 'C';
+        else if (percentage >= 50) grade = 'D';
+        else grade = 'F';
+        
+        document.getElementById('grade').value = grade;
+    } else {
+        document.getElementById('percentage').value = '';
+        document.getElementById('grade').value = '';
+    }
+}
+
+function updateStudentDetails() {
+    const studentId = document.getElementById('marksStudent').value;
+    const student = students.find(s => s.id === studentId);
+    const detailsDiv = document.getElementById('studentDetails');
+    
+    if (student) {
+        document.getElementById('selectedStudentName').textContent = student.name;
+        document.getElementById('selectedStudentGender').textContent = student.gender;
+        document.getElementById('selectedStudentId').textContent = student.id;
+        detailsDiv.style.display = 'block';
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+}
+
+function addMark() {
+    const studentId = document.getElementById('marksStudent').value;
+    const subject = document.getElementById('markSubject').value.trim();
+    const topic = document.getElementById('markTopic').value.trim();
+    const date = document.getElementById('markDate').value;
+    const score = parseFloat(document.getElementById('score').value);
+    const maxScore = parseFloat(document.getElementById('maxScore').value);
+    const percentage = document.getElementById('percentage').value;
+    const grade = document.getElementById('grade').value;
+    const comments = document.getElementById('markComments').value.trim();
+    
+    if (!studentId || !subject || !topic || !date || isNaN(score) || isNaN(maxScore)) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    const student = students.find(s => s.id === studentId);
+    
+    const mark = {
+        id: generateId(),
+        studentId,
+        studentName: student.name,
+        gender: student.gender,
+        subject,
+        topic,
+        date,
+        score,
+        maxScore,
+        percentage,
+        grade,
+        comments,
+        timestamp: new Date().toISOString()
+    };
+    
+    marks.push(mark);
+    saveAllData();
+    updateUI();
+    
+    // Clear form
+    document.getElementById('markSubject').value = '';
+    document.getElementById('markTopic').value = '';
+    document.getElementById('score').value = '';
+    document.getElementById('maxScore').value = '';
+    document.getElementById('percentage').value = '';
+    document.getElementById('grade').value = '';
+    document.getElementById('markComments').value = '';
+    
+    alert('✅ Mark added successfully!');
+}
+
+function updateMarksList() {
+    const container = document.getElementById('marksContainer');
+    if (marks.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No marks recorded yet.</p>';
+        return;
+    }
+    
+    const recent = marks.slice(-20).reverse();
+    
+    container.innerHTML = recent.map(mark => {
+        const markId = mark.id || generateId();
+        if (!mark.id) {
+            mark.id = markId;
+            saveAllData();
+        }
+        return `
+            <div class="mobile-entry-card">
+                <div class="entry-header">
+                    <div class="entry-main">
+                        <strong>${mark.studentName}</strong>
+                        <span class="entry-date">${mark.date}</span>
+                    </div>
+                    <div class="entry-amount">${mark.percentage}</div>
+                </div>
+                <div class="entry-details">
+                    <div><strong>Subject:</strong> ${mark.subject}</div>
+                    <div><strong>Topic:</strong> ${mark.topic || '-'}</div>
+                    <div><strong>Score:</strong> ${mark.score}/${mark.maxScore}</div>
+                    <div><strong>Grade:</strong> ${mark.grade}</div>
+                    ${mark.comments ? `<div><strong>Comments:</strong> ${mark.comments}</div>` : ''}
+                </div>
+                <div class="entry-actions">
+                    <button class="btn btn-sm" onclick="editMark('${markId}')">✏️ Edit</button>
+                    <button class="btn btn-secondary btn-sm" onclick="deleteMark('${markId}')">🗑️ Delete</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function deleteMark(markId) {
+    if (confirm('Are you sure you want to delete this mark?')) {
+        const markIndex = marks.findIndex(m => m.id === markId);
+        if (markIndex !== -1) {
+            marks.splice(markIndex, 1);
+            saveAllData();
+            updateUI();
+            alert('✅ Mark deleted successfully!');
+        }
+    }
+}
+
+// ============================================================================
+// ATTENDANCE MANAGEMENT FUNCTIONS
+// ============================================================================
+
+function updateAttendanceList() {
+    const container = document.getElementById('attendanceList');
+    if (students.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No students registered yet. Add students first.</p>';
+        return;
+    }
+    
+    container.innerHTML = students.map(student => `
+        <div class="attendance-item">
+            <div>
+                <input type="checkbox" class="attendance-checkbox" id="attendance_${student.id}" checked>
+                <label for="attendance_${student.id}">
+                    <strong>${student.name}</strong> (${student.id}) - ${student.gender}
+                </label>
+            </div>
+            <div>
+                <small style="color: #666;">${student.email || 'No email'} | Rate: $${student.baseRate || 0}/session</small>
+            </div>
+        </div>
+    `).join('');
+}
+
+function saveAttendance() {
+    const date = document.getElementById('attendanceDate').value;
+    const subject = document.getElementById('attendanceSubject').value.trim();
+    const topic = document.getElementById('attendanceTopic').value.trim();
+    
+    if (!date || !subject || !topic) {
+        alert('Please fill in date, subject and topic');
+        return;
+    }
+    
+    const attendanceRecords = [];
+    
+    students.forEach(student => {
+        const checkbox = document.getElementById(`attendance_${student.id}`);
+        const status = checkbox.checked ? 'Present' : 'Absent';
+        
+        const record = {
+            id: generateId(),
+            date,
+            studentId: student.id,
+            studentName: student.name,
+            gender: student.gender,
+            subject,
+            topic,
+            status,
+            timestamp: new Date().toISOString()
+        };
+        
+        attendanceRecords.push(record);
+    });
+    
+    attendance.push(...attendanceRecords);
+    saveAllData();
+    updateAttendanceUI();
+    
+    // Keep subject and topic for quick reuse
+    document.getElementById('attendanceSubject').value = subject;
+    document.getElementById('attendanceTopic').value = topic;
+    
+    alert(`✅ Attendance saved for ${attendanceRecords.length} students!`);
+    
+    // Auto-scroll to show new records
+    document.getElementById('attendanceContainer').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
+}
+
+function updateAttendanceUI() {
+    const container = document.getElementById('attendanceContainer');
+    if (attendance.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No attendance records yet.</p>';
+        return;
+    }
+    
+    const recent = attendance.slice(-20).reverse();
+    
+    container.innerHTML = recent.map(record => {
+        const recordId = record.id || generateId();
+        if (!record.id) {
+            record.id = recordId;
+            saveAllData();
+        }
+        return `
+            <div class="mobile-entry-card">
+                <div class="entry-header">
+                    <div class="entry-main">
+                        <strong>${record.studentName}</strong>
+                        <span class="entry-date">${record.date}</span>
+                    </div>
+                    <div class="entry-amount ${record.status === 'Present' ? 'status-connected' : 'status-disconnected'}">
+                        ${record.status}
+                    </div>
+                </div>
+                <div class="entry-details">
+                    <div><strong>Subject:</strong> ${record.subject}</div>
+                    <div><strong>Topic:</strong> ${record.topic || '-'}</div>
+                </div>
+                <div class="entry-actions">
+                    <button class="btn btn-sm" onclick="editAttendance('${recordId}')">✏️ Edit</button>
+                    <button class="btn btn-secondary btn-sm" onclick="deleteAttendance('${recordId}')">🗑️ Delete</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function deleteAttendance(recordId) {
+    if (confirm('Are you sure you want to delete this attendance record?')) {
+        const recordIndex = attendance.findIndex(a => a.id === recordId);
+        if (recordIndex !== -1) {
+            attendance.splice(recordIndex, 1);
+            saveAllData();
+            updateUI();
+            alert('✅ Attendance record deleted successfully!');
+        }
+    }
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+function generateId() {
+    return 'worklog_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function getWeekNumber(date) {
+    if (!(date instanceof Date) || isNaN(date)) return 0;
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+// Add these missing utility functions
+let fieldMemory = {
+    organization: '',
+    baseRate: '',
+    subject: '',
+    topic: ''
+};
+
+function loadFieldMemory() {
+    const saved = localStorage.getItem('worklog_field_memory');
+    if (saved) {
+        fieldMemory = JSON.parse(saved);
+    }
+    applyFieldMemory();
+}
+
+function saveFieldMemory() {
+    localStorage.setItem('worklog_field_memory', JSON.stringify(fieldMemory));
+}
+
+function applyFieldMemory() {
+    if (fieldMemory.organization) {
+        document.getElementById('organization').value = fieldMemory.organization;
+    }
+    if (fieldMemory.baseRate) {
+        document.getElementById('baseRate').value = fieldMemory.baseRate;
+    }
+    if (fieldMemory.subject) {
+        document.getElementById('subject').value = fieldMemory.subject;
+    }
+    if (fieldMemory.topic) {
+        document.getElementById('topic').value = fieldMemory.topic;
+    }
+}
+
+function updateFieldMemory() {
+    fieldMemory.organization = document.getElementById('organization').value.trim();
+    fieldMemory.baseRate = document.getElementById('baseRate').value.trim();
+    fieldMemory.subject = document.getElementById('subject').value.trim();
+    fieldMemory.topic = document.getElementById('topic').value.trim();
+    saveFieldMemory();
+}
+
+function logPaymentActivity(message) {
+    paymentActivity.push({
+        timestamp: new Date().toISOString(),
+        message
+    });
+    savePaymentData();
+}
+
+// Update the init function to include field memory
+function init() {
+    console.log("WorkLog app initialized");
+    loadAllData();
+    loadFieldMemory();
+    setupAllEventListeners();
+    updateUI();
+    setDefaultDate();
+}
+
+function setDefaultDate() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('workDate').value = today;
+    document.getElementById('markDate').value = today;
+    document.getElementById('attendanceDate').value = today;
+    
+    const paymentDate = document.getElementById('paymentDate');
+    const sessionDate = document.getElementById('sessionDate');
+    if (paymentDate) paymentDate.value = today;
+    if (sessionDate) sessionDate.value = today;
+}
+
+
