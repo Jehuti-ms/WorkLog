@@ -72,18 +72,20 @@ const currentMonth = now.getMonth();
 const currentYear = now.getFullYear();
 
 // ============================================================================
-// END OF CORE FUNCTIONS - Now continue with the rest of your existing code
+// DATA STORAGE - All data stored locally
 // ============================================================================
 
-// Data storage - All data stored locally
 let students = [];
 let hoursLog = [];
 let marks = [];
 let attendance = [];
-let payments = []; // Add payments array
-let paymentActivity = []; // Add payment activity array
+let payments = [];
+let paymentActivity = [];
 
-// Initialize
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
 function init() {
     console.log("Initializing WorkLog application...");
     loadAllData();
@@ -121,10 +123,6 @@ function setupPaymentEventListeners() {
 // ============================================================================
 // PAYMENT TRACKING SYSTEM
 // ============================================================================
-
-// Payment data storage
-let payments = [];
-let paymentActivity = [];
 
 // Initialize payment system
 function initPaymentSystem() {
@@ -164,7 +162,7 @@ function calculateStudentBalance(studentId) {
     ).length;
     
     // Get base rate (use student's base rate or default)
-    const baseRate = student.baseRate || parseFloat(document.getElementById('studentBaseRate')?.value) || 0;
+    const baseRate = student.baseRate || 0;
     
     // Calculate total owed
     const totalOwed = sessionCount * baseRate;
@@ -258,7 +256,6 @@ function updatePaymentStats() {
 // Update student selects in payment forms
 function updatePaymentStudentSelects() {
     const paymentSelect = document.getElementById('paymentStudent');
-    const sessionSelect = document.getElementById('sessionStudent');
     
     const options = students.map(student => 
         `<option value="${student.id}">${student.name} (${student.id})</option>`
@@ -266,9 +263,6 @@ function updatePaymentStudentSelects() {
     
     if (paymentSelect) {
         paymentSelect.innerHTML = '<option value="">Select Student</option>' + options;
-    }
-    if (sessionSelect) {
-        sessionSelect.innerHTML = '<option value="">Select Student</option>' + options;
     }
 }
 
@@ -302,12 +296,6 @@ function recordPaymentForStudent(studentId) {
         }
     }
 }
-
-// Handle payment form submission
-document.getElementById('paymentForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-    recordPayment();
-});
 
 function recordPayment() {
     const studentId = document.getElementById('paymentStudent').value;
@@ -354,12 +342,6 @@ function recordPayment() {
     
     alert(`✅ Payment of $${amount.toFixed(2)} recorded for ${student.name}!`);
 }
-
-// Handle session attendance form submission
-document.getElementById('attendanceSessionForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-    saveSessionAttendance();
-});
 
 function updateSessionAttendanceList() {
     const container = document.getElementById('sessionAttendanceList');
@@ -530,7 +512,43 @@ function logPaymentActivity(message) {
     savePaymentData();
 }
 
-// Update student management to include base rate
+// ============================================================================
+// EXISTING WORKLOG FUNCTIONALITY (your original code)
+// ============================================================================
+
+// Data management - Local Storage
+function loadAllData() {
+    students = JSON.parse(localStorage.getItem('worklog_students') || '[]');
+    hoursLog = JSON.parse(localStorage.getItem('worklog_hours') || '[]');
+    marks = JSON.parse(localStorage.getItem('worklog_marks') || '[]');
+    attendance = JSON.parse(localStorage.getItem('worklog_attendance') || '[]');
+    loadPaymentData(); // Load payment data too
+    
+    console.log(`Loaded: ${students.length} students, ${hoursLog.length} hours, ${marks.length} marks, ${attendance.length} attendance records, ${payments.length} payments`);
+}
+
+function saveAllData() {
+    localStorage.setItem('worklog_students', JSON.stringify(students));
+    localStorage.setItem('worklog_hours', JSON.stringify(hoursLog));
+    localStorage.setItem('worklog_marks', JSON.stringify(marks));
+    localStorage.setItem('worklog_attendance', JSON.stringify(attendance));
+    savePaymentData(); // Save payment data too
+    
+    showDataStats();
+}
+
+function showDataStats() {
+    const stats = `
+        Students: ${students.length} | 
+        Hours: ${hoursLog.length} | 
+        Marks: ${marks.length} | 
+        Attendance: ${attendance.length} records |
+        Payments: ${payments.length}
+    `;
+    console.log('Data Stats:', stats);
+}
+
+// Student management
 function addStudent() {
     const name = document.getElementById('studentName').value.trim();
     const id = document.getElementById('studentId').value.trim();
@@ -564,7 +582,6 @@ function addStudent() {
     students.push(student);
     saveAllData();
     updateUI();
-    updatePaymentUI();
     
     // Clear form
     document.getElementById('studentName').value = '';
@@ -580,9 +597,544 @@ function addStudent() {
     alert('✅ Student added successfully!');
 }
 
-// Update reports to include payment data
+// Hours calculation
+function calculateTotalPay() {
+    const hours = parseFloat(document.getElementById('hoursWorked').value) || 0;
+    const rate = parseFloat(document.getElementById('baseRate').value) || 0;
+    const totalPay = hours * rate;
+    document.getElementById('totalPay').value = '$' + totalPay.toFixed(2);
+}
+
+function logHours() {
+    const organization = document.getElementById('organization').value.trim();
+    const subject = document.getElementById('subject').value.trim();
+    const topic = document.getElementById('topic').value.trim();
+    const date = document.getElementById('workDate').value;
+    const hours = parseFloat(document.getElementById('hoursWorked').value);
+    const rate = parseFloat(document.getElementById('baseRate').value);
+    const notes = document.getElementById('workNotes').value.trim();
+    
+    if (!organization || !subject || !date || !hours || !rate) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    const totalPay = hours * rate;
+    
+    const entry = {
+        id: generateId(),
+        organization,
+        subject,
+        topic,
+        date,
+        hours,
+        rate,
+        totalPay,
+        notes,
+        timestamp: new Date().toISOString()
+    };
+    
+    hoursLog.push(entry);
+    saveAllData();
+    updateFieldMemory();
+    
+    // Force update all UI components
+    updateUI();
+    calculateTimeTotals(); // Extra call to ensure totals update
+    
+    resetHoursForm();
+    
+    alert('✅ Hours logged successfully!');
+}
+
+// Update the deleteHours function too
+function deleteHours(entryId) {
+    if (confirm('Are you sure you want to delete this hours entry?')) {
+        const entryIndex = hoursLog.findIndex(e => e.id === entryId);
+        if (entryIndex !== -1) {
+            hoursLog.splice(entryIndex, 1);
+            saveAllData();
+            updateUI();
+            calculateTimeTotals(); // Force totals update
+            alert('✅ Hours entry deleted successfully!');
+        }
+    }
+}
+
+// Marks calculation
+function calculatePercentage() {
+    const score = parseFloat(document.getElementById('score').value) || 0;
+    const maxScore = parseFloat(document.getElementById('maxScore').value) || 0;
+    
+    if (maxScore > 0) {
+        const percentage = (score / maxScore * 100).toFixed(1);
+        document.getElementById('percentage').value = percentage + '%';
+        
+        // Calculate grade
+        let grade = '';
+        if (percentage >= 90) grade = 'A+';
+        else if (percentage >= 80) grade = 'A';
+        else if (percentage >= 70) grade = 'B';
+        else if (percentage >= 60) grade = 'C';
+        else if (percentage >= 50) grade = 'D';
+        else grade = 'F';
+        
+        document.getElementById('grade').value = grade;
+    } else {
+        document.getElementById('percentage').value = '';
+        document.getElementById('grade').value = '';
+    }
+}
+
+function updateStudentDetails() {
+    const studentId = document.getElementById('marksStudent').value;
+    const student = students.find(s => s.id === studentId);
+    const detailsDiv = document.getElementById('studentDetails');
+    
+    if (student) {
+        document.getElementById('selectedStudentName').textContent = student.name;
+        document.getElementById('selectedStudentGender').textContent = student.gender;
+        document.getElementById('selectedStudentId').textContent = student.id;
+        detailsDiv.style.display = 'block';
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+}
+
+function addMark() {
+    const studentId = document.getElementById('marksStudent').value;
+    const subject = document.getElementById('markSubject').value.trim();
+    const topic = document.getElementById('markTopic').value.trim();
+    const date = document.getElementById('markDate').value;
+    const score = parseFloat(document.getElementById('score').value);
+    const maxScore = parseFloat(document.getElementById('maxScore').value);
+    const percentage = document.getElementById('percentage').value;
+    const grade = document.getElementById('grade').value;
+    const comments = document.getElementById('markComments').value.trim();
+    
+    if (!studentId || !subject || !topic || !date || isNaN(score) || isNaN(maxScore)) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    const student = students.find(s => s.id === studentId);
+    
+    const mark = {
+        id: generateId(),
+        studentId,
+        studentName: student.name,
+        gender: student.gender,
+        subject,
+        topic,
+        date,
+        score,
+        maxScore,
+        percentage,
+        grade,
+        comments,
+        timestamp: new Date().toISOString()
+    };
+    
+    marks.push(mark);
+    saveAllData();
+    updateUI();
+    
+    // Clear form
+    document.getElementById('markSubject').value = '';
+    document.getElementById('markTopic').value = '';
+    document.getElementById('score').value = '';
+    document.getElementById('maxScore').value = '';
+    document.getElementById('percentage').value = '';
+    document.getElementById('grade').value = '';
+    document.getElementById('markComments').value = '';
+    
+    alert('✅ Mark added successfully!');
+}
+
+function updateMarksList() {
+    const container = document.getElementById('marksContainer');
+    if (marks.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No marks recorded yet.</p>';
+        return;
+    }
+    
+    const recent = marks.slice(-20).reverse();
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        // Mobile card layout for marks
+        container.innerHTML = `
+            <div class="mobile-entries">
+                ${recent.map(mark => {
+                    const markId = mark.id || generateId();
+                    if (!mark.id) {
+                        mark.id = markId;
+                        saveAllData();
+                    }
+                    return `
+                    <div class="mobile-entry-card">
+                        <div class="entry-header">
+                            <div class="entry-main">
+                                <strong>${mark.studentName}</strong>
+                                <span class="entry-date">${mark.date}</span>
+                            </div>
+                            <div class="entry-amount">${mark.percentage}</div>
+                        </div>
+                        <div class="entry-details">
+                            <div><strong>Subject:</strong> ${mark.subject}</div>
+                            <div><strong>Topic:</strong> ${mark.topic || '-'}</div>
+                            <div><strong>Score:</strong> ${mark.score}/${mark.maxScore}</div>
+                            <div><strong>Grade:</strong> ${mark.grade}</div>
+                            ${mark.comments ? `<div><strong>Comments:</strong> ${mark.comments}</div>` : ''}
+                        </div>
+                        <div class="entry-actions">
+                            <button class="btn btn-sm" onclick="editMark('${markId}')">✏️ Edit</button>
+                            <button class="btn btn-secondary btn-sm" onclick="deleteMark('${markId}')">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `}).join('')}
+            </div>
+        `;
+    } else {
+        // Desktop table layout for marks
+        container.innerHTML = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Student</th>
+                            <th>Subject</th>
+                            <th>Topic</th>
+                            <th>Score</th>
+                            <th>Percentage</th>
+                            <th>Grade</th>
+                            <th>Comments</th>
+                            <th class="actions-cell">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${recent.map(mark => {
+                            const markId = mark.id || generateId();
+                            if (!mark.id) {
+                                mark.id = markId;
+                                saveAllData();
+                            }
+                            return `
+                            <tr>
+                                <td>${mark.date}</td>
+                                <td>${mark.studentName}</td>
+                                <td>${mark.subject}</td>
+                                <td>${mark.topic || '-'}</td>
+                                <td>${mark.score}/${mark.maxScore}</td>
+                                <td>${mark.percentage}</td>
+                                <td>${mark.grade}</td>
+                                <td class="notes-cell">${mark.comments || '-'}</td>
+                                <td class="actions-cell">
+                                    <button class="btn btn-sm" onclick="editMark('${markId}')">✏️ Edit</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="deleteMark('${markId}')">🗑️ Delete</button>
+                                </td>
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+}
+
+// Attendance management
+function updateAttendanceList() {
+    const container = document.getElementById('attendanceList');
+    if (students.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No students registered yet. Add students first.</p>';
+        return;
+    }
+    
+    container.innerHTML = students.map(student => `
+        <div class="attendance-item">
+            <div>
+                <input type="checkbox" class="attendance-checkbox" id="attendance_${student.id}" checked>
+                <label for="attendance_${student.id}">
+                    <strong>${student.name}</strong> (${student.id}) - ${student.gender}
+                </label>
+            </div>
+            <div>
+                <small style="color: #666;">${student.email || 'No email'}</small>
+            </div>
+        </div>
+    `).join('');
+}
+
+function saveAttendance() {
+    const date = document.getElementById('attendanceDate').value;
+    const subject = document.getElementById('attendanceSubject').value.trim();
+    const topic = document.getElementById('attendanceTopic').value.trim();
+    
+    if (!date || !subject || !topic) {
+        alert('Please fill in date, subject and topic');
+        return;
+    }
+    
+    const attendanceRecords = [];
+    
+    students.forEach(student => {
+        const checkbox = document.getElementById(`attendance_${student.id}`);
+        const status = checkbox.checked ? 'Present' : 'Absent';
+        
+        const record = {
+            id: generateId(),
+            date,
+            studentId: student.id,
+            studentName: student.name,
+            gender: student.gender,
+            subject,
+            topic,
+            status,
+            timestamp: new Date().toISOString()
+        };
+        
+        attendanceRecords.push(record);
+    });
+    
+    // Add to attendance log
+    attendance.push(...attendanceRecords);
+    saveAllData();
+    updateAttendanceUI(); // This will immediately update the table
+    
+    // Clear form but keep subject and topic for quick reuse
+    document.getElementById('attendanceSubject').value = subject; // Keep subject
+    document.getElementById('attendanceTopic').value = topic; // Keep topic
+    
+    alert(`✅ Attendance saved for ${attendanceRecords.length} students!`);
+    
+    // Auto-scroll to show the new attendance records
+    document.getElementById('attendanceContainer').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
+}
+
+// UI Updates
+function updateUI() {
+    updateStudentList();  // This will update the count
+    updateStudentSelects();
+    updateHoursList();
+    updateMarksList();
+    updateAttendanceUI();
+    calculateTimeTotals();
+    updatePaymentUI(); // Add this line
+}
+
+function updateStudentList() {
+    // Update the student count display
+    document.getElementById('studentCount').textContent = students.length;
+    
+    const container = document.getElementById('studentsContainer');
+    if (students.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No students registered yet.</p>';
+        return;
+    }
+    
+    container.innerHTML = students.map((s, i) => `
+        <div class="list-item">
+            <div>
+                <strong>${s.name}</strong> (${s.id})<br>
+                <small style="color: #666;">${s.gender} | ${s.email || 'No email'} | ${s.phone || 'No phone'}</small>
+            </div>
+            <button class="btn btn-secondary" onclick="deleteStudent(${i})">🗑️</button>
+        </div>
+    `).join('');
+}
+
+function updateStudentSelects() {
+    const marksSelect = document.getElementById('marksStudent');
+    
+    const options = students.map(s => 
+        `<option value="${s.id}">${s.name} (${s.id}) - ${s.gender}</option>`
+    ).join('');
+    
+    marksSelect.innerHTML = '<option value="">Select student...</option>' + options;
+}
+
+function updateHoursList() {
+    const container = document.getElementById('hoursContainer');
+    if (hoursLog.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No hours logged yet.</p>';
+        return;
+    }
+    
+    const recent = hoursLog.slice(-20).reverse();
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        // Mobile card layout
+        container.innerHTML = `
+            <div class="mobile-entries">
+                ${recent.map(entry => {
+                    const entryId = entry.id || generateId(); // Ensure ID exists
+                    if (!entry.id) {
+                        entry.id = entryId; // Fix missing ID
+                        saveAllData();
+                    }
+                    return `
+                    <div class="mobile-entry-card">
+                        <div class="entry-header">
+                            <div class="entry-main">
+                                <strong>${entry.organization}</strong>
+                                <span class="entry-date">${entry.date}</span>
+                            </div>
+                            <div class="entry-amount">$${entry.totalPay.toFixed(2)}</div>
+                        </div>
+                        <div class="entry-details">
+                            <div><strong>Subject:</strong> ${entry.subject}</div>
+                            <div><strong>Topic:</strong> ${entry.topic || '-'}</div>
+                            <div><strong>Hours:</strong> ${entry.hours} @ $${entry.rate.toFixed(2)}/hr</div>
+                            ${entry.notes ? `<div><strong>Notes:</strong> ${entry.notes}</div>` : ''}
+                        </div>
+                        <div class="entry-actions">
+                            <button class="btn btn-sm" onclick="editHours('${entryId}')">✏️ Edit</button>
+                            <button class="btn btn-secondary btn-sm" onclick="deleteHours('${entryId}')">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `}).join('')}
+            </div>
+        `;
+    } else {
+        // Desktop table layout
+        container.innerHTML = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Organization</th>
+                            <th>Subject</th>
+                            <th>Topic</th>
+                            <th>Hours</th>
+                            <th>Rate</th>
+                            <th>Total Pay</th>
+                            <th>Notes</th>
+                            <th class="actions-cell">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${recent.map(entry => {
+                            const entryId = entry.id || generateId(); // Ensure ID exists
+                            if (!entry.id) {
+                                entry.id = entryId; // Fix missing ID
+                                saveAllData();
+                            }
+                            return `
+                            <tr>
+                                <td>${entry.date}</td>
+                                <td>${entry.organization}</td>
+                                <td>${entry.subject}</td>
+                                <td>${entry.topic || '-'}</td>
+                                <td>${entry.hours}</td>
+                                <td>$${entry.rate.toFixed(2)}</td>
+                                <td>$${entry.totalPay.toFixed(2)}</td>
+                                <td class="notes-cell">${entry.notes || '-'}</td>
+                                <td class="actions-cell">
+                                    <button class="btn btn-sm" onclick="editHours('${entryId}')">✏️ Edit</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="deleteHours('${entryId}')">🗑️ Delete</button>
+                                </td>
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+}
+
+function updateAttendanceUI() {
+    const container = document.getElementById('attendanceContainer');
+    if (attendance.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No attendance records yet.</p>';
+        return;
+    }
+    
+    const recent = attendance.slice(-20).reverse();
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        // Mobile card layout for attendance
+        container.innerHTML = `
+            <div class="mobile-entries">
+                ${recent.map(record => {
+                    const recordId = record.id || generateId();
+                    if (!record.id) {
+                        record.id = recordId;
+                        saveAllData();
+                    }
+                    return `
+                    <div class="mobile-entry-card">
+                        <div class="entry-header">
+                            <div class="entry-main">
+                                <strong>${record.studentName}</strong>
+                                <span class="entry-date">${record.date}</span>
+                            </div>
+                            <div class="entry-amount ${record.status === 'Present' ? 'status-connected' : 'status-disconnected'}">
+                                ${record.status}
+                            </div>
+                        </div>
+                        <div class="entry-details">
+                            <div><strong>Subject:</strong> ${record.subject}</div>
+                            <div><strong>Topic:</strong> ${record.topic || '-'}</div>
+                        </div>
+                        <div class="entry-actions">
+                            <button class="btn btn-sm" onclick="editAttendance('${recordId}')">✏️ Edit</button>
+                            <button class="btn btn-secondary btn-sm" onclick="deleteAttendance('${recordId}')">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `}).join('')}
+            </div>
+        `;
+    } else {
+        // Desktop table layout for attendance
+        container.innerHTML = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Student</th>
+                            <th>Subject</th>
+                            <th>Topic</th>
+                            <th>Status</th>
+                            <th class="actions-cell">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${recent.map(record => {
+                            const recordId = record.id || generateId();
+                            if (!record.id) {
+                                record.id = recordId;
+                                saveAllData();
+                            }
+                            return `
+                            <tr>
+                                <td>${record.date}</td>
+                                <td>${record.studentName}</td>
+                                <td>${record.subject}</td>
+                                <td>${record.topic || '-'}</td>
+                                <td><span class="status ${record.status === 'Present' ? 'connected' : 'disconnected'}">${record.status}</span></td>
+                                <td class="actions-cell">
+                                    <button class="btn btn-sm" onclick="editAttendance('${recordId}')">✏️ Edit</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="deleteAttendance('${recordId}')">🗑️ Delete</button>
+                                </td>
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+}
+
+// Reports
 function updateReports() {
-    // Existing reports
     document.getElementById('totalStudentsReport').textContent = students.length;
     document.getElementById('totalHoursReport').textContent = hoursLog.reduce((sum, h) => sum + h.hours, 0).toFixed(1);
     document.getElementById('totalEarningsReport').textContent = '$' + hoursLog.reduce((sum, h) => sum + h.totalPay, 0).toFixed(2);
@@ -603,7 +1155,6 @@ function updateReports() {
     updateSubjectReport();
 }
 
-// Update weekly report to include payments
 function updateWeeklyReport() {
     const weeks = {};
     
@@ -650,7 +1201,6 @@ function updateWeeklyReport() {
     }).join('');
 }
 
-// Update subject report to include sessions
 function updateSubjectReport() {
     const subjects = {};
     
@@ -726,25 +1276,68 @@ function updateSubjectReport() {
     }).join('');
 }
 
-// Update data management functions to include payments
-function saveAllData() {
-    localStorage.setItem('worklog_students', JSON.stringify(students));
-    localStorage.setItem('worklog_hours', JSON.stringify(hoursLog));
-    localStorage.setItem('worklog_marks', JSON.stringify(marks));
-    localStorage.setItem('worklog_attendance', JSON.stringify(attendance));
-    savePaymentData(); // Save payment data too
-    
-    showDataStats();
+function deleteStudent(index) {
+    if (confirm('Are you sure you want to delete this student?')) {
+        students.splice(index, 1);
+        saveAllData();
+        updateUI();
+    }
 }
 
-function loadAllData() {
-    students = JSON.parse(localStorage.getItem('worklog_students') || '[]');
-    hoursLog = JSON.parse(localStorage.getItem('worklog_hours') || '[]');
-    marks = JSON.parse(localStorage.getItem('worklog_marks') || '[]');
-    attendance = JSON.parse(localStorage.getItem('worklog_attendance') || '[]');
-    loadPaymentData(); // Load payment data too
+// Data Export/Import
+function exportData() {
+    const data = {
+        students,
+        hoursLog,
+        marks,
+        attendance,
+        payments,
+        paymentActivity,
+        exportDate: new Date().toISOString(),
+        version: '2.0' // Update version to include payments
+    };
     
-    console.log(`Loaded: ${students.length} students, ${hoursLog.length} hours, ${marks.length} marks, ${attendance.length} attendance records, ${payments.length} payments`);
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `worklog-backup-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    
+    alert('✅ Data exported successfully!');
+}
+
+function importData() {
+    document.getElementById('importFile').click();
+}
+
+function handleFileImport(file) {
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            if (confirm(`Import data? This will replace:\n- ${data.students?.length || 0} students\n- ${data.hoursLog?.length || 0} hours\n- ${data.marks?.length || 0} marks\n- ${data.attendance?.length || 0} attendance records\n- ${data.payments?.length || 0} payments`)) {
+                students = data.students || [];
+                hoursLog = data.hoursLog || [];
+                marks = data.marks || [];
+                attendance = data.attendance || [];
+                payments = data.payments || [];
+                paymentActivity = data.paymentActivity || [];
+                
+                saveAllData();
+                updateUI();
+                updatePaymentUI();
+                alert('✅ Data imported successfully!');
+            }
+        } catch (error) {
+            alert('❌ Error importing data: Invalid file format');
+        }
+    };
+    reader.readAsText(file);
 }
 
 function clearAllData() {
@@ -776,77 +1369,20 @@ function clearAllData() {
     }
 }
 
-function exportData() {
-    const data = {
-        students,
-        hoursLog,
-        marks,
-        attendance,
-        payments,
-        paymentActivity,
-        exportDate: new Date().toISOString(),
-        version: '2.0' // Update version to include payments
-    };
-    
-    const dataStr = JSON.stringify(data, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
-    link.download = `worklog-backup-${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    
-    alert('✅ Data exported successfully!');
-}
+// [Rest of your existing functions... editHours, calculateTimeTotals, etc.]
 
-function handleFileImport(file) {
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = JSON.parse(e.target.result);
-            
-            if (confirm(`Import data? This will replace:\n- ${data.students?.length || 0} students\n- ${data.hoursLog?.length || 0} hours\n- ${data.marks?.length || 0} marks\n- ${data.attendance?.length || 0} attendance records\n- ${data.payments?.length || 0} payments`)) {
-                students = data.students || [];
-                hoursLog = data.hoursLog || [];
-                marks = data.marks || [];
-                attendance = data.attendance || [];
-                payments = data.payments || [];
-                paymentActivity = data.paymentActivity || [];
-                
-                saveAllData();
-                updateUI();
-                updatePaymentUI();
-                alert('✅ Data imported successfully!');
-            }
-        } catch (error) {
-            alert('❌ Error importing data: Invalid file format');
-        }
-    };
-    reader.readAsText(file);
-}
+// ============================================================================
+// INITIALIZE THE APPLICATION
+// ============================================================================
 
-// Update UI function to include payment UI
-function updateUI() {
-    updateStudentList();
-    updateStudentSelects();
-    updateHoursList();
-    updateMarksList();
-    updateAttendanceUI();
-    calculateTimeTotals();
-    updatePaymentUI(); // Add this line
-}
+// Call init when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    init();
+});
 
-// Initialize payment system when app starts
-function init() {
-    console.log("Initializing WorkLog application...");
-    loadAllData();
-    fixMissingIds();
-    loadFieldMemory();
-    initPaymentSystem(); // Add this line
-    updateUI();
-    setDefaultDate();
-    showDataStats();
+// Make sure the app initializes even if DOMContentLoaded already fired
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
 }
-
