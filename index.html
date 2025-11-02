@@ -22,7 +22,7 @@
     <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
 
     <link rel="icon" href="./icons/icon-192x192.png" type="image/png">
-    
+    <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -43,6 +43,7 @@
             <button class="tab" onclick="switchTab('attendance')">📅 Attendance</button>
             <button class="tab" onclick="switchTab('hours')">⏰ Hours Tracker</button>
             <button class="tab" onclick="switchTab('marks')">📝 Marks Register</button>
+            <button class="tab" onclick="switchTab('payments')">💰 Payments</button>
             <button class="tab" onclick="switchTab('reports')">📈 Reports</button>
         </div>
 
@@ -74,6 +75,10 @@
                 <div class="form-group">
                     <label>Phone</label>
                     <input type="tel" id="studentPhone" placeholder="Phone number">
+                </div>
+                <div class="form-group">
+                    <label>Base Rate ($/session) *</label>
+                    <input type="number" id="studentBaseRate" step="0.01" min="0" placeholder="e.g., 25.00">
                 </div>
                 <button class="btn" onclick="addStudent()">➕ Add Student</button>
 
@@ -118,13 +123,9 @@
             <div id="hours" class="tab-content">
                 <h2>Work Hours & Payment Tracker</h2>
                 <p style="color: #666; margin-bottom: 20px; font-size: 0.9em;">
-        💡 <strong>Tip:</strong> You can edit or delete existing entries from the table below.
-    </p>
-                <!--<div class="form-group">
-                    <label>Organization/Client *</label>
-                    <input type="text" id="organization" placeholder="Enter organization or client name">
-                </div>
-                -->
+                    💡 <strong>Tip:</strong> You can edit or delete existing entries from the table below.
+                </p>
+                
                 <div class="form-group">
                     <label>Organization/Client * <span class="auto-fill-hint">(will be remembered)</span></label>
                     <input type="text" id="organization" placeholder="Enter organization or client name">
@@ -145,11 +146,6 @@
                     <label>Hours Worked *</label>
                     <input type="number" id="hoursWorked" step="0.5" min="0" placeholder="e.g., 2.5" onchange="calculateTotalPay()">
                 </div>
-                <!--<div class="form-group">
-                    <label>Base Pay ($/hr) *</label>
-                    <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 15.00" onchange="calculateTotalPay()">
-                </div>
-                -->
                 <div class="form-group">
                     <label>Base Pay ($/hr) * <span class="auto-fill-hint">(will be remembered)</span></label>
                     <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 15.00" onchange="calculateTotalPay()">
@@ -164,7 +160,6 @@
                 </div>
                 <button class="btn" onclick="logHours()">💼 Log Hours</button>
                 
-             <!-- In your hours tab, after the form but before the Recent Entries -->
                 <div style="margin-top: 30px;">
                     <h3>📊 Summary Totals</h3>
                     <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
@@ -186,7 +181,7 @@
                         </div>
                     </div>
                 </div>
-                <!-- Add this after the summary totals -->
+                
                 <div style="margin-top: 30px;">
                     <h3>📈 Detailed Breakdown</h3>
                     <div class="button-group">
@@ -261,25 +256,71 @@
                 </div>
             </div>
 
+            <!-- Payments Tab -->
+            <div id="payments" class="tab-content">
+                <h2>Student Payments & Balances</h2>
+                
+                <div class="controls" style="margin-bottom: 20px;">
+                    <button class="btn" onclick="openModal('paymentModal')">💰 Record Payment</button>
+                    <button class="btn btn-secondary" onclick="openModal('attendanceSessionModal')">📅 Mark Session Attendance</button>
+                </div>
+
+                <!-- Payment Statistics -->
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3>Total Students</h3>
+                        <span id="totalStudentsCount">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Owed</h3>
+                        <span id="totalOwed">$0.00</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>This Month</h3>
+                        <span id="monthlyPayments">$0.00</span>
+                    </div>
+                </div>
+
+                <!-- Student Balances List -->
+                <div class="student-list">
+                    <h3>Student Balances</h3>
+                    <div id="studentBalancesContainer"></div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="activity">
+                    <h3>Recent Activity</h3>
+                    <div id="paymentActivityLog"></div>
+                </div>
+            </div>
+
             <!-- Reports Tab -->
             <div id="reports" class="tab-content">
                 <h2>Reports & Analytics</h2>
                 <div class="grid">
                     <div class="card">
-                        <h3 id="totalStudents">0</h3>
+                        <h3 id="totalStudentsReport">0</h3>
                         <p>Total Students</p>
                     </div>
                     <div class="card">
-                        <h3 id="totalHours">0</h3>
+                        <h3 id="totalHoursReport">0</h3>
                         <p>Total Hours Logged</p>
                     </div>
                     <div class="card">
-                        <h3 id="totalEarnings">$0</h3>
+                        <h3 id="totalEarningsReport">$0</h3>
                         <p>Total Earnings</p>
                     </div>
                     <div class="card">
-                        <h3 id="avgMark">0%</h3>
+                        <h3 id="avgMarkReport">0%</h3>
                         <p>Average Mark</p>
+                    </div>
+                    <div class="card">
+                        <h3 id="totalPaymentsReport">$0</h3>
+                        <p>Payments Received</p>
+                    </div>
+                    <div class="card">
+                        <h3 id="outstandingBalance">$0</h3>
+                        <p>Outstanding Balance</p>
                     </div>
                 </div>
 
@@ -292,6 +333,7 @@
                                 <th>Hours</th>
                                 <th>Earnings</th>
                                 <th>Students Active</th>
+                                <th>Payments</th>
                             </tr>
                         </thead>
                         <tbody id="weeklyBody"></tbody>
@@ -307,12 +349,80 @@
                                 <th>Avg Marks</th>
                                 <th>Total Hours</th>
                                 <th>Total Earnings</th>
+                                <th>Sessions</th>
                             </tr>
                         </thead>
                         <tbody id="subjectBody"></tbody>
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('paymentModal')">&times;</span>
+            <h3>Record Payment</h3>
+            <form id="paymentForm">
+                <div class="form-group">
+                    <label>Student *</label>
+                    <select id="paymentStudent" required>
+                        <option value="">Select Student</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Payment Amount ($) *</label>
+                    <input type="number" id="paymentAmount" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label>Payment Date *</label>
+                    <input type="date" id="paymentDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select id="paymentMethod">
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="paymentNotes" rows="3" placeholder="Payment notes..."></textarea>
+                </div>
+                <button type="submit" class="btn">💳 Record Payment</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Attendance Session Modal -->
+    <div id="attendanceSessionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('attendanceSessionModal')">&times;</span>
+            <h3>Mark Session Attendance</h3>
+            <form id="attendanceSessionForm">
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="sessionDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Subject *</label>
+                    <input type="text" id="sessionSubject" placeholder="e.g., Mathematics" required>
+                </div>
+                <div class="form-group">
+                    <label>Topic</label>
+                    <input type="text" id="sessionTopic" placeholder="e.g., Algebra">
+                </div>
+                <div style="margin-top: 15px;">
+                    <h4>Mark Present Students</h4>
+                    <div id="sessionAttendanceList" class="attendance-container">
+                        <!-- Students will be listed here -->
+                    </div>
+                </div>
+                <button type="submit" class="btn">📝 Save Session</button>
+            </form>
         </div>
     </div>
 
