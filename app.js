@@ -600,3 +600,77 @@ function clearAllData() {
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', init);
+
+// PWA Installation Prompt
+let deferredPrompt;
+
+// Listen for beforeinstallprompt event
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent the mini-infobar from appearing on mobile
+  e.preventDefault();
+  // Stash the event so it can be triggered later
+  deferredPrompt = e;
+  // Show install button or notification
+  showInstallPromotion();
+});
+
+// Show install promotion
+function showInstallPromotion() {
+  // You can show a custom install button here
+  console.log('App can be installed');
+  
+  // Example: Show an install button in your header
+  const installButton = document.createElement('button');
+  installButton.className = 'btn btn-success btn-sm';
+  installButton.innerHTML = '📱 Install App';
+  installButton.onclick = installApp;
+  
+  const header = document.querySelector('.header');
+  const storageStatus = document.querySelector('.storage-status');
+  if (storageStatus) {
+    storageStatus.appendChild(installButton);
+  }
+}
+
+// Install app function
+function installApp() {
+  if (deferredPrompt) {
+    // Show the install prompt
+    deferredPrompt.prompt();
+    // Wait for the user to respond to the prompt
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      } else {
+        console.log('User dismissed the install prompt');
+      }
+      deferredPrompt = null;
+    });
+  }
+}
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js')
+      .then(function(registration) {
+        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      })
+      .catch(function(error) {
+        console.log('ServiceWorker registration failed: ', error);
+      });
+  });
+}
+
+// Detect if app is running as PWA
+function isRunningAsPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches || 
+         window.navigator.standalone === true;
+}
+
+// Update UI for PWA
+if (isRunningAsPWA()) {
+  document.body.classList.add('pwa-mode');
+  console.log('Running as installed PWA');
+}
+
