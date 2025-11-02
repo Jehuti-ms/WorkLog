@@ -57,7 +57,7 @@ function setupEventListeners() {
 }
 
 // ============================================================================
-// CORE FUNCTIONS - Define these next
+// CORE FUNCTIONS
 // ============================================================================
 
 // Tab switching function
@@ -98,20 +98,14 @@ function generateId() {
 
 // Week number calculation
 function getWeekNumber(date) {
-    // Make sure we have a valid date object
     if (!(date instanceof Date) || isNaN(date)) {
         console.error('Invalid date provided to getWeekNumber:', date);
         return 0;
     }
     
-    // Copy date so don't modify original
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    // Set to nearest Thursday: current date + 4 - current day number
-    // Make Sunday's day number 7
     d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-    // Get first day of year
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    // Calculate full weeks to nearest Thursday
     const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     
     return weekNo;
@@ -124,7 +118,6 @@ function setDefaultDate() {
     document.getElementById('markDate').value = today;
     document.getElementById('attendanceDate').value = today;
     
-    // Also set payment and session dates
     const paymentDate = document.getElementById('paymentDate');
     const sessionDate = document.getElementById('sessionDate');
     if (paymentDate) paymentDate.value = today;
@@ -138,7 +131,7 @@ const currentMonth = now.getMonth();
 const currentYear = now.getFullYear();
 
 // ============================================================================
-// DATA STORAGE - All data stored locally
+// DATA STORAGE
 // ============================================================================
 
 let students = [];
@@ -155,7 +148,6 @@ let paymentActivity = [];
 function fixMissingIds() {
     let fixedCount = 0;
     
-    // Fix hours log entries
     hoursLog.forEach(entry => {
         if (!entry.id) {
             entry.id = generateId();
@@ -163,7 +155,6 @@ function fixMissingIds() {
         }
     });
     
-    // Fix marks entries
     marks.forEach(entry => {
         if (!entry.id) {
             entry.id = generateId();
@@ -171,7 +162,6 @@ function fixMissingIds() {
         }
     });
     
-    // Fix attendance entries
     attendance.forEach(entry => {
         if (!entry.id) {
             entry.id = generateId();
@@ -179,7 +169,6 @@ function fixMissingIds() {
         }
     });
 
-    // Fix payment entries
     payments.forEach(entry => {
         if (!entry.id) {
             entry.id = generateId();
@@ -236,21 +225,6 @@ function updateFieldMemory() {
     saveFieldMemory();
 }
 
-function debugData() {
-    console.log('=== DEBUG DATA ===');
-    console.log('Hours Log:', hoursLog);
-    console.log('Hours entries with IDs:');
-    hoursLog.forEach((entry, index) => {
-        console.log(`Entry ${index}:`, {
-            id: entry.id,
-            organization: entry.organization,
-            hasId: !!entry.id,
-            hasTimestamp: !!entry.timestamp
-        });
-    });
-    console.log('=== END DEBUG ===');
-}
-
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -270,26 +244,22 @@ function init() {
 // PAYMENT TRACKING SYSTEM
 // ============================================================================
 
-// Initialize payment system
 function initPaymentSystem() {
     loadPaymentData();
     updatePaymentUI();
 }
 
-// Load payment data from localStorage
 function loadPaymentData() {
     payments = JSON.parse(localStorage.getItem('worklog_payments') || '[]');
     paymentActivity = JSON.parse(localStorage.getItem('worklog_payment_activity') || '[]');
     console.log(`Loaded: ${payments.length} payments, ${paymentActivity.length} activities`);
 }
 
-// Save payment data to localStorage
 function savePaymentData() {
     localStorage.setItem('worklog_payments', JSON.stringify(payments));
     localStorage.setItem('worklog_payment_activity', JSON.stringify(paymentActivity));
 }
 
-// Update all payment-related UI components
 function updatePaymentUI() {
     updateStudentBalances();
     updatePaymentActivity();
@@ -297,23 +267,17 @@ function updatePaymentUI() {
     updatePaymentStudentSelects();
 }
 
-// Calculate student balance
 function calculateStudentBalance(studentId) {
     const student = students.find(s => s.id === studentId);
     if (!student) return 0;
     
-    // Count attendance sessions for this student
     const sessionCount = attendance.filter(a => 
         a.studentId === studentId && a.status === 'Present'
     ).length;
     
-    // Get base rate (use student's base rate or default)
     const baseRate = student.baseRate || 0;
-    
-    // Calculate total owed
     const totalOwed = sessionCount * baseRate;
     
-    // Calculate total paid
     const totalPaid = payments
         .filter(p => p.studentId === studentId)
         .reduce((sum, payment) => sum + payment.amount, 0);
@@ -321,7 +285,6 @@ function calculateStudentBalance(studentId) {
     return totalOwed - totalPaid;
 }
 
-// Update student balances display
 function updateStudentBalances() {
     const container = document.getElementById('studentBalancesContainer');
     
@@ -363,7 +326,6 @@ function updateStudentBalances() {
     }).join('');
 }
 
-// Update payment activity log
 function updatePaymentActivity() {
     const container = document.getElementById('paymentActivityLog');
     const recentActivity = paymentActivity.slice(-10).reverse();
@@ -381,7 +343,6 @@ function updatePaymentActivity() {
     `).join('');
 }
 
-// Update payment statistics
 function updatePaymentStats() {
     const totalStudents = students.length;
     const totalOwed = students.reduce((sum, student) => sum + calculateStudentBalance(student.id), 0);
@@ -399,7 +360,6 @@ function updatePaymentStats() {
     document.getElementById('monthlyPayments').textContent = `$${monthlyPayments.toFixed(2)}`;
 }
 
-// Update student selects in payment forms
 function updatePaymentStudentSelects() {
     const paymentSelect = document.getElementById('paymentStudent');
     
@@ -412,7 +372,6 @@ function updatePaymentStudentSelects() {
     }
 }
 
-// Modal functions for payments
 function openModal(modalId) {
     document.getElementById(modalId).style.display = 'block';
     if (modalId === 'paymentModal') {
@@ -424,18 +383,15 @@ function openModal(modalId) {
 
 function closeModal(modalId) {
     document.getElementById(modalId).style.display = 'none';
-    // Reset forms
     const form = document.querySelector(`#${modalId} form`);
     if (form) form.reset();
 }
 
-// Record payment for a specific student
 function recordPaymentForStudent(studentId) {
     const student = students.find(s => s.id === studentId);
     if (student) {
         openModal('paymentModal');
         document.getElementById('paymentStudent').value = studentId;
-        // Auto-fill suggested payment amount (current balance)
         const balance = calculateStudentBalance(studentId);
         if (balance > 0) {
             document.getElementById('paymentAmount').value = balance.toFixed(2);
@@ -480,7 +436,6 @@ function recordPayment() {
     payments.push(payment);
     savePaymentData();
     
-    // Log activity
     logPaymentActivity(`Recorded $${amount.toFixed(2)} payment from ${student.name} (${method})`);
     
     updatePaymentUI();
@@ -547,11 +502,9 @@ function saveSessionAttendance() {
         attendanceRecords.push(record);
     });
     
-    // Add to attendance log
     attendance.push(...attendanceRecords);
     saveAllData();
     
-    // Log activity
     logPaymentActivity(`Marked attendance for ${presentCount} students in ${subject}${topic ? ` - ${topic}` : ''}`);
     
     updatePaymentUI();
@@ -561,7 +514,6 @@ function saveSessionAttendance() {
     alert(`✅ Attendance saved for ${presentCount} students!`);
 }
 
-// View student payment history
 function viewStudentHistory(studentId) {
     const student = students.find(s => s.id === studentId);
     if (!student) return;
@@ -633,7 +585,6 @@ function viewStudentHistory(studentId) {
         `;
     }
     
-    // Show in a modal or alert (simplified version)
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'block';
@@ -649,7 +600,6 @@ function viewStudentHistory(studentId) {
     document.body.appendChild(modal);
 }
 
-// Log payment activity
 function logPaymentActivity(message) {
     paymentActivity.push({
         timestamp: new Date().toISOString(),
@@ -659,16 +609,15 @@ function logPaymentActivity(message) {
 }
 
 // ============================================================================
-// EXISTING WORKLOG FUNCTIONALITY
+// MAIN APPLICATION FUNCTIONS
 // ============================================================================
 
-// Data management - Local Storage
 function loadAllData() {
     students = JSON.parse(localStorage.getItem('worklog_students') || '[]');
     hoursLog = JSON.parse(localStorage.getItem('worklog_hours') || '[]');
     marks = JSON.parse(localStorage.getItem('worklog_marks') || '[]');
     attendance = JSON.parse(localStorage.getItem('worklog_attendance') || '[]');
-    loadPaymentData(); // Load payment data too
+    loadPaymentData();
     
     console.log(`Loaded: ${students.length} students, ${hoursLog.length} hours, ${marks.length} marks, ${attendance.length} attendance records, ${payments.length} payments`);
 }
@@ -678,23 +627,16 @@ function saveAllData() {
     localStorage.setItem('worklog_hours', JSON.stringify(hoursLog));
     localStorage.setItem('worklog_marks', JSON.stringify(marks));
     localStorage.setItem('worklog_attendance', JSON.stringify(attendance));
-    savePaymentData(); // Save payment data too
+    savePaymentData();
     
     showDataStats();
 }
 
 function showDataStats() {
-    const stats = `
-        Students: ${students.length} | 
-        Hours: ${hoursLog.length} | 
-        Marks: ${marks.length} | 
-        Attendance: ${attendance.length} records |
-        Payments: ${payments.length}
-    `;
+    const stats = `Students: ${students.length} | Hours: ${hoursLog.length} | Marks: ${marks.length} | Attendance: ${attendance.length} records | Payments: ${payments.length}`;
     console.log('Data Stats:', stats);
 }
 
-// Student management
 function addStudent() {
     const name = document.getElementById('studentName').value.trim();
     const id = document.getElementById('studentId').value.trim();
@@ -708,7 +650,6 @@ function addStudent() {
         return;
     }
     
-    // Check if student ID already exists
     if (students.find(s => s.id === id)) {
         alert('Student ID already exists. Please use a different ID.');
         return;
@@ -729,7 +670,6 @@ function addStudent() {
     saveAllData();
     updateUI();
     
-    // Clear form
     document.getElementById('studentName').value = '';
     document.getElementById('studentId').value = '';
     document.getElementById('studentGender').value = '';
@@ -737,13 +677,11 @@ function addStudent() {
     document.getElementById('studentPhone').value = '';
     document.getElementById('studentBaseRate').value = '';
     
-    // Log activity
     logPaymentActivity(`Added student: ${name} (Base rate: $${baseRate.toFixed(2)}/session)`);
     
     alert('✅ Student added successfully!');
 }
 
-// Hours calculation
 function calculateTotalPay() {
     const hours = parseFloat(document.getElementById('hoursWorked').value) || 0;
     const rate = parseFloat(document.getElementById('baseRate').value) || 0;
@@ -783,40 +721,29 @@ function logHours() {
     hoursLog.push(entry);
     saveAllData();
     updateFieldMemory();
-    
-    // Force update all UI components
     updateUI();
-    calculateTimeTotals(); // Extra call to ensure totals update
-    
+    calculateTimeTotals();
     resetHoursForm();
     
     alert('✅ Hours logged successfully!');
 }
 
 function resetHoursForm() {
-    console.log('Resetting hours form');
-    
-    // Clear form but keep remembered fields
     document.getElementById('workDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('hoursWorked').value = '';
     document.getElementById('totalPay').value = '';
     document.getElementById('workNotes').value = '';
     
-    // Reset button to "Log Hours"
     const logButton = document.querySelector('#hours .btn');
     logButton.textContent = '💼 Log Hours';
     logButton.onclick = logHours;
     
-    // Remove cancel button if it exists
     const cancelButton = document.querySelector('#hours .cancel-btn');
     if (cancelButton) {
         cancelButton.remove();
     }
-    
-    console.log('Hours form reset');
 }
 
-// Update the deleteHours function too
 function deleteHours(entryId) {
     if (confirm('Are you sure you want to delete this hours entry?')) {
         const entryIndex = hoursLog.findIndex(e => e.id === entryId);
@@ -824,13 +751,12 @@ function deleteHours(entryId) {
             hoursLog.splice(entryIndex, 1);
             saveAllData();
             updateUI();
-            calculateTimeTotals(); // Force totals update
+            calculateTimeTotals();
             alert('✅ Hours entry deleted successfully!');
         }
     }
 }
 
-// Marks calculation
 function calculatePercentage() {
     const score = parseFloat(document.getElementById('score').value) || 0;
     const maxScore = parseFloat(document.getElementById('maxScore').value) || 0;
@@ -839,7 +765,6 @@ function calculatePercentage() {
         const percentage = (score / maxScore * 100).toFixed(1);
         document.getElementById('percentage').value = percentage + '%';
         
-        // Calculate grade
         let grade = '';
         if (percentage >= 90) grade = 'A+';
         else if (percentage >= 80) grade = 'A';
@@ -908,7 +833,6 @@ function addMark() {
     saveAllData();
     updateUI();
     
-    // Clear form
     document.getElementById('markSubject').value = '';
     document.getElementById('markTopic').value = '';
     document.getElementById('score').value = '';
@@ -931,7 +855,6 @@ function updateMarksList() {
     const isMobile = window.innerWidth <= 768;
     
     if (isMobile) {
-        // Mobile card layout for marks
         container.innerHTML = `
             <div class="mobile-entries">
                 ${recent.map(mark => {
@@ -965,7 +888,6 @@ function updateMarksList() {
             </div>
         `;
     } else {
-        // Desktop table layout for marks
         container.innerHTML = `
             <div class="table-container">
                 <table>
@@ -1012,7 +934,6 @@ function updateMarksList() {
     }
 }
 
-// Stub functions for edit/delete marks (you can implement these)
 function editMark(markId) {
     alert('Edit mark functionality to be implemented');
 }
@@ -1029,7 +950,6 @@ function deleteMark(markId) {
     }
 }
 
-// Attendance management
 function updateAttendanceList() {
     const container = document.getElementById('attendanceList');
     if (students.length === 0) {
@@ -1083,37 +1003,32 @@ function saveAttendance() {
         attendanceRecords.push(record);
     });
     
-    // Add to attendance log
     attendance.push(...attendanceRecords);
     saveAllData();
-    updateAttendanceUI(); // This will immediately update the table
+    updateAttendanceUI();
     
-    // Clear form but keep subject and topic for quick reuse
-    document.getElementById('attendanceSubject').value = subject; // Keep subject
-    document.getElementById('attendanceTopic').value = topic; // Keep topic
+    document.getElementById('attendanceSubject').value = subject;
+    document.getElementById('attendanceTopic').value = topic;
     
     alert(`✅ Attendance saved for ${attendanceRecords.length} students!`);
     
-    // Auto-scroll to show the new attendance records
     document.getElementById('attendanceContainer').scrollIntoView({ 
         behavior: 'smooth', 
         block: 'start' 
     });
 }
 
-// UI Updates
 function updateUI() {
-    updateStudentList();  // This will update the count
+    updateStudentList();
     updateStudentSelects();
     updateHoursList();
     updateMarksList();
     updateAttendanceUI();
     calculateTimeTotals();
-    updatePaymentUI(); // Add this line
+    updatePaymentUI();
 }
 
 function updateStudentList() {
-    // Update the student count display
     document.getElementById('studentCount').textContent = students.length;
     
     const container = document.getElementById('studentsContainer');
@@ -1154,13 +1069,12 @@ function updateHoursList() {
     const isMobile = window.innerWidth <= 768;
     
     if (isMobile) {
-        // Mobile card layout
         container.innerHTML = `
             <div class="mobile-entries">
                 ${recent.map(entry => {
-                    const entryId = entry.id || generateId(); // Ensure ID exists
+                    const entryId = entry.id || generateId();
                     if (!entry.id) {
-                        entry.id = entryId; // Fix missing ID
+                        entry.id = entryId;
                         saveAllData();
                     }
                     return `
@@ -1187,7 +1101,6 @@ function updateHoursList() {
             </div>
         `;
     } else {
-        // Desktop table layout
         container.innerHTML = `
             <div class="table-container">
                 <table>
@@ -1206,9 +1119,9 @@ function updateHoursList() {
                     </thead>
                     <tbody>
                         ${recent.map(entry => {
-                            const entryId = entry.id || generateId(); // Ensure ID exists
+                            const entryId = entry.id || generateId();
                             if (!entry.id) {
-                                entry.id = entryId; // Fix missing ID
+                                entry.id = entryId;
                                 saveAllData();
                             }
                             return `
@@ -1226,7 +1139,7 @@ function updateHoursList() {
                                     <button class="btn btn-secondary btn-sm" onclick="deleteHours('${entryId}')">🗑️ Delete</button>
                                 </td>
                             </tr>
-                        `}).join('')}
+                        `).join('')}
                     </tbody>
                 </table>
             </div>
@@ -1234,7 +1147,6 @@ function updateHoursList() {
     }
 }
 
-// Stub functions for edit hours (you can implement these)
 function editHours(entryId) {
     alert('Edit hours functionality to be implemented');
 }
@@ -1250,7 +1162,6 @@ function updateAttendanceUI() {
     const isMobile = window.innerWidth <= 768;
     
     if (isMobile) {
-        // Mobile card layout for attendance
         container.innerHTML = `
             <div class="mobile-entries">
                 ${recent.map(record => {
@@ -1283,7 +1194,6 @@ function updateAttendanceUI() {
             </div>
         `;
     } else {
-        // Desktop table layout for attendance
         container.innerHTML = `
             <div class="table-container">
                 <table>
@@ -1324,7 +1234,6 @@ function updateAttendanceUI() {
     }
 }
 
-// Stub functions for edit/delete attendance (you can implement these)
 function editAttendance(recordId) {
     alert('Edit attendance functionality to be implemented');
 }
@@ -1349,27 +1258,14 @@ function deleteStudent(index) {
     }
 }
 
-// Calculate weekly and monthly totals
 function calculateTimeTotals() {
-    console.log('=== CALCULATING TOTALS ===');
-    console.log('Total hours entries:', hoursLog.length);
     const now = new Date();
-    console.log('Current date:', now);
-    console.log('Current week number:', getWeekNumber(now));
-    console.log('Current month:', now.getMonth() + 1);  
     const currentYear = now.getFullYear();
     
     let weeklyTotal = 0;
     let monthlyTotal = 0;
     let weeklyHours = 0;
     let monthlyHours = 0;
-    
-    console.log('Calculating totals for:', {
-        currentWeek,
-        currentMonth: currentMonth + 1, // Months are 0-indexed
-        currentYear,
-        totalEntries: hoursLog.length
-    });
     
     hoursLog.forEach(entry => {
         try {
@@ -1378,25 +1274,11 @@ function calculateTimeTotals() {
             const entryMonth = entryDate.getMonth();
             const entryYear = entryDate.getFullYear();
             
-            // Debug log for first few entries
-            if (hoursLog.indexOf(entry) < 3) {
-                console.log('Entry analysis:', {
-                    date: entry.date,
-                    entryWeek,
-                    entryMonth: entryMonth + 1,
-                    entryYear,
-                    totalPay: entry.totalPay,
-                    hours: entry.hours
-                });
-            }
-            
-            // Weekly totals (current week)
             if (entryWeek === currentWeek && entryYear === currentYear) {
                 weeklyTotal += entry.totalPay || 0;
                 weeklyHours += entry.hours || 0;
             }
             
-            // Monthly totals (current month)
             if (entryMonth === currentMonth && entryYear === currentYear) {
                 monthlyTotal += entry.totalPay || 0;
                 monthlyHours += entry.hours || 0;
@@ -1406,26 +1288,12 @@ function calculateTimeTotals() {
         }
     });
     
-    console.log('Final totals:', {
-        weeklyTotal,
-        monthlyTotal,
-        weeklyHours,
-        monthlyHours
-    });
-    
-    // Update the display
-    const weeklyTotalEl = document.getElementById('weeklyTotal');
-    const monthlyTotalEl = document.getElementById('monthlyTotal');
-    const weeklyHoursEl = document.getElementById('weeklyHours');
-    const monthlyHoursEl = document.getElementById('monthlyHours');
-    
-    if (weeklyTotalEl) weeklyTotalEl.textContent = '$' + weeklyTotal.toFixed(2);
-    if (monthlyTotalEl) monthlyTotalEl.textContent = '$' + monthlyTotal.toFixed(2);
-    if (weeklyHoursEl) weeklyHoursEl.textContent = weeklyHours.toFixed(1);
-    if (monthlyHoursEl) monthlyHoursEl.textContent = monthlyHours.toFixed(1);
+    document.getElementById('weeklyTotal').textContent = '$' + weeklyTotal.toFixed(2);
+    document.getElementById('monthlyTotal').textContent = '$' + monthlyTotal.toFixed(2);
+    document.getElementById('weeklyHours').textContent = weeklyHours.toFixed(1);
+    document.getElementById('monthlyHours').textContent = monthlyHours.toFixed(1);
 }
 
-// Reports
 function updateReports() {
     document.getElementById('totalStudentsReport').textContent = students.length;
     document.getElementById('totalHoursReport').textContent = hoursLog.reduce((sum, h) => sum + h.hours, 0).toFixed(1);
@@ -1436,7 +1304,6 @@ function updateReports() {
         : 0;
     document.getElementById('avgMarkReport').textContent = avgMark + '%';
     
-    // Payment reports
     const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
     const outstandingBalance = students.reduce((sum, student) => sum + calculateStudentBalance(student.id), 0);
     
@@ -1450,7 +1317,6 @@ function updateReports() {
 function updateWeeklyReport() {
     const weeks = {};
     
-    // Process hours data
     hoursLog.forEach(h => {
         const week = getWeekNumber(new Date(h.date));
         if (!weeks[week]) {
@@ -1467,7 +1333,6 @@ function updateWeeklyReport() {
         if (h.topic) weeks[week].topics.add(h.topic);
     });
     
-    // Process payment data
     payments.forEach(p => {
         const week = getWeekNumber(new Date(p.date));
         if (weeks[week]) {
@@ -1496,7 +1361,6 @@ function updateWeeklyReport() {
 function updateSubjectReport() {
     const subjects = {};
     
-    // Process hours data
     hoursLog.forEach(h => {
         if (!subjects[h.subject]) {
             subjects[h.subject] = { 
@@ -1512,7 +1376,6 @@ function updateSubjectReport() {
         if (h.topic) subjects[h.subject].topics.add(h.topic);
     });
     
-    // Process attendance data for sessions
     attendance.forEach(a => {
         if (a.status === 'Present') {
             if (!subjects[a.subject]) {
@@ -1529,7 +1392,6 @@ function updateSubjectReport() {
         }
     });
     
-    // Process marks data
     marks.forEach(m => {
         if (!subjects[m.subject]) {
             subjects[m.subject] = { 
@@ -1568,7 +1430,6 @@ function updateSubjectReport() {
     }).join('');
 }
 
-// Data Export/Import
 function exportData() {
     const data = {
         students,
@@ -1578,7 +1439,7 @@ function exportData() {
         payments,
         paymentActivity,
         exportDate: new Date().toISOString(),
-        version: '2.0' // Update version to include payments
+        version: '2.0'
     };
     
     const dataStr = JSON.stringify(data, null, 2);
@@ -1637,13 +1498,11 @@ function clearAllData() {
         updateUI();
         updatePaymentUI();
         
-        // Clear the summary displays
         document.getElementById('weeklyTotal').textContent = '$0';
         document.getElementById('monthlyTotal').textContent = '$0';
         document.getElementById('weeklyHours').textContent = '0';
         document.getElementById('monthlyHours').textContent = '0';
         
-        // Clear breakdown container if it exists
         const breakdownContainer = document.getElementById('breakdownContainer');
         if (breakdownContainer) {
             breakdownContainer.innerHTML = '<p style="color: #666; text-align: center;">Select a breakdown option above</p>';
@@ -1657,12 +1516,10 @@ function clearAllData() {
 // INITIALIZE THE APPLICATION
 // ============================================================================
 
-// Call init when the page loads
 document.addEventListener('DOMContentLoaded', function() {
     init();
 });
 
-// Make sure the app initializes even if DOMContentLoaded already fired
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
