@@ -161,13 +161,36 @@
                     <textarea id="workNotes" rows="3" placeholder="Additional notes about the session..."></textarea>
                 </div>
                 <button class="btn" onclick="logHours()">💼 Log Hours</button>
-
+                
+             <!-- In your hours tab, after the form but before the Recent Entries -->
+                <div style="margin-top: 30px;">
+                    <h3>📊 Summary Totals</h3>
+                    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                        <div class="card">
+                            <h4 id="weeklyTotal">$0</h4>
+                            <p>This Week</p>
+                        </div>
+                        <div class="card">
+                            <h4 id="monthlyTotal">$0</h4>
+                            <p>This Month</p>
+                        </div>
+                        <div class="card">
+                            <h4 id="weeklyHours">0</h4>
+                            <p>Weekly Hours</p>
+                        </div>
+                        <div class="card">
+                            <h4 id="monthlyHours">0</h4>
+                            <p>Monthly Hours</p>
+                        </div>
+                    </div>
+                </div>
+                
                 <div id="hoursLog" style="margin-top: 30px;">
                     <h3>Recent Entries</h3>
                     <div id="hoursContainer"></div>
                 </div>
             </div>
-
+            
             <!-- Marks Tab -->
             <div id="marks" class="tab-content">
                 <h2>Marks Register</h2>
