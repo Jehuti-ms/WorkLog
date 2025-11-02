@@ -1,8 +1,71 @@
 // ============================================================================
-// EVENT LISTENER SETUP - Run immediately when script loads
+// TEMPORARY FIX - Define functions immediately to prevent errors
 // ============================================================================
 
-// Set up tab system immediately
+function switchTab(tabName) {
+    console.log('Tab clicked:', tabName);
+}
+
+function exportData() {
+    console.log('Export clicked');
+}
+
+function importData() {
+    console.log('Import clicked');
+}
+
+function clearAllData() {
+    console.log('Clear all clicked');
+}
+
+function showDataStats() {
+    console.log('Show data stats');
+}
+
+function addStudent() {
+    console.log('Add student clicked');
+}
+
+function saveAttendance() {
+    console.log('Save attendance clicked');
+}
+
+function logHours() {
+    console.log('Log hours clicked');
+}
+
+function calculateTotalPay() {
+    console.log('Calculate total pay clicked');
+}
+
+function updateStudentDetails() {
+    console.log('Update student details clicked');
+}
+
+function calculatePercentage() {
+    console.log('Calculate percentage clicked');
+}
+
+function addMark() {
+    console.log('Add mark clicked');
+}
+
+function showWeeklyBreakdown() {
+    console.log('Show weekly breakdown clicked');
+}
+
+function showMonthlyBreakdown() {
+    console.log('Show monthly breakdown clicked');
+}
+
+function showSubjectBreakdown() {
+    console.log('Show subject breakdown clicked');
+}
+
+// ============================================================================
+// EVENT LISTENER SETUP
+// ============================================================================
+
 document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
 });
@@ -54,13 +117,30 @@ function setupEventListeners() {
             }
         });
     });
+
+    // Payment form submission
+    const paymentForm = document.getElementById('paymentForm');
+    if (paymentForm) {
+        paymentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            recordPayment();
+        });
+    }
+
+    // Attendance session form submission
+    const attendanceSessionForm = document.getElementById('attendanceSessionForm');
+    if (attendanceSessionForm) {
+        attendanceSessionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveSessionAttendance();
+        });
+    }
 }
 
 // ============================================================================
 // CORE FUNCTIONS
 // ============================================================================
 
-// Tab switching function
 function switchTab(tabName) {
     console.log('Switching to tab:', tabName);
     
@@ -91,12 +171,10 @@ function switchTab(tabName) {
     }
 }
 
-// Generate ID function
 function generateId() {
     return 'worklog_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-// Week number calculation
 function getWeekNumber(date) {
     if (!(date instanceof Date) || isNaN(date)) {
         console.error('Invalid date provided to getWeekNumber:', date);
@@ -111,7 +189,6 @@ function getWeekNumber(date) {
     return weekNo;
 }
 
-// Set default date function
 function setDefaultDate() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('workDate').value = today;
@@ -926,7 +1003,7 @@ function updateMarksList() {
                                     <button class="btn btn-secondary btn-sm" onclick="deleteMark('${markId}')">🗑️ Delete</button>
                                 </td>
                             </tr>
-                        `}).join('')}
+                        `).join('')}
                     </tbody>
                 </table>
             </div>
