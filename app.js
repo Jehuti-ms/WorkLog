@@ -318,7 +318,7 @@ function saveAttendance() {
 
 // UI Updates
 function updateUI() {
-    updateStudentList();
+    updateStudentList();  // This will update the count
     updateStudentSelects();
     updateHoursList();
     updateMarksList();
