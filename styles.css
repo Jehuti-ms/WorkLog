@@ -442,3 +442,40 @@ tr:hover {
     color: #667eea;
 }
 
+/* Improve table responsiveness */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.9em;
+}
+
+th, td {
+    padding: 10px 8px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+    word-wrap: break-word;
+}
+
+/* Make tables responsive on mobile */
+@media (max-width: 768px) {
+    table {
+        font-size: 0.8em;
+    }
+    
+    th, td {
+        padding: 8px 5px;
+    }
+}
+
+/* Style for topic badges in reports */
+.topic-badge {
+    display: inline-block;
+    background: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    margin: 2px;
+    color: #495057;
+}
+
