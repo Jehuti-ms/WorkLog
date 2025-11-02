@@ -1,4 +1,124 @@
 // ============================================================================
+// CORE FUNCTIONS - Define these first to prevent reference errors
+// ============================================================================
+
+// Tab switching - Define this FIRST
+function switchTab(tabName) {
+    // Remove active class from all tabs and content
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+    // Add active class to clicked tab and corresponding content
+    event.target.classList.add('active');
+    document.getElementById(tabName).classList.add('active');
+    
+    // Update specific tab content if needed
+    if (tabName === 'reports') {
+        updateReports();
+    } else if (tabName === 'attendance') {
+        updateAttendanceList();
+    } else if (tabName === 'hours') {
+        // Force refresh totals when switching to hours tab
+        calculateTimeTotals();
+    } else if (tabName === 'payments') {
+        updatePaymentUI();
+    }
+}
+
+// Generate ID function - Define this early too
+function generateId() {
+    return 'worklog_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Week number calculation - Define this early
+function getWeekNumber(date) {
+    // Make sure we have a valid date object
+    if (!(date instanceof Date) || isNaN(date)) {
+        console.error('Invalid date provided to getWeekNumber:', date);
+        return 0;
+    }
+    
+    // Copy date so don't modify original
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    // Set to nearest Thursday: current date + 4 - current day number
+    // Make Sunday's day number 7
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    // Get first day of year
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    // Calculate full weeks to nearest Thursday
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    
+    return weekNo;
+}
+
+// Set default date function
+function setDefaultDate() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('workDate').value = today;
+    document.getElementById('markDate').value = today;
+    document.getElementById('attendanceDate').value = today;
+    
+    // Also set payment and session dates
+    const paymentDate = document.getElementById('paymentDate');
+    const sessionDate = document.getElementById('sessionDate');
+    if (paymentDate) paymentDate.value = today;
+    if (sessionDate) sessionDate.value = today;
+}
+
+// Global variables for current week/month calculations
+const now = new Date();
+const currentWeek = getWeekNumber(now);
+const currentMonth = now.getMonth();
+const currentYear = now.getFullYear();
+
+// ============================================================================
+// END OF CORE FUNCTIONS - Now continue with the rest of your existing code
+// ============================================================================
+
+// Data storage - All data stored locally
+let students = [];
+let hoursLog = [];
+let marks = [];
+let attendance = [];
+let payments = []; // Add payments array
+let paymentActivity = []; // Add payment activity array
+
+// Initialize
+function init() {
+    console.log("Initializing WorkLog application...");
+    loadAllData();
+    fixMissingIds();
+    loadFieldMemory();
+    initPaymentSystem();
+    updateUI();
+    setDefaultDate();
+    showDataStats();
+    
+    // Add event listeners for payment forms
+    setupPaymentEventListeners();
+}
+
+// Setup payment form event listeners
+function setupPaymentEventListeners() {
+    const paymentForm = document.getElementById('paymentForm');
+    const attendanceSessionForm = document.getElementById('attendanceSessionForm');
+    
+    if (paymentForm) {
+        paymentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            recordPayment();
+        });
+    }
+    
+    if (attendanceSessionForm) {
+        attendanceSessionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveSessionAttendance();
+        });
+    }
+}
+
+// ============================================================================
 // PAYMENT TRACKING SYSTEM
 // ============================================================================
 
