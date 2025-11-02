@@ -326,6 +326,9 @@ function updateUI() {
 }
 
 function updateStudentList() {
+    // Update the student count
+    document.getElementById('studentCount').textContent = students.length;
+    
     const container = document.getElementById('studentsContainer');
     if (students.length === 0) {
         container.innerHTML = '<p style="color: #666;">No students registered yet.</p>';
