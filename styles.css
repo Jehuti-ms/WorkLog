@@ -519,3 +519,74 @@ td:last-child {
         font-size: 0.8em;
     }
 }
+
+/* Mobile Card Layout */
+.mobile-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mobile-entry-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.entry-main {
+    flex: 1;
+}
+
+.entry-main strong {
+    display: block;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.entry-date {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.entry-amount {
+    font-weight: bold;
+    color: #28a745;
+    font-size: 1.1em;
+}
+
+.entry-details {
+    margin-bottom: 15px;
+}
+
+.entry-details div {
+    margin-bottom: 4px;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.entry-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+/* Update table styles for better mobile */
+@media (max-width: 768px) {
+    .table-container {
+        border: none;
+        background: transparent;
+    }
+    
+    table {
+        min-width: 600px;
+    }
+}
