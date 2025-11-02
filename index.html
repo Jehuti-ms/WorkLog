@@ -362,7 +362,7 @@
     <!-- Payment Modal -->
     <div id="paymentModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal('paymentModal')">&times;</span>
+            <span class="close">&times;</span>
             <h3>Record Payment</h3>
             <form id="paymentForm">
                 <div class="form-group">
@@ -400,7 +400,7 @@
     <!-- Attendance Session Modal -->
     <div id="attendanceSessionModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal('attendanceSessionModal')">&times;</span>
+            <span class="close">&times;</span>
             <h3>Mark Session Attendance</h3>
             <form id="attendanceSessionForm">
                 <div class="form-group">
@@ -426,7 +426,8 @@
         </div>
     </div>
 
-    <input type="file" id="importFile" style="display: none" accept=".json" onchange="handleFileImport(this.files[0])">
+    <input type="file" id="importFile" style="display: none" accept=".json">
+
     <script src="app.js"></script>
 </body>   
 </html>
