@@ -133,7 +133,7 @@ function logHours() {
     const totalPay = hours * rate;
     
     const entry = {
-        id: generateId(), // This should always generate an ID
+        id: generateId(),
         organization,
         subject,
         topic,
@@ -145,14 +145,31 @@ function logHours() {
         timestamp: new Date().toISOString()
     };
     
-    console.log('Adding new entry with ID:', entry.id);
-    
     hoursLog.push(entry);
     saveAllData();
+    updateFieldMemory();
+    
+    // Force update all UI components
     updateUI();
+    calculateTimeTotals(); // Extra call to ensure totals update
+    
     resetHoursForm();
     
     alert('✅ Hours logged successfully!');
+}
+
+// Update the deleteHours function too
+function deleteHours(entryId) {
+    if (confirm('Are you sure you want to delete this hours entry?')) {
+        const entryIndex = hoursLog.findIndex(e => e.id === entryId);
+        if (entryIndex !== -1) {
+            hoursLog.splice(entryIndex, 1);
+            saveAllData();
+            updateUI();
+            calculateTimeTotals(); // Force totals update
+            alert('✅ Hours entry deleted successfully!');
+        }
+    }
 }
 
 // Marks calculation
@@ -802,25 +819,22 @@ function clearAllData() {
         
         saveAllData();
         updateUI();
+        
+        // Clear the summary displays
+        document.getElementById('weeklyTotal').textContent = '$0';
+        document.getElementById('monthlyTotal').textContent = '$0';
+        document.getElementById('weeklyHours').textContent = '0';
+        document.getElementById('monthlyHours').textContent = '0';
+        
+        // Clear breakdown container if it exists
+        const breakdownContainer = document.getElementById('breakdownContainer');
+        if (breakdownContainer) {
+            breakdownContainer.innerHTML = '<p style="color: #666; text-align: center;">Select a breakdown option above</p>';
+        }
+        
         alert('✅ All data cleared!');
     }
 }
-
-// Initialize on load
-document.addEventListener('DOMContentLoaded', init);
-
-// PWA Installation Prompt
-let deferredPrompt;
-
-// Listen for beforeinstallprompt event
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Prevent the mini-infobar from appearing on mobile
-  e.preventDefault();
-  // Stash the event so it can be triggered later
-  deferredPrompt = e;
-  // Show install button or notification
-  showInstallPromotion();
-});
 
 // Show install promotion
 function showInstallPromotion() {
@@ -1242,23 +1256,53 @@ function calculateTimeTotals() {
     let weeklyHours = 0;
     let monthlyHours = 0;
     
+    console.log('Calculating totals for:', {
+        currentWeek,
+        currentMonth: currentMonth + 1, // Months are 0-indexed
+        currentYear,
+        totalEntries: hoursLog.length
+    });
+    
     hoursLog.forEach(entry => {
-        const entryDate = new Date(entry.date);
-        const entryWeek = getWeekNumber(entryDate);
-        const entryMonth = entryDate.getMonth();
-        const entryYear = entryDate.getFullYear();
-        
-        // Weekly totals (current week)
-        if (entryWeek === currentWeek && entryYear === currentYear) {
-            weeklyTotal += entry.totalPay;
-            weeklyHours += entry.hours;
+        try {
+            const entryDate = new Date(entry.date);
+            const entryWeek = getWeekNumber(entryDate);
+            const entryMonth = entryDate.getMonth();
+            const entryYear = entryDate.getFullYear();
+            
+            // Debug log for first few entries
+            if (hoursLog.indexOf(entry) < 3) {
+                console.log('Entry analysis:', {
+                    date: entry.date,
+                    entryWeek,
+                    entryMonth: entryMonth + 1,
+                    entryYear,
+                    totalPay: entry.totalPay,
+                    hours: entry.hours
+                });
+            }
+            
+            // Weekly totals (current week)
+            if (entryWeek === currentWeek && entryYear === currentYear) {
+                weeklyTotal += entry.totalPay || 0;
+                weeklyHours += entry.hours || 0;
+            }
+            
+            // Monthly totals (current month)
+            if (entryMonth === currentMonth && entryYear === currentYear) {
+                monthlyTotal += entry.totalPay || 0;
+                monthlyHours += entry.hours || 0;
+            }
+        } catch (error) {
+            console.error('Error processing entry:', entry, error);
         }
-        
-        // Monthly totals (current month)
-        if (entryMonth === currentMonth && entryYear === currentYear) {
-            monthlyTotal += entry.totalPay;
-            monthlyHours += entry.hours;
-        }
+    });
+    
+    console.log('Final totals:', {
+        weeklyTotal,
+        monthlyTotal,
+        weeklyHours,
+        monthlyHours
     });
     
     // Update the display
@@ -1270,11 +1314,23 @@ function calculateTimeTotals() {
 
 // Enhanced getWeekNumber function (make sure this exists)
 function getWeekNumber(date) {
+    // Make sure we have a valid date object
+    if (!(date instanceof Date) || isNaN(date)) {
+        console.error('Invalid date provided to getWeekNumber:', date);
+        return 0;
+    }
+    
+    // Copy date so don't modify original
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    // Set to nearest Thursday: current date + 4 - current day number
+    // Make Sunday's day number 7
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    // Get first day of year
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    // Calculate full weeks to nearest Thursday
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    
+    return weekNo;
 }
 
 // Function to get totals for any specific week and month
@@ -1357,6 +1413,9 @@ function showWeeklyBreakdown() {
                     }).join('')}
                 </tbody>
             </table>
+        </div>
+        <div style="margin-top: 10px; text-align: center; color: #666; font-size: 0.8em;">
+            💡 Data updated: ${new Date().toLocaleTimeString()}
         </div>
     `;
 }
@@ -1461,3 +1520,22 @@ function showSubjectBreakdown() {
         </div>
     `;
 }
+
+// Update the switchTab function
+function switchTab(tabName) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+    event.target.classList.add('active');
+    document.getElementById(tabName).classList.add('active');
+    
+    if (tabName === 'reports') {
+        updateReports();
+    } else if (tabName === 'attendance') {
+        updateAttendanceList();
+    } else if (tabName === 'hours') {
+        // Force refresh totals when switching to hours tab
+        calculateTimeTotals();
+    }
+}
+
