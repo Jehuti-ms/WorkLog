@@ -1,12 +1,4 @@
-// Configuration
-let config = {
-    sheetId: '',
-    apiKey: '',
-    webAppUrl: '',
-    connected: false
-};
-
-// Data storage
+// Data storage - All data stored locally
 let students = [];
 let hoursLog = [];
 let marks = [];
@@ -15,11 +7,10 @@ let attendance = [];
 // Initialize
 function init() {
     console.log("Initializing WorkLog application...");
-    loadConfig();
-    loadData();
+    loadAllData();
     updateUI();
     setDefaultDate();
-    addLog("Application initialized successfully", "info");
+    showDataStats();
 }
 
 function setDefaultDate() {
@@ -44,247 +35,37 @@ function switchTab(tabName) {
     }
 }
 
-// Configuration management
-function loadConfig() {
-    const saved = localStorage.getItem('worklog_config');
-    if (saved) {
-        config = JSON.parse(saved);
-        document.getElementById('sheetId').value = config.sheetId || '';
-        document.getElementById('apiKey').value = config.apiKey || '';
-        document.getElementById('webAppUrl').value = config.webAppUrl || '';
-        updateSetupStatus();
-        addLog("Configuration loaded from localStorage", "info");
-    }
-}
-
-function saveConfig() {
-    config.sheetId = document.getElementById('sheetId').value.trim();
-    config.apiKey = document.getElementById('apiKey').value.trim();
-    config.webAppUrl = document.getElementById('webAppUrl').value.trim();
-    
-    if (!config.sheetId || !config.apiKey) {
-        showAlert('setupStatus', 'Please enter both Sheet ID and API Key', 'error');
-        addLog("Configuration save failed: Missing Sheet ID or API Key", "error");
-        return;
-    }
-    
-    localStorage.setItem('worklog_config', JSON.stringify(config));
-    showAlert('setupStatus', '✅ Configuration saved successfully!', 'success');
-    updateSetupStatus();
-    addLog("Configuration saved successfully", "success");
-}
-
-async function testConnection() {
-    if (!config.sheetId || !config.apiKey) {
-        showAlert('setupStatus', 'Please save your configuration first', 'error');
-        addLog("Connection test failed: Configuration not saved", "error");
-        return;
-    }
-    
-    addLog("Testing connection to Google Sheets...", "info");
-    showAlert('setupStatus', '🔄 Testing connection to Google Sheets...', 'info');
-    
-    try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}?key=${config.apiKey}`;
-        const response = await fetch(url);
-        
-        if (response.ok) {
-            config.connected = true;
-            saveConfigToStorage();
-            showAlert('setupStatus', '✅ Connection successful! You can now initialize sheets.', 'success');
-            updateSetupStatus();
-            addLog("Connection test successful - Google Sheets is accessible", "success");
-        } else {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-    } catch (error) {
-        config.connected = false;
-        saveConfigToStorage();
-        showAlert('setupStatus', '❌ Connection failed: ' + error.message + '. Please check your Sheet ID and API Key.', 'error');
-        updateSetupStatus();
-        addLog(`Connection test failed: ${error.message}`, "error");
-    }
-}
-
-async function initializeSheets() {
-    if (!config.sheetId || !config.apiKey) {
-        showAlert('setupStatus', 'Please save your configuration first', 'error');
-        return;
-    }
-
-    addLog("Starting automatic sheet initialization...", "info");
-    showAlert('setupStatus', '🚀 Creating sheets and headers automatically...', 'info');
-
-    try {
-        // Test connection first
-        await testConnection();
-        
-        if (!config.connected) {
-            throw new Error('Cannot initialize sheets without a successful connection');
-        }
-
-        // Create sheets with headers using batch update
-        const sheetsToCreate = [
-            {
-                name: 'Students',
-                headers: ['StudentID', 'Name', 'Gender', 'Email', 'Phone', 'RegistrationDate', 'Status']
-            },
-            {
-                name: 'Hours',
-                headers: ['Date', 'Organization', 'Subject', 'Topic', 'HoursWorked', 'BaseRate', 'TotalPay', 'Notes', 'Timestamp']
-            },
-            {
-                name: 'Marks',
-                headers: ['StudentID', 'StudentName', 'Gender', 'Subject', 'Topic', 'Date', 'Score', 'MaxScore', 'Percentage', 'Grade', 'Comments', 'Timestamp']
-            },
-            {
-                name: 'Attendance',
-                headers: ['Date', 'StudentID', 'StudentName', 'Gender', 'Subject', 'Topic', 'Status', 'Timestamp']
-            }
-        ];
-
-        // This would normally be done through Google Sheets API
-        // For now, we'll simulate the initialization
-        addLog("Creating Students sheet with headers...", "info");
-        addLog("Creating Hours sheet with headers...", "info");
-        addLog("Creating Marks sheet with headers...", "info");
-        addLog("Creating Attendance sheet with headers...", "info");
-        
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        showAlert('setupStatus', '✅ Sheets initialized successfully! All sheets created with proper headers.', 'success');
-        addLog("All sheets initialized successfully with headers", "success");
-        addLog("Students: StudentID, Name, Gender, Email, Phone, RegistrationDate, Status", "info");
-        addLog("Hours: Date, Organization, Subject, Topic, HoursWorked, BaseRate, TotalPay, Notes, Timestamp", "info");
-        addLog("Marks: StudentID, StudentName, Gender, Subject, Topic, Date, Score, MaxScore, Percentage, Grade, Comments, Timestamp", "info");
-        addLog("Attendance: Date, StudentID, StudentName, Gender, Subject, Topic, Status, Timestamp", "info");
-
-    } catch (error) {
-        showAlert('setupStatus', '❌ Sheet initialization failed: ' + error.message, 'error');
-        addLog(`Sheet initialization failed: ${error.message}`, "error");
-    }
-}
-
-async function syncWithSheets() {
-    if (!config.webAppUrl) {
-        showAlert('setupStatus', 'Web App URL is required for synchronization', 'error');
-        return;
-    }
-
-    addLog("Starting data synchronization...", "info");
-
-    try {
-        const response = await callBackend('syncData');
-        
-        if (response.success) {
-            if (response.students) students = response.students;
-            if (response.hours) hoursLog = response.hours;
-            if (response.marks) marks = response.marks;
-            if (response.attendance) attendance = response.attendance;
-            
-            saveData();
-            updateUI();
-            showAlert('setupStatus', '✅ Data synchronized successfully!', 'success');
-            addLog("Data synchronized successfully", "success");
-        } else {
-            throw new Error(response.message || 'Unknown error');
-        }
-    } catch (error) {
-        showAlert('setupStatus', '❌ Synchronization failed: ' + error.message, 'error');
-        addLog(`Synchronization failed: ${error.message}`, "error");
-    }
-}
-
-// Backend communication
-async function callBackend(action, payload = {}) {
-    if (!config.webAppUrl) {
-        throw new Error('Web App URL not configured');
-    }
-
-    const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
-    const url = CORS_PROXY + config.webAppUrl;
-    
-    addLog(`Sending ${action} request to backend...`, "info");
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: action,
-                ...payload,
-                sheetId: config.sheetId
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        addLog(`Backend response for ${action}: ${data.success ? 'Success' : 'Failed'}`, 
-              data.success ? "success" : "error");
-        return data;
-    } catch (error) {
-        addLog(`Backend call failed for ${action}: ${error.message}`, "error");
-        throw error;
-    }
-}
-
-function updateSetupStatus() {
-    const status = document.getElementById('setupStatus');
-    if (config.connected) {
-        status.innerHTML = '<div class="alert alert-success">✅ Connected to Google Sheets - You can initialize sheets</div>';
-    } else if (config.sheetId && config.apiKey) {
-        status.innerHTML = '<div class="alert alert-info">⚠️ Configuration saved. Click "Test Connection" to verify access.</div>';
-    }
-}
-
-function saveConfigToStorage() {
-    localStorage.setItem('worklog_config', JSON.stringify(config));
-}
-
-// Logging function
-function addLog(message, type = "info") {
-    const logContainer = document.getElementById('operationLog');
-    if (!logContainer) return;
-
-    const timestamp = new Date().toLocaleTimeString();
-    const logEntry = document.createElement('div');
-    logEntry.className = 'log-entry';
-    
-    const typeClass = `log-${type}`;
-    
-    logEntry.innerHTML = `
-        <span class="log-time">[${timestamp}]</span>
-        <span class="log-message ${typeClass}">${message}</span>
-    `;
-    
-    logContainer.appendChild(logEntry);
-    logContainer.scrollTop = logContainer.scrollHeight;
-}
-
-// Data management
-function loadData() {
+// Data management - Local Storage
+function loadAllData() {
     students = JSON.parse(localStorage.getItem('worklog_students') || '[]');
     hoursLog = JSON.parse(localStorage.getItem('worklog_hours') || '[]');
     marks = JSON.parse(localStorage.getItem('worklog_marks') || '[]');
     attendance = JSON.parse(localStorage.getItem('worklog_attendance') || '[]');
-    addLog(`Loaded data: ${students.length} students, ${hoursLog.length} hours, ${marks.length} marks, ${attendance.length} attendance records`, "info");
+    
+    console.log(`Loaded: ${students.length} students, ${hoursLog.length} hours, ${marks.length} marks, ${attendance.length} attendance records`);
 }
 
-function saveData() {
+function saveAllData() {
     localStorage.setItem('worklog_students', JSON.stringify(students));
     localStorage.setItem('worklog_hours', JSON.stringify(hoursLog));
     localStorage.setItem('worklog_marks', JSON.stringify(marks));
     localStorage.setItem('worklog_attendance', JSON.stringify(attendance));
+    
+    showDataStats();
+}
+
+function showDataStats() {
+    const stats = `
+        Students: ${students.length} | 
+        Hours: ${hoursLog.length} | 
+        Marks: ${marks.length} | 
+        Attendance: ${attendance.length} records
+    `;
+    console.log('Data Stats:', stats);
 }
 
 // Student management
-async function addStudent() {
+function addStudent() {
     const name = document.getElementById('studentName').value.trim();
     const id = document.getElementById('studentId').value.trim();
     const gender = document.getElementById('studentGender').value;
@@ -293,14 +74,12 @@ async function addStudent() {
     
     if (!name || !id || !gender) {
         alert('Please enter student name, ID and gender');
-        addLog("Add student failed: Missing required fields", "error");
         return;
     }
     
     // Check if student ID already exists
     if (students.find(s => s.id === id)) {
         alert('Student ID already exists. Please use a different ID.');
-        addLog(`Add student failed: Student ID ${id} already exists`, "error");
         return;
     }
     
@@ -315,18 +94,8 @@ async function addStudent() {
     };
     
     students.push(student);
-    saveData();
+    saveAllData();
     updateUI();
-    addLog(`Added student: ${name} (${id}, ${gender})`, "success");
-    
-    if (config.webAppUrl) {
-        try {
-            await callBackend('addStudent', { student });
-            addLog(`Student ${name} synced to Google Sheets`, "success");
-        } catch (error) {
-            addLog(`Failed to sync student to Google Sheets: ${error.message}`, "error");
-        }
-    }
     
     // Clear form
     document.getElementById('studentName').value = '';
@@ -334,6 +103,8 @@ async function addStudent() {
     document.getElementById('studentGender').value = '';
     document.getElementById('studentEmail').value = '';
     document.getElementById('studentPhone').value = '';
+    
+    alert('✅ Student added successfully!');
 }
 
 // Hours calculation
@@ -341,26 +112,27 @@ function calculateTotalPay() {
     const hours = parseFloat(document.getElementById('hoursWorked').value) || 0;
     const rate = parseFloat(document.getElementById('baseRate').value) || 0;
     const totalPay = hours * rate;
-    document.getElementById('totalPay').value = totalPay.toFixed(2);
+    document.getElementById('totalPay').value = '$' + totalPay.toFixed(2);
 }
 
-async function logHours() {
+function logHours() {
     const organization = document.getElementById('organization').value.trim();
     const subject = document.getElementById('subject').value.trim();
     const topic = document.getElementById('topic').value.trim();
     const date = document.getElementById('workDate').value;
     const hours = parseFloat(document.getElementById('hoursWorked').value);
     const rate = parseFloat(document.getElementById('baseRate').value);
-    const totalPay = parseFloat(document.getElementById('totalPay').value);
     const notes = document.getElementById('workNotes').value.trim();
     
     if (!organization || !subject || !date || !hours || !rate) {
         alert('Please fill in all required fields');
-        addLog("Log hours failed: Missing required fields", "error");
         return;
     }
     
+    const totalPay = hours * rate;
+    
     const entry = {
+        id: generateId(),
         organization,
         subject,
         topic,
@@ -373,18 +145,8 @@ async function logHours() {
     };
     
     hoursLog.push(entry);
-    saveData();
+    saveAllData();
     updateUI();
-    addLog(`Logged ${hours} hours for ${organization} - Total: $${totalPay}`, "success");
-    
-    if (config.webAppUrl) {
-        try {
-            await callBackend('logHours', { entry });
-            addLog(`Hours entry synced to Google Sheets`, "success");
-        } catch (error) {
-            addLog(`Failed to sync hours to Google Sheets: ${error.message}`, "error");
-        }
-    }
     
     // Clear form
     document.getElementById('organization').value = '';
@@ -394,6 +156,8 @@ async function logHours() {
     document.getElementById('baseRate').value = '';
     document.getElementById('totalPay').value = '';
     document.getElementById('workNotes').value = '';
+    
+    alert('✅ Hours logged successfully!');
 }
 
 // Marks calculation
@@ -436,7 +200,7 @@ function updateStudentDetails() {
     }
 }
 
-async function addMark() {
+function addMark() {
     const studentId = document.getElementById('marksStudent').value;
     const subject = document.getElementById('markSubject').value.trim();
     const topic = document.getElementById('markTopic').value.trim();
@@ -449,13 +213,13 @@ async function addMark() {
     
     if (!studentId || !subject || !topic || !date || isNaN(score) || isNaN(maxScore)) {
         alert('Please fill in all required fields');
-        addLog("Add mark failed: Missing required fields", "error");
         return;
     }
     
     const student = students.find(s => s.id === studentId);
     
     const mark = {
+        id: generateId(),
         studentId,
         studentName: student.name,
         gender: student.gender,
@@ -471,18 +235,8 @@ async function addMark() {
     };
     
     marks.push(mark);
-    saveData();
+    saveAllData();
     updateUI();
-    addLog(`Added mark for ${student.name}: ${score}/${maxScore} (${percentage}) - Grade: ${grade}`, "success");
-    
-    if (config.webAppUrl) {
-        try {
-            await callBackend('addMark', { mark });
-            addLog(`Mark entry synced to Google Sheets`, "success");
-        } catch (error) {
-            addLog(`Failed to sync mark to Google Sheets: ${error.message}`, "error");
-        }
-    }
     
     // Clear form
     document.getElementById('markSubject').value = '';
@@ -492,13 +246,15 @@ async function addMark() {
     document.getElementById('percentage').value = '';
     document.getElementById('grade').value = '';
     document.getElementById('markComments').value = '';
+    
+    alert('✅ Mark added successfully!');
 }
 
 // Attendance management
 function updateAttendanceList() {
     const container = document.getElementById('attendanceList');
     if (students.length === 0) {
-        container.innerHTML = '<p style="color: #666;">No students registered yet.</p>';
+        container.innerHTML = '<p style="color: #666;">No students registered yet. Add students first.</p>';
         return;
     }
     
@@ -517,14 +273,13 @@ function updateAttendanceList() {
     `).join('');
 }
 
-async function saveAttendance() {
+function saveAttendance() {
     const date = document.getElementById('attendanceDate').value;
     const subject = document.getElementById('attendanceSubject').value.trim();
     const topic = document.getElementById('attendanceTopic').value.trim();
     
     if (!date || !subject || !topic) {
         alert('Please fill in date, subject and topic');
-        addLog("Save attendance failed: Missing required fields", "error");
         return;
     }
     
@@ -535,6 +290,7 @@ async function saveAttendance() {
         const status = checkbox.checked ? 'Present' : 'Absent';
         
         const record = {
+            id: generateId(),
             date,
             studentId: student.id,
             studentName: student.name,
@@ -550,42 +306,14 @@ async function saveAttendance() {
     
     // Add to attendance log
     attendance.push(...attendanceRecords);
-    saveData();
+    saveAllData();
     updateAttendanceUI();
-    addLog(`Saved attendance for ${date}: ${subject} - ${topic}`, "success");
-    
-    if (config.webAppUrl) {
-        try {
-            await callBackend('saveAttendance', { attendance: attendanceRecords });
-            addLog(`Attendance synced to Google Sheets`, "success");
-        } catch (error) {
-            addLog(`Failed to sync attendance to Google Sheets: ${error.message}`, "error");
-        }
-    }
     
     // Clear form
     document.getElementById('attendanceSubject').value = '';
     document.getElementById('attendanceTopic').value = '';
-}
-
-function updateAttendanceUI() {
-    const container = document.getElementById('attendanceContainer');
-    if (attendance.length === 0) {
-        container.innerHTML = '<p style="color: #666;">No attendance records yet.</p>';
-        return;
-    }
     
-    const recent = attendance.slice(-20).reverse();
-    container.innerHTML = '<table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Topic</th><th>Status</th></tr></thead><tbody>' +
-        recent.map(a => `
-            <tr>
-                <td>${a.date}</td>
-                <td>${a.studentName}</td>
-                <td>${a.subject}</td>
-                <td>${a.topic}</td>
-                <td><span class="status ${a.status === 'Present' ? 'connected' : 'disconnected'}">${a.status}</span></td>
-            </tr>
-        `).join('') + '</tbody></table>';
+    alert(`✅ Attendance saved for ${attendanceRecords.length} students!`);
 }
 
 // UI Updates
@@ -616,14 +344,12 @@ function updateStudentList() {
 }
 
 function updateStudentSelects() {
-    const hoursSelect = document.getElementById('hoursStudent');
     const marksSelect = document.getElementById('marksStudent');
     
     const options = students.map(s => 
         `<option value="${s.id}">${s.name} (${s.id}) - ${s.gender}</option>`
     ).join('');
     
-    hoursSelect.innerHTML = '<option value="">Select student...</option>' + options;
     marksSelect.innerHTML = '<option value="">Select student...</option>' + options;
 }
 
@@ -668,6 +394,27 @@ function updateMarksList() {
         `).join('') + '</tbody></table>';
 }
 
+function updateAttendanceUI() {
+    const container = document.getElementById('attendanceContainer');
+    if (attendance.length === 0) {
+        container.innerHTML = '<p style="color: #666;">No attendance records yet.</p>';
+        return;
+    }
+    
+    const recent = attendance.slice(-20).reverse();
+    container.innerHTML = '<table><thead><tr><th>Date</th><th>Student</th><th>Subject</th><th>Topic</th><th>Status</th></tr></thead><tbody>' +
+        recent.map(a => `
+            <tr>
+                <td>${a.date}</td>
+                <td>${a.studentName}</td>
+                <td>${a.subject}</td>
+                <td>${a.topic}</td>
+                <td><span class="status ${a.status === 'Present' ? 'connected' : 'disconnected'}">${a.status}</span></td>
+            </tr>
+        `).join('') + '</tbody></table>';
+}
+
+// Reports
 function updateReports() {
     document.getElementById('totalStudents').textContent = students.length;
     document.getElementById('totalHours').textContent = hoursLog.reduce((sum, h) => sum + h.hours, 0).toFixed(1);
@@ -742,6 +489,7 @@ function updateSubjectReport() {
     }).join('');
 }
 
+// Utility functions
 function getWeekNumber(date) {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     const dayNum = d.getUTCDay() || 7;
@@ -750,172 +498,81 @@ function getWeekNumber(date) {
     return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
 function deleteStudent(index) {
     if (confirm('Are you sure you want to delete this student?')) {
-        const student = students[index];
         students.splice(index, 1);
-        saveData();
+        saveAllData();
         updateUI();
-        addLog(`Deleted student: ${student.name} (${student.id})`, "info");
     }
 }
 
-function showAlert(elementId, message, type) {
-    const alertClass = type === 'error' ? 'alert-error' : type === 'success' ? 'alert-success' : type === 'warning' ? 'alert-warning' : 'alert-info';
-    document.getElementById(elementId).innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+// Data Export/Import
+function exportData() {
+    const data = {
+        students,
+        hoursLog,
+        marks,
+        attendance,
+        exportDate: new Date().toISOString(),
+        version: '1.0'
+    };
+    
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `worklog-backup-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    
+    alert('✅ Data exported successfully!');
+}
+
+function importData() {
+    document.getElementById('importFile').click();
+}
+
+function handleFileImport(file) {
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            if (confirm(`Import data? This will replace:\n- ${data.students?.length || 0} students\n- ${data.hoursLog?.length || 0} hours\n- ${data.marks?.length || 0} marks\n- ${data.attendance?.length || 0} attendance records`)) {
+                students = data.students || [];
+                hoursLog = data.hoursLog || [];
+                marks = data.marks || [];
+                attendance = data.attendance || [];
+                
+                saveAllData();
+                updateUI();
+                alert('✅ Data imported successfully!');
+            }
+        } catch (error) {
+            alert('❌ Error importing data: Invalid file format');
+        }
+    };
+    reader.readAsText(file);
+}
+
+function clearAllData() {
+    if (confirm('⚠️ Are you sure you want to clear ALL data? This cannot be undone!')) {
+        students = [];
+        hoursLog = [];
+        marks = [];
+        attendance = [];
+        
+        saveAllData();
+        updateUI();
+        alert('✅ All data cleared!');
+    }
 }
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', init);
-
-// Backend communication with better error handling
-async function callBackend(action, payload = {}) {
-    if (!config.webAppUrl) {
-        throw new Error('Web App URL not configured');
-    }
-// Backend communication
-async function callBackend(action, payload = {}) {
-    if (!config.webAppUrl) {
-        throw new Error('Web App URL not configured');
-    }
-
-    addLog(`Sending ${action} request to backend...`, "info");
-
-    try {
-        const response = await fetch(config.webAppUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: action,
-                ...payload,
-                sheetId: config.sheetId
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.message || 'Backend operation failed');
-        }
-        
-        addLog(`Backend ${action}: ${data.message}`, "success");
-        return data;
-        
-    } catch (error) {
-        addLog(`Backend call failed for ${action}: ${error.message}`, "error");
-        throw error;
-    }
-}
-    addLog(`Sending ${action} request to backend...`, "info");
-
-    try {
-        const response = await fetch(config.webAppUrl, {
-            method: 'POST',
-            mode: 'no-cors', // Remove CORS proxy for deployed web app
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: action,
-                ...payload,
-                sheetId: config.sheetId
-            })
-        });
-
-        // With no-cors mode, we can't read the response
-        // So we'll assume success for now and improve later
-        addLog(`${action} request sent successfully`, "success");
-        return { success: true, message: "Request processed" };
-
-    } catch (error) {
-        addLog(`Backend call failed for ${action}: ${error.message}`, "error");
-        
-        // For development, you can use a CORS proxy like this:
-        if (error.message.includes('Failed to fetch')) {
-            addLog("Trying with CORS proxy...", "info");
-            return callBackendWithProxy(action, payload);
-        }
-        
-        throw error;
-    }
-}
-
-// Fallback method with CORS proxy for development
-async function callBackendWithProxy(action, payload = {}) {
-    const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
-    const url = CORS_PROXY + config.webAppUrl;
-    
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: action,
-                ...payload,
-                sheetId: config.sheetId
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        addLog(`Backend response for ${action}: ${data.success ? 'Success' : 'Failed'}`, 
-              data.success ? "success" : "error");
-        return data;
-    } catch (error) {
-        throw new Error(`CORS proxy also failed: ${error.message}`);
-    }
-}
-
-// Backend communication with better debugging
-async function callBackend(action, payload = {}) {
-    if (!config.webAppUrl) {
-        throw new Error('Web App URL not configured');
-    }
-
-    addLog(`Sending ${action} request to backend...`, "info");
-    console.log('Backend request:', { action, payload, sheetId: config.sheetId });
-
-    try {
-        const response = await fetch(config.webAppUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: action,
-                ...payload,
-                sheetId: config.sheetId
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log('Backend response:', data);
-        
-        if (!data.success) {
-            throw new Error(data.message || 'Backend operation failed');
-        }
-        
-        addLog(`Backend ${action}: ${data.message}`, "success");
-        return data;
-        
-    } catch (error) {
-        console.error('Backend call error:', error);
-        addLog(`Backend call failed for ${action}: ${error.message}`, "error");
-        throw error;
-    }
-}
