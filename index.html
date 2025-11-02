@@ -5,41 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkLog - Student Tracker</title>
     
-    <!-- PREVENT REFERENCE ERRORS -->
-    <script>
-        // Define empty functions to prevent errors
-        window.switchTab = function(tabName) {};
-        window.exportData = function() {};
-        window.importData = function() {};
-        window.clearAllData = function() {};
-        window.addStudent = function() {};
-        window.saveAttendance = function() {};
-        window.logHours = function() {};
-        window.calculateTotalPay = function() {};
-        window.updateStudentDetails = function() {};
-        window.calculatePercentage = function() {};
-        window.addMark = function() {};
-        window.showWeeklyBreakdown = function() {};
-        window.showMonthlyBreakdown = function() {};
-        window.showSubjectBreakdown = function() {};
-        window.recordPaymentForStudent = function() {};
-        window.viewStudentHistory = function() {};
-        window.editHours = function() {};
-        window.deleteHours = function() {};
-        window.editMark = function() {};
-        window.deleteMark = function() {};
-        window.editAttendance = function() {};
-        window.deleteAttendance = function() {};
-        window.deleteStudent = function() {};
-    </script>
-    
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
+    
+    <!-- Theme Color -->
     <meta name="theme-color" content="#667eea">
+    
+    <!-- Apple Touch Icon -->
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    
+    <!-- Safari Pinned Tab -->
     <link rel="mask-icon" href="icons/icon.svg" color="#667eea">
+    
+    <!-- MS Application -->
     <meta name="msapplication-TileColor" content="#667eea">
     <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
+
     <link rel="icon" href="./icons/icon-192x192.png" type="image/png">
     <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="styles.css">
@@ -99,7 +80,7 @@
                     <label>Base Rate ($/session) *</label>
                     <input type="number" id="studentBaseRate" step="0.01" min="0" placeholder="e.g., 25.00">
                 </div>
-                <button class="btn" id="addStudentBtn">➕ Add Student</button>
+                <button class="btn" onclick="addStudent()">➕ Add Student</button>
 
                 <div id="studentList" style="margin-top: 30px;">
                     <h3>Registered Students (<span id="studentCount">0</span>)</h3>
@@ -125,10 +106,12 @@
                 
                 <div style="margin-top: 20px;">
                     <h3>Mark Attendance</h3>
-                    <div id="attendanceList" class="attendance-container"></div>
+                    <div id="attendanceList" class="attendance-container">
+                        <!-- Attendance list will be populated here -->
+                    </div>
                 </div>
                 
-                <button class="btn" id="saveAttendanceBtn" style="margin-top: 20px;">💾 Save Attendance</button>
+                <button class="btn" onclick="saveAttendance()" style="margin-top: 20px;">💾 Save Attendance</button>
 
                 <div id="attendanceLog" style="margin-top: 30px;">
                     <h3>Recent Attendance</h3>
@@ -161,11 +144,11 @@
                 </div>
                 <div class="form-group">
                     <label>Hours Worked *</label>
-                    <input type="number" id="hoursWorked" step="0.5" min="0" placeholder="e.g., 2.5" id="hoursWorkedInput">
+                    <input type="number" id="hoursWorked" step="0.5" min="0" placeholder="e.g., 2.5" onchange="calculateTotalPay()">
                 </div>
                 <div class="form-group">
                     <label>Base Pay ($/hr) * <span class="auto-fill-hint">(will be remembered)</span></label>
-                    <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 15.00" id="baseRateInput">
+                    <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 15.00" onchange="calculateTotalPay()">
                 </div>
                 <div class="form-group">
                     <label>Total Pay</label>
@@ -175,7 +158,7 @@
                     <label>Notes</label>
                     <textarea id="workNotes" rows="3" placeholder="Additional notes about the session..."></textarea>
                 </div>
-                <button class="btn" id="logHoursBtn">💼 Log Hours</button>
+                <button class="btn" onclick="logHours()">💼 Log Hours</button>
                 
                 <div style="margin-top: 30px;">
                     <h3>📊 Summary Totals</h3>
@@ -202,12 +185,14 @@
                 <div style="margin-top: 30px;">
                     <h3>📈 Detailed Breakdown</h3>
                     <div class="button-group">
-                        <button class="btn btn-sm" id="weeklyBreakdownBtn">📅 Weekly Breakdown</button>
-                        <button class="btn btn-sm" id="monthlyBreakdownBtn">📊 Monthly Breakdown</button>
-                        <button class="btn btn-sm" id="subjectBreakdownBtn">📚 By Subject</button>
+                        <button class="btn btn-sm" onclick="showWeeklyBreakdown()">📅 Weekly Breakdown</button>
+                        <button class="btn btn-sm" onclick="showMonthlyBreakdown()">📊 Monthly Breakdown</button>
+                        <button class="btn btn-sm" onclick="showSubjectBreakdown()">📚 By Subject</button>
                     </div>
                     
-                    <div id="breakdownContainer" style="margin-top: 20px;"></div>
+                    <div id="breakdownContainer" style="margin-top: 20px;">
+                        <!-- Breakdown content will appear here -->
+                    </div>
                 </div>
                 
                 <div id="hoursLog" style="margin-top: 30px;">
@@ -221,7 +206,7 @@
                 <h2>Marks Register</h2>
                 <div class="form-group">
                     <label>Student *</label>
-                    <select id="marksStudent">
+                    <select id="marksStudent" onchange="updateStudentDetails()">
                         <option value="">Select student...</option>
                     </select>
                 </div>
@@ -245,11 +230,11 @@
                 </div>
                 <div class="form-group">
                     <label>Marks Obtained *</label>
-                    <input type="number" id="score" step="0.1" min="0" placeholder="e.g., 85" id="scoreInput">
+                    <input type="number" id="score" step="0.1" min="0" placeholder="e.g., 85" onchange="calculatePercentage()">
                 </div>
                 <div class="form-group">
                     <label>Maximum Marks *</label>
-                    <input type="number" id="maxScore" step="0.1" min="0" placeholder="e.g., 100" id="maxScoreInput">
+                    <input type="number" id="maxScore" step="0.1" min="0" placeholder="e.g., 100" onchange="calculatePercentage()">
                 </div>
                 <div class="form-group">
                     <label>Percentage</label>
@@ -263,7 +248,7 @@
                     <label>Comments</label>
                     <textarea id="markComments" rows="3" placeholder="Additional comments..."></textarea>
                 </div>
-                <button class="btn" id="addMarkBtn">📝 Add Mark</button>
+                <button class="btn" onclick="addMark()">📝 Add Mark</button>
 
                 <div id="marksList" style="margin-top: 30px;">
                     <h3>Marks Register</h3>
@@ -432,7 +417,9 @@
                 </div>
                 <div style="margin-top: 15px;">
                     <h4>Mark Present Students</h4>
-                    <div id="sessionAttendanceList" class="attendance-container"></div>
+                    <div id="sessionAttendanceList" class="attendance-container">
+                        <!-- Students will be listed here -->
+                    </div>
                 </div>
                 <button type="submit" class="btn">📝 Save Session</button>
             </form>
