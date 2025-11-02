@@ -868,3 +868,12 @@ function deleteHours(entryId) {
     }
 }
 
+// Make table responsive on window resize
+window.addEventListener('resize', function() {
+    // Re-render the hours list when screen size changes
+    if (document.getElementById('hours').classList.contains('active')) {
+        updateHoursList();
+    }
+});
+
+
