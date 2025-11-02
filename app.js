@@ -361,12 +361,13 @@ function updateHoursList() {
     }
     
     const recent = hoursLog.slice(-10).reverse();
-    container.innerHTML = '<table><thead><tr><th>Date</th><th>Organization</th><th>Subject</th><th>Hours</th><th>Total Pay</th></tr></thead><tbody>' +
+    container.innerHTML = '<table><thead><tr><th>Date</th><th>Organization</th><th>Subject</th><th>Topic</th><th>Hours</th><th>Total Pay</th></tr></thead><tbody>' +
         recent.map(h => `
             <tr>
                 <td>${h.date}</td>
                 <td>${h.organization}</td>
                 <td>${h.subject}</td>
+                <td>${h.topic}</td>
                 <td>${h.hours}</td>
                 <td>$${h.totalPay.toFixed(2)}</td>
             </tr>
@@ -434,21 +435,33 @@ function updateWeeklyReport() {
     hoursLog.forEach(h => {
         const week = getWeekNumber(new Date(h.date));
         if (!weeks[week]) {
-            weeks[week] = { hours: 0, earnings: 0, students: new Set() };
+            weeks[week] = { 
+                hours: 0, 
+                earnings: 0, 
+                students: new Set(),
+                topics: new Set()
+            };
         }
         weeks[week].hours += h.hours;
         weeks[week].earnings += h.totalPay;
+        if (h.topic) weeks[week].topics.add(h.topic);
     });
     
     const tbody = document.getElementById('weeklyBody');
-    tbody.innerHTML = Object.keys(weeks).sort().reverse().slice(0, 8).map(week => `
-        <tr>
-            <td>Week ${week}</td>
-            <td>${weeks[week].hours.toFixed(1)}</td>
-            <td>$${weeks[week].earnings.toFixed(2)}</td>
-            <td>${weeks[week].students.size}</td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = Object.keys(weeks).sort().reverse().slice(0, 8).map(week => {
+        const weekData = weeks[week];
+        return `
+            <tr>
+                <td>
+                    Week ${week}<br>
+                    <small style="color: #666;">${weekData.topics.size} topics</small>
+                </td>
+                <td>${weekData.hours.toFixed(1)}</td>
+                <td>$${weekData.earnings.toFixed(2)}</td>
+                <td>${weekData.students.size}</td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function updateSubjectReport() {
@@ -457,18 +470,30 @@ function updateSubjectReport() {
     // Process hours data
     hoursLog.forEach(h => {
         if (!subjects[h.subject]) {
-            subjects[h.subject] = { totalHours: 0, totalEarnings: 0, marks: [] };
+            subjects[h.subject] = { 
+                totalHours: 0, 
+                totalEarnings: 0, 
+                marks: [],
+                topics: new Set()
+            };
         }
         subjects[h.subject].totalHours += h.hours;
         subjects[h.subject].totalEarnings += h.totalPay;
+        if (h.topic) subjects[h.subject].topics.add(h.topic);
     });
     
     // Process marks data
     marks.forEach(m => {
         if (!subjects[m.subject]) {
-            subjects[m.subject] = { totalHours: 0, totalEarnings: 0, marks: [] };
+            subjects[m.subject] = { 
+                totalHours: 0, 
+                totalEarnings: 0, 
+                marks: [],
+                topics: new Set()
+            };
         }
         subjects[m.subject].marks.push(parseFloat(m.percentage));
+        if (m.topic) subjects[m.subject].topics.add(m.topic);
     });
     
     const tbody = document.getElementById('subjectBody');
@@ -477,25 +502,21 @@ function updateSubjectReport() {
         const avgMark = data.marks.length > 0 
             ? (data.marks.reduce((sum, mark) => sum + mark, 0) / data.marks.length).toFixed(1)
             : 'N/A';
+        
+        const topicCount = data.topics.size;
             
         return `
             <tr>
-                <td>${subject}</td>
+                <td>
+                    <strong>${subject}</strong><br>
+                    <small style="color: #666;">${topicCount} topic(s)</small>
+                </td>
                 <td>${avgMark}%</td>
                 <td>${data.totalHours.toFixed(1)}</td>
                 <td>$${data.totalEarnings.toFixed(2)}</td>
             </tr>
         `;
     }).join('');
-}
-
-// Utility functions
-function getWeekNumber(date) {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
 function generateId() {
