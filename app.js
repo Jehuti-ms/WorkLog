@@ -358,41 +358,75 @@ function updateHoursList() {
     }
     
     const recent = hoursLog.slice(-20).reverse();
-    container.innerHTML = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Organization</th>
-                    <th>Subject</th>
-                    <th>Topic</th>
-                    <th>Hours</th>
-                    <th>Rate</th>
-                    <th>Total Pay</th>
-                    <th>Notes</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        // Mobile-friendly card layout
+        container.innerHTML = `
+            <div class="mobile-entries">
                 ${recent.map(entry => `
-                    <tr>
-                        <td>${entry.date}</td>
-                        <td>${entry.organization}</td>
-                        <td>${entry.subject}</td>
-                        <td>${entry.topic}</td>
-                        <td>${entry.hours}</td>
-                        <td>$${entry.rate.toFixed(2)}</td>
-                        <td>$${entry.totalPay.toFixed(2)}</td>
-                        <td class="notes-cell">${entry.notes || '-'}</td>
-                        <td>
+                    <div class="mobile-entry-card">
+                        <div class="entry-header">
+                            <div class="entry-main">
+                                <strong>${entry.organization}</strong>
+                                <span class="entry-date">${entry.date}</span>
+                            </div>
+                            <div class="entry-amount">$${entry.totalPay.toFixed(2)}</div>
+                        </div>
+                        <div class="entry-details">
+                            <div><strong>Subject:</strong> ${entry.subject}</div>
+                            <div><strong>Topic:</strong> ${entry.topic || '-'}</div>
+                            <div><strong>Hours:</strong> ${entry.hours} @ $${entry.rate.toFixed(2)}/hr</div>
+                            ${entry.notes ? `<div><strong>Notes:</strong> ${entry.notes}</div>` : ''}
+                        </div>
+                        <div class="entry-actions">
                             <button class="btn btn-sm" onclick="editHours('${entry.id}')">✏️ Edit</button>
                             <button class="btn btn-secondary btn-sm" onclick="deleteHours('${entry.id}')">🗑️ Delete</button>
-                        </td>
-                    </tr>
+                        </div>
+                    </div>
                 `).join('')}
-            </tbody>
-        </table>
-    `;
+            </div>
+        `;
+    } else {
+        // Desktop table layout
+        container.innerHTML = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Organization</th>
+                            <th>Subject</th>
+                            <th>Topic</th>
+                            <th>Hours</th>
+                            <th>Rate</th>
+                            <th>Total Pay</th>
+                            <th>Notes</th>
+                            <th class="actions-cell">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${recent.map(entry => `
+                            <tr>
+                                <td>${entry.date}</td>
+                                <td>${entry.organization}</td>
+                                <td>${entry.subject}</td>
+                                <td>${entry.topic || '-'}</td>
+                                <td>${entry.hours}</td>
+                                <td>$${entry.rate.toFixed(2)}</td>
+                                <td>$${entry.totalPay.toFixed(2)}</td>
+                                <td class="notes-cell">${entry.notes || '-'}</td>
+                                <td class="actions-cell">
+                                    <button class="btn btn-sm" onclick="editHours('${entry.id}')">✏️ Edit</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="deleteHours('${entry.id}')">🗑️ Delete</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
 }
 
 function updateAttendanceUI() {
