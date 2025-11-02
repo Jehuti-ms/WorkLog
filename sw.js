@@ -1,14 +1,16 @@
 // Service Worker for WorkLog App
-const CACHE_NAME = 'worklog-v1.0.0';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/manifest.json',
-  '/icons/icon-72x72.png',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+const cacheName = 'app-cache-v1';
+const assetsToCache = [
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './manifest.json',
+  './sw.js',
+  './icons/icon-72x72.png',
+  './icons/icon-144x144.png', 
+  './icons/icon-192x192.png',
+  './icons/icon-512x512.png'
 ];
 
 // Install event
