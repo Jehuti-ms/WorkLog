@@ -132,7 +132,7 @@ function logHours() {
     const totalPay = hours * rate;
     
     const entry = {
-        id: generateId(),
+        id: generateId(), // Make sure this is working
         organization,
         subject,
         topic,
@@ -143,6 +143,8 @@ function logHours() {
         notes,
         timestamp: new Date().toISOString()
     };
+    
+    console.log('Adding new entry with ID:', entry.id);
     
     hoursLog.push(entry);
     saveAllData();
@@ -355,7 +357,7 @@ function updateHoursList() {
         return;
     }
     
-    const recent = hoursLog.slice(-20).reverse(); // Show more entries
+    const recent = hoursLog.slice(-20).reverse();
     container.innerHTML = `
         <table>
             <thead>
@@ -372,8 +374,8 @@ function updateHoursList() {
                 </tr>
             </thead>
             <tbody>
-                ${recent.map((entry, index) => `
-                    <tr id="hours-row-${entry.id}">
+                ${recent.map(entry => `
+                    <tr>
                         <td>${entry.date}</td>
                         <td>${entry.organization}</td>
                         <td>${entry.subject}</td>
@@ -518,7 +520,7 @@ function updateSubjectReport() {
 }
 
 function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
 function deleteStudent(index) {
@@ -670,19 +672,23 @@ if (isRunningAsPWA()) {
 }
 
 function editHours(entryId) {
+    console.log('Edit clicked for ID:', entryId);
+    
     const entry = hoursLog.find(e => e.id === entryId);
+    console.log('Found entry:', entry);
+    
     if (!entry) {
         alert('Entry not found!');
         return;
     }
 
     // Populate the form with existing data
-    document.getElementById('organization').value = entry.organization;
-    document.getElementById('subject').value = entry.subject;
-    document.getElementById('topic').value = entry.topic;
-    document.getElementById('workDate').value = entry.date;
-    document.getElementById('hoursWorked').value = entry.hours;
-    document.getElementById('baseRate').value = entry.rate;
+    document.getElementById('organization').value = entry.organization || '';
+    document.getElementById('subject').value = entry.subject || '';
+    document.getElementById('topic').value = entry.topic || '';
+    document.getElementById('workDate').value = entry.date || '';
+    document.getElementById('hoursWorked').value = entry.hours || '';
+    document.getElementById('baseRate').value = entry.rate || '';
     document.getElementById('workNotes').value = entry.notes || '';
     
     // Calculate and show total pay
@@ -690,10 +696,18 @@ function editHours(entryId) {
     
     // Change the button to "Update" instead of "Log Hours"
     const logButton = document.querySelector('#hours .btn');
-    logButton.textContent = '💾 Update Entry';
-    logButton.onclick = function() { updateHours(entryId); };
+    const originalText = logButton.textContent;
+    const originalOnclick = logButton.onclick;
     
-    // Add cancel button
+    logButton.textContent = '💾 Update Entry';
+    logButton.setAttribute('data-original-text', originalText);
+    logButton.setAttribute('data-original-onclick', originalOnclick.toString());
+    logButton.onclick = function() { 
+        console.log('Update clicked for ID:', entryId);
+        updateHours(entryId); 
+    };
+    
+    // Add cancel button if it doesn't exist
     let cancelButton = document.querySelector('#hours .cancel-btn');
     if (!cancelButton) {
         cancelButton = document.createElement('button');
@@ -703,12 +717,19 @@ function editHours(entryId) {
         logButton.parentNode.appendChild(cancelButton);
     }
     
+    // Store the current editing ID
+    logButton.setAttribute('data-editing-id', entryId);
+    
     // Scroll to hours tab and form
     switchTab('hours');
     document.getElementById('hours').scrollIntoView({ behavior: 'smooth' });
+    
+    console.log('Form populated for editing');
 }
 
 function updateHours(entryId) {
+    console.log('Updating entry with ID:', entryId);
+    
     const organization = document.getElementById('organization').value.trim();
     const subject = document.getElementById('subject').value.trim();
     const topic = document.getElementById('topic').value.trim();
@@ -717,6 +738,8 @@ function updateHours(entryId) {
     const rate = parseFloat(document.getElementById('baseRate').value);
     const notes = document.getElementById('workNotes').value.trim();
     
+    console.log('Form data:', { organization, subject, topic, date, hours, rate, notes });
+    
     if (!organization || !subject || !date || !hours || !rate) {
         alert('Please fill in all required fields');
         return;
@@ -724,6 +747,8 @@ function updateHours(entryId) {
     
     const totalPay = hours * rate;
     const entryIndex = hoursLog.findIndex(e => e.id === entryId);
+    
+    console.log('Found entry index:', entryIndex);
     
     if (entryIndex !== -1) {
         // Update the entry
@@ -745,6 +770,8 @@ function updateHours(entryId) {
         resetHoursForm();
         
         alert('✅ Hours entry updated successfully!');
+    } else {
+        alert('❌ Error: Entry not found!');
     }
 }
 
@@ -757,6 +784,8 @@ function cancelEdit() {
 }
 
 function resetHoursForm() {
+    console.log('Resetting hours form');
+    
     // Clear form
     document.getElementById('organization').value = '';
     document.getElementById('subject').value = '';
@@ -769,18 +798,38 @@ function resetHoursForm() {
     
     // Reset button to "Log Hours"
     const logButton = document.querySelector('#hours .btn');
-    logButton.textContent = '💼 Log Hours';
+    const originalText = logButton.getAttribute('data-original-text') || '💼 Log Hours';
+    const originalOnclick = logButton.getAttribute('data-original-onclick');
+    
+    logButton.textContent = originalText;
     logButton.onclick = logHours;
+    logButton.removeAttribute('data-editing-id');
+    logButton.removeAttribute('data-original-text');
+    logButton.removeAttribute('data-original-onclick');
+    
+    // Remove cancel button
+    const cancelButton = document.querySelector('#hours .cancel-btn');
+    if (cancelButton) {
+        cancelButton.remove();
+    }
+    
+    console.log('Hours form reset');
 }
 
 function deleteHours(entryId) {
+    console.log('Delete clicked for ID:', entryId);
+    
     if (confirm('Are you sure you want to delete this hours entry? This action cannot be undone.')) {
         const entryIndex = hoursLog.findIndex(e => e.id === entryId);
+        console.log('Found entry index for deletion:', entryIndex);
+        
         if (entryIndex !== -1) {
             const deletedEntry = hoursLog.splice(entryIndex, 1)[0];
             saveAllData();
             updateUI();
             alert(`✅ Hours entry for ${deletedEntry.organization} deleted successfully!`);
+        } else {
+            alert('❌ Error: Entry not found!');
         }
     }
 }
