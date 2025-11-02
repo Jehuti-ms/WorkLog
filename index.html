@@ -32,19 +32,19 @@
             <p class="subtitle">Student Tracker & Hours Management System</p>
             <div class="storage-status">
                 <span class="status connected">💾 Local Storage</span>
-                <button class="btn btn-secondary btn-sm" onclick="exportData()">📤 Export Data</button>
-                <button class="btn btn-secondary btn-sm" onclick="importData()">📥 Import Data</button>
-                <button class="btn btn-warning btn-sm" onclick="clearAllData()">🗑️ Clear All</button>
+                <button class="btn btn-secondary btn-sm" id="exportDataBtn">📤 Export Data</button>
+                <button class="btn btn-secondary btn-sm" id="importDataBtn">📥 Import Data</button>
+                <button class="btn btn-warning btn-sm" id="clearAllDataBtn">🗑️ Clear All</button>
             </div>
         </div>
 
         <div class="tabs">
-            <button class="tab active" onclick="switchTab('students')">👥 Students</button>
-            <button class="tab" onclick="switchTab('attendance')">📅 Attendance</button>
-            <button class="tab" onclick="switchTab('hours')">⏰ Hours Tracker</button>
-            <button class="tab" onclick="switchTab('marks')">📝 Marks Register</button>
-            <button class="tab" onclick="switchTab('payments')">💰 Payments</button>
-            <button class="tab" onclick="switchTab('reports')">📈 Reports</button>
+            <button class="tab active" data-tab="students">👥 Students</button>
+            <button class="tab" data-tab="attendance">📅 Attendance</button>
+            <button class="tab" data-tab="hours">⏰ Hours Tracker</button>
+            <button class="tab" data-tab="marks">📝 Marks Register</button>
+            <button class="tab" data-tab="payments">💰 Payments</button>
+            <button class="tab" data-tab="reports">📈 Reports</button>
         </div>
 
         <div class="content">
