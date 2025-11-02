@@ -1316,3 +1316,148 @@ function getDetailedTotals() {
     
     return { weekData, monthData };
 }
+
+// Show weekly breakdown
+function showWeeklyBreakdown() {
+    const { weekData } = getDetailedTotals();
+    const container = document.getElementById('breakdownContainer');
+    
+    if (Object.keys(weekData).length === 0) {
+        container.innerHTML = '<p style="color: #666;">No weekly data available.</p>';
+        return;
+    }
+    
+    const sortedWeeks = Object.keys(weekData).sort().reverse();
+    
+    container.innerHTML = `
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Week</th>
+                        <th>Hours</th>
+                        <th>Earnings</th>
+                        <th>Entries</th>
+                        <th>Avg Rate/Hr</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${sortedWeeks.map(week => {
+                        const data = weekData[week];
+                        const avgRate = data.hours > 0 ? (data.total / data.hours) : 0;
+                        return `
+                            <tr>
+                                <td>${week}</td>
+                                <td>${data.hours.toFixed(1)}</td>
+                                <td>$${data.total.toFixed(2)}</td>
+                                <td>${data.entries}</td>
+                                <td>$${avgRate.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// Show monthly breakdown
+function showMonthlyBreakdown() {
+    const { monthData } = getDetailedTotals();
+    const container = document.getElementById('breakdownContainer');
+    
+    if (Object.keys(monthData).length === 0) {
+        container.innerHTML = '<p style="color: #666;">No monthly data available.</p>';
+        return;
+    }
+    
+    const sortedMonths = Object.keys(monthData).sort((a, b) => {
+        // Sort by year and month
+        return new Date(b.split(' ')[1] + ' ' + b.split(' ')[0]) - new Date(a.split(' ')[1] + ' ' + a.split(' ')[0]);
+    });
+    
+    container.innerHTML = `
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Hours</th>
+                        <th>Earnings</th>
+                        <th>Entries</th>
+                        <th>Avg Rate/Hr</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${sortedMonths.map(month => {
+                        const data = monthData[month];
+                        const avgRate = data.hours > 0 ? (data.total / data.hours) : 0;
+                        return `
+                            <tr>
+                                <td>${month}</td>
+                                <td>${data.hours.toFixed(1)}</td>
+                                <td>$${data.total.toFixed(2)}</td>
+                                <td>${data.entries}</td>
+                                <td>$${avgRate.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// Show subject breakdown
+function showSubjectBreakdown() {
+    const subjectData = {};
+    
+    hoursLog.forEach(entry => {
+        if (!subjectData[entry.subject]) {
+            subjectData[entry.subject] = { total: 0, hours: 0, entries: 0 };
+        }
+        subjectData[entry.subject].total += entry.totalPay;
+        subjectData[entry.subject].hours += entry.hours;
+        subjectData[entry.subject].entries += 1;
+    });
+    
+    const container = document.getElementById('breakdownContainer');
+    
+    if (Object.keys(subjectData).length === 0) {
+        container.innerHTML = '<p style="color: #666;">No subject data available.</p>';
+        return;
+    }
+    
+    const sortedSubjects = Object.keys(subjectData).sort((a, b) => subjectData[b].total - subjectData[a].total);
+    
+    container.innerHTML = `
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Hours</th>
+                        <th>Earnings</th>
+                        <th>Entries</th>
+                        <th>Avg Rate/Hr</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${sortedSubjects.map(subject => {
+                        const data = subjectData[subject];
+                        const avgRate = data.hours > 0 ? (data.total / data.hours) : 0;
+                        return `
+                            <tr>
+                                <td>${subject}</td>
+                                <td>${data.hours.toFixed(1)}</td>
+                                <td>$${data.total.toFixed(2)}</td>
+                                <td>${data.entries}</td>
+                                <td>$${avgRate.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
