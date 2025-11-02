@@ -118,8 +118,13 @@
                 <p style="color: #666; margin-bottom: 20px; font-size: 0.9em;">
         💡 <strong>Tip:</strong> You can edit or delete existing entries from the table below.
     </p>
-                <div class="form-group">
+                <!--<div class="form-group">
                     <label>Organization/Client *</label>
+                    <input type="text" id="organization" placeholder="Enter organization or client name">
+                </div>
+                -->
+                <div class="form-group">
+                    <label>Organization/Client * <span class="auto-fill-hint">(will be remembered)</span></label>
                     <input type="text" id="organization" placeholder="Enter organization or client name">
                 </div>
                 <div class="form-group">
@@ -138,8 +143,13 @@
                     <label>Hours Worked *</label>
                     <input type="number" id="hoursWorked" step="0.5" min="0" placeholder="e.g., 2.5" onchange="calculateTotalPay()">
                 </div>
-                <div class="form-group">
+                <!--<div class="form-group">
                     <label>Base Pay ($/hr) *</label>
+                    <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 15.00" onchange="calculateTotalPay()">
+                </div>
+                -->
+                <div class="form-group">
+                    <label>Base Pay ($/hr) * <span class="auto-fill-hint">(will be remembered)</span></label>
                     <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 15.00" onchange="calculateTotalPay()">
                 </div>
                 <div class="form-group">
