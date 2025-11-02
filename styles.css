@@ -479,3 +479,43 @@ th, td {
     color: #495057;
 }
 
+/* Table Styles for Hours */
+.notes-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8em;
+    margin: 2px;
+}
+
+/* Highlight row being edited */
+.editing-row {
+    background-color: #fff3cd !important;
+    border-left: 4px solid #ffc107;
+}
+
+/* Action buttons container */
+td:last-child {
+    white-space: nowrap;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+    .notes-cell {
+        max-width: 100px;
+    }
+    
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 0.7em;
+    }
+    
+    table {
+        font-size: 0.8em;
+    }
+}
