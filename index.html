@@ -184,6 +184,19 @@
                         </div>
                     </div>
                 </div>
+                <!-- Add this after the summary totals -->
+                <div style="margin-top: 30px;">
+                    <h3>📈 Detailed Breakdown</h3>
+                    <div class="button-group">
+                        <button class="btn btn-sm" onclick="showWeeklyBreakdown()">📅 Weekly Breakdown</button>
+                        <button class="btn btn-sm" onclick="showMonthlyBreakdown()">📊 Monthly Breakdown</button>
+                        <button class="btn btn-sm" onclick="showSubjectBreakdown()">📚 By Subject</button>
+                    </div>
+                    
+                    <div id="breakdownContainer" style="margin-top: 20px;">
+                        <!-- Breakdown content will appear here -->
+                    </div>
+                </div>
                 
                 <div id="hoursLog" style="margin-top: 30px;">
                     <h3>Recent Entries</h3>
