@@ -989,4 +989,47 @@ button[type="submit"]:hover {
     }
 }
 
+.breakdown-table {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-top: 15px;
+}
+
+.breakdown-table table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.breakdown-table th,
+.breakdown-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.breakdown-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+}
+
+.breakdown-table tr:hover {
+    background: #f8f9fa;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.9em;
+}
+
 
