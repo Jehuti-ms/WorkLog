@@ -184,14 +184,15 @@
                 
                 <div style="margin-top: 30px;">
                     <h3>📈 Detailed Breakdown</h3>
-                    <div class="button-group">
-                        <button class="btn btn-sm" onclick="showWeeklyBreakdown()">📅 Weekly Breakdown</button>
-                        <button class="btn btn-sm" onclick="showMonthlyBreakdown()">📊 Monthly Breakdown</button>
-                        <button class="btn btn-sm" onclick="showSubjectBreakdown()">📚 By Subject</button>
-                    </div>
-                    
-                    <div id="breakdownContainer" style="margin-top: 20px;">
-                        <!-- Breakdown content will appear here -->
+                        <div class="button-group">
+                            <button class="btn btn-sm" id="weeklyBreakdownBtn">📅 Weekly</button>
+                            <button class="btn btn-sm" id="biWeeklyBreakdownBtn">📋 Bi-Weekly</button>
+                            <button class="btn btn-sm" id="monthlyBreakdownBtn">📊 Monthly</button>
+                            <button class="btn btn-sm" id="subjectBreakdownBtn">📚 By Subject</button>
+                        </div>
+                
+                        <div id="breakdownContainer" style="margin-top: 20px;">
+                        <p style="color: #666; text-align: center;">Select a breakdown option above</p>
                     </div>
                 </div>
                 
