@@ -1217,4 +1217,39 @@ body.modal-open {
     overflow: hidden;
 }
 
+/* Edit form styling */
+.edit-mode {
+    background: #fff3cd !important;
+    border-left: 4px solid #ffc107 !important;
+}
+
+.student-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.btn-edit {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-delete {
+    background: #dc3545;
+    color: white;
+}
+
+.default-rate-panel {
+    background: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.default-rate-panel h4 {
+    margin: 0 0 10px 0;
+    color: #0066cc;
+}
+
 
