@@ -602,25 +602,43 @@ tr:hover {
 /* ============================================================================
    RESPONSIVE DESIGN
    ============================================================================ */
-@media (max-width: 768px) {
-    body {
-        padding: 10px;
-    }
-    
-    .header {
-        padding: 20px;
-    }
-    
+@@media (max-width: 768px) {
     .tabs {
         flex-direction: column;
-        gap: 2px;
+        gap: 6px;
+        align-items: center; /* Center tabs */
+        padding: 12px; /* More padding for better touch */
     }
     
     .tab {
         min-width: auto;
-        justify-content: flex-start;
-        padding: 15px 20px;
+        width: 90%; /* Make tabs take most of screen width */
+        max-width: 280px; /* But not too wide */
+        justify-content: center; /* Center content */
+        padding: 16px 20px; /* Comfortable touch size */
+        text-align: center;
+        margin: 0 auto; /* Center the tab itself */
     }
+    
+    /* Ensure tab content is centered */
+    .tab .btn-icon {
+        margin-right: 8px; /* Space between icon and text */
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    .tabs {
+        width: 100%;
+        padding: 10px;
+    }
+    
+    .tab {
+        width: 95%; /* Almost full width on very small screens */
+        padding: 14px 16px;
+        font-size: 13px; /* Slightly smaller text */
+    }
+}
     
     .content {
         padding: 20px;
