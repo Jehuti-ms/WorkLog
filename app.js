@@ -795,4 +795,291 @@ function setDefaultDate() {
     if (sessionDate) sessionDate.value = today;
 }
 
+// ============================================================================
+// BREAKDOWN ANALYSIS FUNCTIONS
+// ============================================================================
+
+function showWeeklyBreakdown() {
+    const breakdown = getWeeklyBreakdown();
+    displayBreakdown(breakdown, 'Weekly Breakdown');
+}
+
+function showBiWeeklyBreakdown() {
+    const breakdown = getBiWeeklyBreakdown();
+    displayBreakdown(breakdown, 'Bi-Weekly Breakdown');
+}
+
+function showMonthlyBreakdown() {
+    const breakdown = getMonthlyBreakdown();
+    displayBreakdown(breakdown, 'Monthly Breakdown');
+}
+
+function showSubjectBreakdown() {
+    const breakdown = getSubjectBreakdown();
+    displayBreakdown(breakdown, 'Subject Breakdown');
+}
+
+function getWeeklyBreakdown() {
+    const weeks = {};
+    
+    hoursLog.forEach(entry => {
+        const entryDate = new Date(entry.date);
+        const weekNumber = getWeekNumber(entryDate);
+        const year = entryDate.getFullYear();
+        const weekKey = `Week ${weekNumber}, ${year}`;
+        
+        if (!weeks[weekKey]) {
+            weeks[weekKey] = {
+                hours: 0,
+                earnings: 0,
+                sessions: 0,
+                avgRate: 0,
+                subjects: new Set()
+            };
+        }
+        
+        weeks[weekKey].hours += entry.hours;
+        weeks[weekKey].earnings += entry.totalPay;
+        weeks[weekKey].sessions += 1;
+        weeks[weekKey].subjects.add(entry.subject);
+        
+        // Calculate average rate
+        if (weeks[weekKey].hours > 0) {
+            weeks[weekKey].avgRate = weeks[weekKey].earnings / weeks[weekKey].hours;
+        }
+    });
+    
+    return weeks;
+}
+
+function getBiWeeklyBreakdown() {
+    const biWeeks = {};
+    
+    hoursLog.forEach(entry => {
+        const entryDate = new Date(entry.date);
+        const weekNumber = getWeekNumber(entryDate);
+        const year = entryDate.getFullYear();
+        const biWeekNumber = Math.ceil(weekNumber / 2);
+        const biWeekKey = `Bi-Week ${biWeekNumber}, ${year}`;
+        
+        if (!biWeeks[biWeekKey]) {
+            biWeeks[biWeekKey] = {
+                hours: 0,
+                earnings: 0,
+                sessions: 0,
+                avgRate: 0,
+                subjects: new Set(),
+                weeks: new Set()
+            };
+        }
+        
+        biWeeks[biWeekKey].hours += entry.hours;
+        biWeeks[biWeekKey].earnings += entry.totalPay;
+        biWeeks[biWeekKey].sessions += 1;
+        biWeeks[biWeekKey].subjects.add(entry.subject);
+        biWeeks[biWeekKey].weeks.add(weekNumber);
+        
+        if (biWeeks[biWeekKey].hours > 0) {
+            biWeeks[biWeekKey].avgRate = biWeeks[biWeekKey].earnings / biWeeks[biWeekKey].hours;
+        }
+    });
+    
+    return biWeeks;
+}
+
+function getMonthlyBreakdown() {
+    const months = {};
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    hoursLog.forEach(entry => {
+        const entryDate = new Date(entry.date);
+        const month = entryDate.getMonth();
+        const year = entryDate.getFullYear();
+        const monthKey = `${monthNames[month]} ${year}`;
+        
+        if (!months[monthKey]) {
+            months[monthKey] = {
+                hours: 0,
+                earnings: 0,
+                sessions: 0,
+                avgRate: 0,
+                subjects: new Set(),
+                students: new Set()
+            };
+        }
+        
+        months[monthKey].hours += entry.hours;
+        months[monthKey].earnings += entry.totalPay;
+        months[monthKey].sessions += 1;
+        months[monthKey].subjects.add(entry.subject);
+        
+        if (months[monthKey].hours > 0) {
+            months[monthKey].avgRate = months[monthKey].earnings / months[monthKey].hours;
+        }
+    });
+    
+    return months;
+}
+
+function getSubjectBreakdown() {
+    const subjects = {};
+    
+    // Process hours data
+    hoursLog.forEach(entry => {
+        if (!subjects[entry.subject]) {
+            subjects[entry.subject] = {
+                hours: 0,
+                earnings: 0,
+                sessions: 0,
+                avgRate: 0,
+                topics: new Set(),
+                organizations: new Set(),
+                lastSession: ''
+            };
+        }
+        
+        subjects[entry.subject].hours += entry.hours;
+        subjects[entry.subject].earnings += entry.totalPay;
+        subjects[entry.subject].sessions += 1;
+        subjects[entry.subject].topics.add(entry.topic);
+        subjects[entry.subject].organizations.add(entry.organization);
+        
+        // Update last session date
+        if (!subjects[entry.subject].lastSession || entry.date > subjects[entry.subject].lastSession) {
+            subjects[entry.subject].lastSession = entry.date;
+        }
+        
+        if (subjects[entry.subject].hours > 0) {
+            subjects[entry.subject].avgRate = subjects[entry.subject].earnings / subjects[entry.subject].hours;
+        }
+    });
+    
+    return subjects;
+}
+
+function displayBreakdown(breakdown, title) {
+    const container = document.getElementById('breakdownContainer');
+    
+    if (Object.keys(breakdown).length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <h3>${title}</h3>
+                <p>No data available for this breakdown.</p>
+                <p><small>Start logging hours to see analytics.</small></p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = `
+        <div class="breakdown-header">
+            <h3>${title}</h3>
+            <div class="breakdown-summary">
+                <strong>Total Periods:</strong> ${Object.keys(breakdown).length} | 
+                <strong>Total Hours:</strong> ${Object.values(breakdown).reduce((sum, b) => sum + b.hours, 0).toFixed(1)} | 
+                <strong>Total Earnings:</strong> $${Object.values(breakdown).reduce((sum, b) => sum + b.earnings, 0).toFixed(2)}
+            </div>
+        </div>
+        <div class="table-container">
+            <table class="breakdown-table">
+                <thead>
+                    <tr>
+                        <th>Period</th>
+                        <th>Hours</th>
+                        <th>Earnings</th>
+                        <th>Sessions</th>
+                        <th>Avg Rate/Hr</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    // Sort by period (most recent first)
+    const sortedPeriods = Object.keys(breakdown).sort((a, b) => {
+        // Custom sorting for different breakdown types
+        if (title.includes('Weekly') || title.includes('Bi-Weekly')) {
+            return b.localeCompare(a);
+        } else if (title.includes('Monthly')) {
+            const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            const [monthA, yearA] = a.split(' ');
+            const [monthB, yearB] = b.split(' ');
+            
+            if (yearA !== yearB) return yearB - yearA;
+            return monthOrder.indexOf(monthB) - monthOrder.indexOf(monthA);
+        } else {
+            // For subject breakdown, sort by earnings (highest first)
+            return breakdown[b].earnings - breakdown[a].earnings;
+        }
+    });
+    
+    sortedPeriods.forEach(period => {
+        const data = breakdown[period];
+        html += `
+            <tr>
+                <td><strong>${period}</strong></td>
+                <td>${data.hours.toFixed(1)}</td>
+                <td>$${data.earnings.toFixed(2)}</td>
+                <td>${data.sessions}</td>
+                <td>$${data.avgRate.toFixed(2)}</td>
+                <td class="details-cell">
+        `;
+        
+        // Add specific details based on breakdown type
+        if (title.includes('Weekly') && data.weeks) {
+            html += `Weeks: ${Array.from(data.weeks).join(', ')}`;
+        } else if (data.subjects) {
+            const subjectCount = data.subjects.size;
+            if (subjectCount > 0) {
+                html += `${subjectCount} subject${subjectCount > 1 ? 's' : ''}`;
+            }
+        }
+        
+        if (data.topics && data.topics.size > 0) {
+            const topicCount = data.topics.size;
+            if (topicCount > 0 && topicCount <= 3) {
+                html += `<br><small>Topics: ${Array.from(data.topics).join(', ')}</small>`;
+            } else if (topicCount > 3) {
+                html += `<br><small>${topicCount} topics</small>`;
+            }
+        }
+        
+        if (data.lastSession && title.includes('Subject')) {
+            html += `<br><small>Last: ${new Date(data.lastSession).toLocaleDateString()}</small>`;
+        }
+        
+        html += `</td></tr>`;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+        <div class="breakdown-footer">
+            <small>Generated on ${new Date().toLocaleString()}</small>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// ============================================================================
+// UPDATE EVENT LISTENERS - Add bi-weekly button
+// ============================================================================
+
+// Update your setupAllEventListeners function to include:
+function setupAllEventListeners() {
+    // ... your existing tab listeners ...
+    
+    // Breakdown buttons - UPDATE THESE
+    document.getElementById('weeklyBreakdownBtn')?.addEventListener('click', showWeeklyBreakdown);
+    document.getElementById('biWeeklyBreakdownBtn')?.addEventListener('click', showBiWeeklyBreakdown);
+    document.getElementById('monthlyBreakdownBtn')?.addEventListener('click', showMonthlyBreakdown);
+    document.getElementById('subjectBreakdownBtn')?.addEventListener('click', showSubjectBreakdown);
+    
+    // ... rest of your existing listeners ...
+}
+
 
