@@ -14,15 +14,11 @@
     <!-- Apple Touch Icon -->
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     
-    <!-- Safari Pinned Tab -->
-    <link rel="mask-icon" href="icons/icon.svg" color="#667eea">
-    
     <!-- MS Application -->
     <meta name="msapplication-TileColor" content="#667eea">
     <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
 
-    <link rel="icon" href="./icons/icon-192x192.png" type="image/png">
-    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" href="icons/icon-192x192.png" type="image/png">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -49,159 +45,144 @@
 
         <div class="content">
             <!-- Students Tab -->
-<div id="students" class="tab-content active">
-    <h2>Student Register</h2>
-    
-    <!-- Base Rate Memory Section -->
-    <div class="form-group" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-        <label><strong>Default Base Rate Settings</strong></label>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <input type="number" id="defaultBaseRate" step="0.01" min="0" placeholder="e.g., 25.00" style="flex: 1;">
-            <button type="button" class="btn btn-secondary" onclick="applyDefaultRateToAll()">Apply to All Students</button>
-            <button type="button" class="btn btn-secondary" onclick="loadDefaultRate()">Load Saved Rate</button>
-        </div>
-        <small style="color: #666;">This rate will be automatically filled for new students</small>
-    </div>
+            <div id="students" class="tab-content active">
+                <h2>Student Register</h2>
+                
+                <!-- Default Base Rate Panel -->
+                <div class="default-rate-panel">
+                    <h4>📊 Default Rate Settings</h4>
+                    <div class="form-group">
+                        <label>Default Base Rate ($/session)</label>
+                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                            <input type="number" id="defaultBaseRate" step="0.01" min="0" placeholder="e.g., 25.00" 
+                                   style="flex: 1;" class="rate-input">
+                            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="applyDefaultRateToAll()">
+                                    Apply to All
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="loadDefaultRate()">
+                                    Load Rate
+                                </button>
+                            </div>
+                        </div>
+                        <small style="color: #fff; display: block; margin-top: 5px; opacity: 0.9;">
+                            This rate will be automatically filled for new students. Current: $<span id="currentDefaultRate">0.00</span>
+                        </small>
+                    </div>
+                </div>
 
-            <!-- Students Tab -->
-<div id="students" class="tab-content active">
-    <h2>Student Register</h2>
-    
-    <!-- Default Base Rate Panel -->
-    <div class="default-rate-panel">
-        <h4>📊 Default Rate Settings</h4>
-        <div class="form-group">
-            <label>Default Base Rate ($/session)</label>
-            <div style="display: flex; gap: 10px; align-items: flex-end;">
-                <input type="number" id="defaultBaseRate" step="0.01" min="0" placeholder="e.g., 25.00" 
-                       style="flex: 1;" class="rate-input">
-                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="applyDefaultRateToAll()">
-                        Apply to All
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadDefaultRate()">
-                        Load Rate
-                    </button>
+                <!-- Student Form -->
+                <form id="studentForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="studentName">Student Name *</label>
+                            <input type="text" id="studentName" placeholder="Enter student name" required>
+                            <div class="field-error" id="nameError"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="studentId">Student ID *</label>
+                            <input type="text" id="studentId" placeholder="Enter student ID" required>
+                            <div class="field-error" id="idError"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="studentGender">Gender *</label>
+                            <select id="studentGender" required>
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <div class="field-error" id="genderError"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="studentEmail">Email</label>
+                            <input type="email" id="studentEmail" placeholder="student@example.com">
+                            <div class="field-hint">Optional</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="studentPhone">Phone</label>
+                            <input type="tel" id="studentPhone" placeholder="Phone number">
+                            <div class="field-hint">Optional</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="studentBaseRate">Base Rate ($/session) *</label>
+                            <div style="position: relative;">
+                                <span class="currency-symbol">$</span>
+                                <input type="number" id="studentBaseRate" step="0.01" min="0" 
+                                       placeholder="25.00" required 
+                                       style="padding-left: 25px;">
+                            </div>
+                            <div class="field-error" id="rateError"></div>
+                            <div class="field-hint">
+                                <a href="javascript:void(0)" onclick="useDefaultRate()" style="color: #667eea;">
+                                    Use default rate
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary" id="addStudentBtn">
+                            <span class="btn-icon">➕</span>
+                            Add Student
+                        </button>
+                        <button type="button" class="btn btn-success" id="updateStudentBtn" style="display: none;">
+                            <span class="btn-icon">💾</span>
+                            Update Student
+                        </button>
+                        <button type="button" class="btn btn-warning" id="cancelEditBtn" style="display: none;">
+                            <span class="btn-icon">❌</span>
+                            Cancel Edit
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="clearStudentForm()">
+                            <span class="btn-icon">🗑️</span>
+                            Clear Form
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Students List -->
+                <div id="studentList" style="margin-top: 30px;">
+                    <div class="section-header">
+                        <h3>Registered Students</h3>
+                        <div class="student-stats">
+                            <span class="stat-badge" id="studentCount">0</span> students
+                            <span class="stat-divider">|</span>
+                            <span class="stat-text">Avg. Rate: $<span id="averageRate">0.00</span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="list-controls">
+                        <div class="search-box">
+                            <input type="text" id="studentSearch" placeholder="Search students..." 
+                                   oninput="filterStudents()">
+                            <span class="search-icon">🔍</span>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="sortStudents('name')">
+                            Sort by Name
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="sortStudents('rate')">
+                            Sort by Rate
+                        </button>
+                    </div>
+                    
+                    <div id="studentsContainer" class="students-container">
+                        <!-- Students will be loaded here -->
+                    </div>
+                    
+                    <div id="studentSummary" class="summary-card" style="display: none;">
+                        <strong>Summary:</strong>
+                        <span id="activeStudents">0</span> active,
+                        <span id="totalEarningsPotential">$0</span> potential monthly
+                    </div>
                 </div>
             </div>
-            <small style="color: #666; display: block; margin-top: 5px;">
-                This rate will be automatically filled for new students. Current: $<span id="currentDefaultRate">0.00</span>
-            </small>
-        </div>
-    </div>
-
-    <!-- Student Form -->
-    <form id="studentForm">
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="studentName">Student Name *</label>
-                <input type="text" id="studentName" placeholder="Enter student name" required>
-                <div class="field-error" id="nameError"></div>
-            </div>
-            
-            <div class="form-group">
-                <label for="studentId">Student ID *</label>
-                <input type="text" id="studentId" placeholder="Enter student ID" required>
-                <div class="field-error" id="idError"></div>
-            </div>
-            
-            <div class="form-group">
-                <label for="studentGender">Gender *</label>
-                <select id="studentGender" required>
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                </select>
-                <div class="field-error" id="genderError"></div>
-            </div>
-            
-            <div class="form-group">
-                <label for="studentEmail">Email</label>
-                <input type="email" id="studentEmail" placeholder="student@example.com">
-                <div class="field-hint">Optional</div>
-            </div>
-            
-            <div class="form-group">
-                <label for="studentPhone">Phone</label>
-                <input type="tel" id="studentPhone" placeholder="Phone number">
-                <div class="field-hint">Optional</div>
-            </div>
-            
-            <div class="form-group">
-                <label for="studentBaseRate">Base Rate ($/session) *</label>
-                <div style="position: relative;">
-                    <span class="currency-symbol">$</span>
-                    <input type="number" id="studentBaseRate" step="0.01" min="0" 
-                           placeholder="25.00" required 
-                           style="padding-left: 25px;">
-                </div>
-                <div class="field-error" id="rateError"></div>
-                <div class="field-hint">
-                    <a href="javascript:void(0)" onclick="useDefaultRate()" style="color: #667eea;">
-                        Use default rate
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Form Actions -->
-        <div class="form-actions">
-            <button type="button" class="btn btn-primary" id="addStudentBtn">
-                <span class="btn-icon">➕</span>
-                Add Student
-            </button>
-            <button type="button" class="btn btn-success" id="updateStudentBtn" style="display: none;">
-                <span class="btn-icon">💾</span>
-                Update Student
-            </button>
-            <button type="button" class="btn btn-warning" id="cancelEditBtn" style="display: none;">
-                <span class="btn-icon">❌</span>
-                Cancel Edit
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="clearStudentForm()">
-                <span class="btn-icon">🗑️</span>
-                Clear Form
-            </button>
-        </div>
-    </form>
-
-    <!-- Students List -->
-    <div id="studentList" style="margin-top: 30px;">
-        <div class="section-header">
-            <h3>Registered Students</h3>
-            <div class="student-stats">
-                <span class="stat-badge" id="studentCount">0</span> students
-                <span class="stat-divider">|</span>
-                <span class="stat-text">Avg. Rate: $<span id="averageRate">0.00</span></span>
-            </div>
-        </div>
-        
-        <div class="list-controls">
-            <div class="search-box">
-                <input type="text" id="studentSearch" placeholder="Search students..." 
-                       oninput="filterStudents()">
-                <span class="search-icon">🔍</span>
-            </div>
-            <button class="btn btn-sm btn-secondary" onclick="sortStudents('name')">
-                Sort by Name
-            </button>
-            <button class="btn btn-sm btn-secondary" onclick="sortStudents('rate')">
-                Sort by Rate
-            </button>
-        </div>
-        
-        <div id="studentsContainer" class="students-container">
-            <!-- Students will be loaded here -->
-        </div>
-        
-        <div id="studentSummary" class="summary-card" style="display: none;">
-            <strong>Summary:</strong>
-            <span id="activeStudents">0</span> active,
-            <span id="totalEarningsPotential">$0</span> potential monthly
-        </div>
-    </div>
-</div>
 
             <!-- Attendance Tab -->
             <div id="attendance" class="tab-content">
@@ -226,11 +207,11 @@
                     </div>
                 </div>
                 
-                <button class="btn" onclick="saveAttendance()" style="margin-top: 20px;">💾 Save Attendance</button>
+                <button class="btn btn-primary" onclick="saveAttendance()" style="margin-top: 20px;">💾 Save Attendance</button>
 
                 <div id="attendanceLog" style="margin-top: 30px;">
                     <h3>Recent Attendance</h3>
-                    <div id="attendanceContainer"></div>
+                    <div id="attendanceContainer" class="mobile-entries"></div>
                 </div>
             </div>
 
@@ -273,7 +254,7 @@
                     <label>Notes</label>
                     <textarea id="workNotes" rows="3" placeholder="Additional notes about the session..."></textarea>
                 </div>
-                <button class="btn" onclick="logHours()">💼 Log Hours</button>
+                <button class="btn btn-primary" onclick="logHours()">💼 Log Hours</button>
                 
                 <div style="margin-top: 30px;">
                     <h3>📊 Summary Totals</h3>
@@ -299,21 +280,21 @@
                 
                 <div style="margin-top: 30px;">
                     <h3>📈 Detailed Breakdown</h3>
-                        <div class="button-group">
-                            <button class="btn btn-sm" id="weeklyBreakdownBtn">📅 Weekly</button>
-                            <button class="btn btn-sm" id="biWeeklyBreakdownBtn">📋 Bi-Weekly</button>
-                            <button class="btn btn-sm" id="monthlyBreakdownBtn">📊 Monthly</button>
-                            <button class="btn btn-sm" id="subjectBreakdownBtn">📚 By Subject</button>
-                        </div>
-                
-                        <div id="breakdownContainer" style="margin-top: 20px;">
+                    <div class="button-group">
+                        <button class="btn btn-sm btn-secondary" id="weeklyBreakdownBtn">📅 Weekly</button>
+                        <button class="btn btn-sm btn-secondary" id="biWeeklyBreakdownBtn">📋 Bi-Weekly</button>
+                        <button class="btn btn-sm btn-secondary" id="monthlyBreakdownBtn">📊 Monthly</button>
+                        <button class="btn btn-sm btn-secondary" id="subjectBreakdownBtn">📚 By Subject</button>
+                    </div>
+            
+                    <div id="breakdownContainer" style="margin-top: 20px;">
                         <p style="color: #666; text-align: center;">Select a breakdown option above</p>
                     </div>
                 </div>
                 
                 <div id="hoursLog" style="margin-top: 30px;">
                     <h3>Recent Entries</h3>
-                    <div id="hoursContainer"></div>
+                    <div id="hoursContainer" class="mobile-entries"></div>
                 </div>
             </div>
             
@@ -364,11 +345,11 @@
                     <label>Comments</label>
                     <textarea id="markComments" rows="3" placeholder="Additional comments..."></textarea>
                 </div>
-                <button class="btn" onclick="addMark()">📝 Add Mark</button>
+                <button class="btn btn-primary" onclick="addMark()">📝 Add Mark</button>
 
                 <div id="marksList" style="margin-top: 30px;">
                     <h3>Marks Register</h3>
-                    <div id="marksContainer"></div>
+                    <div id="marksContainer" class="mobile-entries"></div>
                 </div>
             </div>
 
@@ -377,7 +358,7 @@
                 <h2>Student Payments & Balances</h2>
                 
                 <div class="controls" style="margin-bottom: 20px;">
-                    <button class="btn" id="recordPaymentBtn">💰 Record Payment</button>
+                    <button class="btn btn-primary" id="recordPaymentBtn">💰 Record Payment</button>
                     <button class="btn btn-secondary" id="markSessionBtn">📅 Mark Session Attendance</button>
                 </div>
 
@@ -508,7 +489,7 @@
                     <label>Notes</label>
                     <textarea id="paymentNotes" rows="3" placeholder="Payment notes..."></textarea>
                 </div>
-                <button type="submit" class="btn">💳 Record Payment</button>
+                <button type="submit" class="btn btn-primary">💳 Record Payment</button>
             </form>
         </div>
     </div>
@@ -537,12 +518,12 @@
                         <!-- Students will be listed here -->
                     </div>
                 </div>
-                <button type="submit" class="btn">📝 Save Session</button>
+                <button type="submit" class="btn btn-primary">📝 Save Session</button>
             </form>
         </div>
     </div>
 
-    <input type="file" id="importFile" style="display: none" accept=".json" onchange="handleFileImport(this.files[0])">
+    <input type="file" id="importFile" style="display: none" accept=".json">
     <script src="app.js"></script>
 </body>   
 </html>
