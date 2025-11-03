@@ -76,7 +76,8 @@ function loadFieldMemory() {
     try {
         const saved = localStorage.getItem('worklog_field_memory');
         if (saved) {
-            fieldMemory = { ...fieldMemory, ...JSON.parse(saved) };
+            const savedMemory = JSON.parse(saved);
+            fieldMemory = { ...fieldMemory, ...savedMemory };
         }
         applyFieldMemory();
     } catch (error) {
@@ -105,7 +106,9 @@ function applyFieldMemory() {
     if (subjectInput && fieldMemory.subject) subjectInput.value = fieldMemory.subject;
     if (topicInput && fieldMemory.topic) topicInput.value = fieldMemory.topic;
     if (defaultRateInput && fieldMemory.defaultBaseRate) defaultRateInput.value = fieldMemory.defaultBaseRate;
-    if (studentBaseRateInput && fieldMemory.defaultBaseRate) studentBaseRateInput.value = fieldMemory.defaultBaseRate;
+    if (studentBaseRateInput && fieldMemory.defaultBaseRate && !studentBaseRateInput.value) {
+        studentBaseRateInput.value = fieldMemory.defaultBaseRate;
+    }
 }
 
 function updateFieldMemory() {
@@ -126,11 +129,13 @@ function updateFieldMemory() {
 
 // Setup all event listeners
 function setupAllEventListeners() {
+    console.log("Setting up event listeners...");
+    
     // Tab system
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', function() {
             const tabName = this.getAttribute('data-tab');
-            console.log('Tab clicked:', tabName, this);
+            console.log('Tab clicked:', tabName);
             switchTab(tabName);
         });
     });
@@ -147,7 +152,7 @@ function setupAllEventListeners() {
     document.getElementById('maxScore')?.addEventListener('input', calculatePercentage);
     document.getElementById('marksStudent')?.addEventListener('change', updateStudentDetails);
     
-    // Breakdown buttons - FIXED: Added proper event listeners
+    // Breakdown buttons
     document.getElementById('weeklyBreakdownBtn')?.addEventListener('click', showWeeklyBreakdown);
     document.getElementById('biWeeklyBreakdownBtn')?.addEventListener('click', showBiWeeklyBreakdown);
     document.getElementById('monthlyBreakdownBtn')?.addEventListener('click', showMonthlyBreakdown);
@@ -168,21 +173,6 @@ function setupAllEventListeners() {
         saveSessionAttendance();
     });
     
-    // Modal close handlers
-    document.querySelectorAll('.modal .close').forEach(closeBtn => {
-        closeBtn.addEventListener('click', function() {
-            this.closest('.modal').style.display = 'none';
-        });
-    });
-    
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) this.style.display = 'none';
-        });
-    });
-    
-    console.log('All event listeners setup successfully');
-
     // Student form listeners
     document.getElementById('addStudentBtn')?.addEventListener('click', addStudent);
     document.getElementById('updateStudentBtn')?.addEventListener('click', updateStudent);
@@ -191,10 +181,10 @@ function setupAllEventListeners() {
     // Default rate listeners
     document.getElementById('defaultBaseRate')?.addEventListener('change', function() {
         updateFieldMemory();
-        // Auto-fill student base rate with default
-        const studentBaseRate = document.getElementById('studentBaseRate');
-        if (studentBaseRate && !studentBaseRate.value) {
-            studentBaseRate.value = this.value;
+        // Update current default rate display
+        const currentRateEl = document.getElementById('currentDefaultRate');
+        if (currentRateEl) {
+            currentRateEl.textContent = this.value || '0.00';
         }
     });
     
@@ -203,10 +193,38 @@ function setupAllEventListeners() {
             this.value = fieldMemory.defaultBaseRate;
         }
     });
+    
+    // File import listener
+    document.getElementById('importFile')?.addEventListener('change', function(e) {
+        if (e.target.files[0]) {
+            handleFileImport(e.target.files[0]);
+        }
+    });
+    
+    // Modal close handlers
+    document.querySelectorAll('.modal .close').forEach(closeBtn => {
+        closeBtn.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
+        });
+    });
+    
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
+        });
+    });
+    
+    console.log('All event listeners setup successfully');
 }
 
 // Tab switching
-// Tab switching - FIXED
 function switchTab(tabName) {
     console.log('Switching to tab:', tabName);
     
@@ -267,6 +285,12 @@ function updateUI() {
     updateAttendanceUI();
     calculateTimeTotals();
     updatePaymentUI();
+    
+    // Update current default rate display
+    const currentRateEl = document.getElementById('currentDefaultRate');
+    if (currentRateEl && fieldMemory.defaultBaseRate) {
+        currentRateEl.textContent = fieldMemory.defaultBaseRate;
+    }
 }
 
 function setDefaultDate() {
@@ -290,6 +314,12 @@ function loadDefaultRate() {
     }
     if (studentBaseRateInput && fieldMemory.defaultBaseRate && !studentBaseRateInput.value) {
         studentBaseRateInput.value = fieldMemory.defaultBaseRate;
+    }
+    
+    // Update current default rate display
+    const currentRateEl = document.getElementById('currentDefaultRate');
+    if (currentRateEl && fieldMemory.defaultBaseRate) {
+        currentRateEl.textContent = fieldMemory.defaultBaseRate;
     }
 }
 
@@ -319,6 +349,15 @@ function applyDefaultRateToAll() {
         alert(`✅ Base rate applied to all ${students.length} students!`);
     }
 }
+
+// Use default rate in student form
+function useDefaultRate() {
+    const studentBaseRateInput = document.getElementById('studentBaseRate');
+    if (studentBaseRateInput && fieldMemory.defaultBaseRate) {
+        studentBaseRateInput.value = fieldMemory.defaultBaseRate;
+    }
+}
+
 // Modal functions
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
@@ -336,27 +375,6 @@ function openModal(modalId) {
         }
     }
 }
-
-// Update your modal close handlers:
-document.querySelectorAll('.modal .close').forEach(closeBtn => {
-    closeBtn.addEventListener('click', function() {
-        const modal = this.closest('.modal');
-        if (modal) {
-            modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-        }
-    });
-});
-
-document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', function(e) {
-        if (e.target === this) {
-            this.style.display = 'none';
-            document.body.classList.remove('modal-open');
-        }
-    });
-});
-
 
 // ============================================================================
 // DATA EXPORT/IMPORT FUNCTIONS
@@ -505,11 +523,25 @@ function addStudent() {
 
 // Enhanced updateStudentList with edit functionality
 function updateStudentList() {
-    document.getElementById('studentCount').textContent = students.length;
+    const studentCount = document.getElementById('studentCount');
+    const averageRate = document.getElementById('averageRate');
+    
+    if (studentCount) studentCount.textContent = students.length;
+    
+    // Calculate average rate
+    if (averageRate && students.length > 0) {
+        const totalRate = students.reduce((sum, student) => sum + (student.baseRate || 0), 0);
+        const avgRate = totalRate / students.length;
+        averageRate.textContent = avgRate.toFixed(2);
+    } else if (averageRate) {
+        averageRate.textContent = '0.00';
+    }
     
     const container = document.getElementById('studentsContainer');
+    if (!container) return;
+    
     if (students.length === 0) {
-        container.innerHTML = '<p style="color: #666;">No students registered yet.</p>';
+        container.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No students registered yet.</p>';
         return;
     }
     
@@ -524,8 +556,8 @@ function updateStudentList() {
                     Rate: $${student.baseRate || 0}/session
                 </small>
                 <div class="student-actions">
-                    <button class="btn btn-sm btn-edit" onclick="editStudent(${index})">✏️ Edit</button>
-                    <button class="btn btn-sm btn-delete" onclick="deleteStudent(${index})">🗑️ Delete</button>
+                    <button class="btn btn-sm" onclick="editStudent(${index})">✏️ Edit</button>
+                    <button class="btn btn-sm btn-secondary" onclick="deleteStudent(${index})">🗑️ Delete</button>
                 </div>
             </div>
         </div>
@@ -550,7 +582,10 @@ function editStudent(index) {
     document.getElementById('studentBaseRate').value = student.baseRate || '';
     
     // Store editing index
-    document.getElementById('studentForm').dataset.editingIndex = index;
+    const studentForm = document.getElementById('studentForm');
+    if (studentForm) {
+        studentForm.dataset.editingIndex = index;
+    }
     
     // Show/hide buttons
     document.getElementById('addStudentBtn').style.display = 'none';
@@ -615,8 +650,8 @@ function deleteStudent(index) {
 
 // Update student function
 function updateStudent() {
-    const form = document.getElementById('studentForm');
-    const editingIndex = parseInt(form.dataset.editingIndex);
+    const studentForm = document.getElementById('studentForm');
+    const editingIndex = studentForm ? parseInt(studentForm.dataset.editingIndex) : -1;
     
     if (isNaN(editingIndex) || !students[editingIndex]) {
         alert('No student selected for editing');
@@ -678,8 +713,11 @@ function cancelEdit() {
 
 // Reset student form function
 function resetStudentForm() {
-    document.getElementById('studentForm').reset();
-    delete document.getElementById('studentForm').dataset.editingIndex;
+    const studentForm = document.getElementById('studentForm');
+    if (studentForm) {
+        studentForm.reset();
+        delete studentForm.dataset.editingIndex;
+    }
     
     // Show/hide buttons
     document.getElementById('addStudentBtn').style.display = 'inline-block';
@@ -688,6 +726,23 @@ function resetStudentForm() {
     
     // Reload default rate
     loadDefaultRate();
+}
+
+// Clear student form
+function clearStudentForm() {
+    resetStudentForm();
+}
+
+// Filter students (placeholder)
+function filterStudents() {
+    // Implementation needed
+    console.log('Filter students function called');
+}
+
+// Sort students (placeholder)
+function sortStudents(criteria) {
+    // Implementation needed
+    console.log('Sort students by:', criteria);
 }
 
 // ============================================================================
@@ -785,7 +840,7 @@ function updateHoursList() {
                 </div>
                 <div class="entry-actions">
                     <button class="btn btn-sm" onclick="editHours('${entryId}')">✏️ Edit</button>
-                    <button class="btn btn-secondary btn-sm" onclick="deleteHours('${entryId}')">🗑️ Delete</button>
+                    <button class="btn btn-sm btn-secondary" onclick="deleteHours('${entryId}')">🗑️ Delete</button>
                 </div>
             </div>
         `;
@@ -803,6 +858,11 @@ function deleteHours(entryId) {
             alert('✅ Hours entry deleted successfully!');
         }
     }
+}
+
+// Edit hours placeholder
+function editHours(entryId) {
+    alert('Edit hours functionality coming soon!');
 }
 
 function calculateTimeTotals() {
@@ -976,7 +1036,7 @@ function updateMarksList() {
                 </div>
                 <div class="entry-actions">
                     <button class="btn btn-sm" onclick="editMark('${markId}')">✏️ Edit</button>
-                    <button class="btn btn-secondary btn-sm" onclick="deleteMark('${markId}')">🗑️ Delete</button>
+                    <button class="btn btn-sm btn-secondary" onclick="deleteMark('${markId}')">🗑️ Delete</button>
                 </div>
             </div>
         `;
@@ -993,6 +1053,11 @@ function deleteMark(markId) {
             alert('✅ Mark deleted successfully!');
         }
     }
+}
+
+// Edit mark placeholder
+function editMark(markId) {
+    alert('Edit mark functionality coming soon!');
 }
 
 // ============================================================================
@@ -1110,7 +1175,7 @@ function updateAttendanceUI() {
                 </div>
                 <div class="entry-actions">
                     <button class="btn btn-sm" onclick="editAttendance('${recordId}')">✏️ Edit</button>
-                    <button class="btn btn-secondary btn-sm" onclick="deleteAttendance('${recordId}')">🗑️ Delete</button>
+                    <button class="btn btn-sm btn-secondary" onclick="deleteAttendance('${recordId}')">🗑️ Delete</button>
                 </div>
             </div>
         `;
@@ -1127,6 +1192,11 @@ function deleteAttendance(recordId) {
             alert('✅ Attendance record deleted successfully!');
         }
     }
+}
+
+// Edit attendance placeholder
+function editAttendance(recordId) {
+    alert('Edit attendance functionality coming soon!');
 }
 
 // ============================================================================
@@ -1282,7 +1352,7 @@ function recordPayment() {
     return true;
 }
 
-// Add this helper function to properly reset the payment form
+// Helper function to properly reset the payment form
 function resetPaymentForm() {
     const form = document.getElementById('paymentForm');
     if (form) {
@@ -1300,118 +1370,7 @@ function resetPaymentForm() {
     }
 }
 
-// Also update your payment form event listener to prevent double submission
-document.getElementById('paymentForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-    recordPayment();
-});
-
-// Optional: Add input validation for payment amount
-document.getElementById('paymentAmount')?.addEventListener('input', function(e) {
-    // Remove any non-numeric characters except decimal point
-    this.value = this.value.replace(/[^\d.]/g, '');
-    
-    // Ensure only one decimal point
-    const decimalCount = (this.value.match(/\./g) || []).length;
-    if (decimalCount > 1) {
-        this.value = this.value.slice(0, -1);
-    }
-    
-    // Limit to 2 decimal places
-    if (this.value.includes('.')) {
-        const parts = this.value.split('.');
-        if (parts[1].length > 2) {
-            this.value = parts[0] + '.' + parts[1].substring(0, 2);
-        }
-    }
-});
-
-// Optional: Add today's date button for convenience
-function addTodayDateButton() {
-    const paymentDateField = document.getElementById('paymentDate');
-    if (paymentDateField && !paymentDateField.parentNode.querySelector('.today-btn')) {
-        const todayBtn = document.createElement('button');
-        todayBtn.type = 'button';
-        todayBtn.className = 'today-btn';
-        todayBtn.textContent = 'Today';
-        todayBtn.style.marginLeft = '10px';
-        todayBtn.style.padding = '5px 10px';
-        todayBtn.style.background = '#667eea';
-        todayBtn.style.color = 'white';
-        todayBtn.style.border = 'none';
-        todayBtn.style.borderRadius = '4px';
-        todayBtn.style.cursor = 'pointer';
-        todayBtn.style.fontSize = '12px';
-        
-        todayBtn.addEventListener('click', function() {
-            paymentDateField.value = new Date().toISOString().split('T')[0];
-        });
-        
-        paymentDateField.parentNode.appendChild(todayBtn);
-    }
-}
-
-// Call this when opening the payment modal
-function openPaymentModal() {
-    openModal('paymentModal');
-    addTodayDateButton();
-}
-
-// Update your modal opening code:
-document.getElementById('recordPaymentBtn')?.addEventListener('click', openPaymentModal);
-
-function saveSessionAttendance() {
-    const date = document.getElementById('sessionDate').value;
-    const subject = document.getElementById('sessionSubject').value.trim();
-    const topic = document.getElementById('sessionTopic').value.trim();
-    
-    if (!date || !subject) {
-        alert('Please fill in date and subject');
-        return;
-    }
-    
-    const attendanceRecords = [];
-    
-    // Get all checked students from the session modal
-    const checkboxes = document.querySelectorAll('#sessionAttendanceList input[type="checkbox"]:checked');
-    
-    checkboxes.forEach(checkbox => {
-        const studentId = checkbox.id.replace('session_', '');
-        const student = students.find(s => s.id === studentId);
-        
-        if (student) {
-            const record = {
-                id: generateId(),
-                date,
-                studentId: student.id,
-                studentName: student.name,
-                gender: student.gender,
-                subject,
-                topic,
-                status: 'Present',
-                timestamp: new Date().toISOString()
-            };
-            
-            attendanceRecords.push(record);
-        }
-    });
-    
-    attendance.push(...attendanceRecords);
-    saveAllData();
-    
-    // Log activity
-    logPaymentActivity(`Session recorded: ${attendanceRecords.length} students for ${subject}`);
-    
-    // Close modal and update UI
-    document.getElementById('attendanceSessionModal').style.display = 'none';
-    updateAttendanceUI();
-    
-    // Clear form
-    document.getElementById('attendanceSessionForm').reset();
-    
-    alert(`✅ Session recorded for ${attendanceRecords.length} students!`);
-}
-
+// Enhanced session attendance functions
 function updateSessionAttendanceList() {
     const container = document.getElementById('sessionAttendanceList');
     if (!container) {
@@ -1463,9 +1422,6 @@ function updateSessionAttendanceList() {
             `;
         }).join('');
         
-        // Add event listeners for checkboxes
-        addSessionAttendanceEventListeners();
-        
     } catch (error) {
         console.error('Error updating session attendance list:', error);
         container.innerHTML = `
@@ -1488,21 +1444,6 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
-// Add event listeners for attendance checkboxes
-function addSessionAttendanceEventListeners() {
-    const checkboxes = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const studentId = this.getAttribute('data-student-id');
-            const student = students.find(s => s.id === studentId);
-            if (student) {
-                console.log(`Student ${student.name} attendance: ${this.checked ? 'Present' : 'Absent'}`);
-            }
-        });
-    });
-}
-
-// Enhanced session attendance function
 function saveSessionAttendance() {
     const date = document.getElementById('sessionDate').value;
     const subject = document.getElementById('sessionSubject').value.trim();
@@ -1602,7 +1543,6 @@ function resetSessionAttendanceForm() {
     }
 }
 
-// Enhanced logPaymentActivity with better error handling
 function logPaymentActivity(message) {
     if (!message || typeof message !== 'string') {
         console.warn('Invalid activity message:', message);
@@ -1629,89 +1569,8 @@ function logPaymentActivity(message) {
     }
 }
 
-// Optional: Add select all/none functionality
-function addSessionAttendanceControls() {
-    const container = document.getElementById('sessionAttendanceList');
-    if (!container) return;
-    
-    // Check if controls already exist
-    if (container.querySelector('.attendance-controls')) return;
-    
-    const controlsHtml = `
-        <div class="attendance-controls" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-            <button type="button" class="btn btn-sm" onclick="selectAllStudents()" style="margin-right: 10px;">
-                ✅ Select All
-            </button>
-            <button type="button" class="btn btn-sm btn-secondary" onclick="deselectAllStudents()">
-                ❌ Deselect All
-            </button>
-            <span style="margin-left: 10px; font-size: 0.9em; color: #666;">
-                <span id="selectedCount">${students.length}</span>/${students.length} selected
-            </span>
-        </div>
-    `;
-    
-    container.insertAdjacentHTML('afterbegin', controlsHtml);
-    updateSelectedCount();
-}
-
-// Select all students
-function selectAllStudents() {
-    const checkboxes = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = true;
-    });
-    updateSelectedCount();
-}
-
-// Deselect all students
-function deselectAllStudents() {
-    const checkboxes = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    updateSelectedCount();
-}
-
-// Update selected count
-function updateSelectedCount() {
-    const countElement = document.getElementById('selectedCount');
-    if (countElement) {
-        const checkedCount = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox:checked').length;
-        countElement.textContent = checkedCount;
-    }
-}
-
-// Update the modal opening function to include controls
-function openSessionAttendanceModal() {
-    openModal('attendanceSessionModal');
-    updateSessionAttendanceList();
-    addSessionAttendanceControls();
-    
-    // Add event listener for checkbox changes to update count
-    const container = document.getElementById('sessionAttendanceList');
-    if (container) {
-        container.addEventListener('change', function(e) {
-            if (e.target.classList.contains('attendance-checkbox')) {
-                updateSelectedCount();
-            }
-        });
-    }
-}
-
-// Update your modal opening code:
-document.getElementById('markSessionBtn')?.addEventListener('click', openSessionAttendanceModal);
-
-function logPaymentActivity(message) {
-    paymentActivity.push({
-        timestamp: new Date().toISOString(),
-        message
-    });
-    saveAllData();
-}
-
 // ============================================================================
-// BREAKDOWN ANALYSIS FUNCTIONS - FIXED
+// BREAKDOWN ANALYSIS FUNCTIONS
 // ============================================================================
 
 function showWeeklyBreakdown() {
