@@ -24,8 +24,14 @@ function init() {
     loadFieldMemory();
     setupAllEventListeners();
     setDefaultDate();
-    updateUI();
-    loadDefaultRate(); // Load saved default rate
+    
+    // Ensure first tab is visible on startup
+    setTimeout(() => {
+        switchTab('students');
+        updateUI();
+    }, 100);
+    
+    console.log('App initialized successfully');
 }
 
 // Load data from localStorage
@@ -124,6 +130,7 @@ function setupAllEventListeners() {
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', function() {
             const tabName = this.getAttribute('data-tab');
+            console.log('Tab clicked:', tabName, this);
             switchTab(tabName);
         });
     });
@@ -199,20 +206,56 @@ function setupAllEventListeners() {
 }
 
 // Tab switching
+// Tab switching - FIXED
 function switchTab(tabName) {
     console.log('Switching to tab:', tabName);
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     
-    document.querySelector(`.tab[data-tab="${tabName}"]`)?.classList.add('active');
-    document.getElementById(tabName)?.classList.add('active');
+    // Remove active class from all tabs and contents
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+        content.style.display = 'none';
+    });
+    
+    // Add active class to selected tab and content
+    const selectedTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+    const selectedContent = document.getElementById(tabName);
+    
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+    
+    if (selectedContent) {
+        selectedContent.classList.add('active');
+        selectedContent.style.display = 'block';
+    }
     
     // Tab-specific updates
-    if (tabName === 'reports') updateReports();
-    if (tabName === 'attendance') updateAttendanceList();
-    if (tabName === 'hours') calculateTimeTotals();
-    if (tabName === 'payments') updatePaymentUI();
-    if (tabName === 'marks') updateStudentSelects();
+    switch(tabName) {
+        case 'reports':
+            updateReports();
+            break;
+        case 'attendance':
+            updateAttendanceList();
+            break;
+        case 'hours':
+            calculateTimeTotals();
+            break;
+        case 'payments':
+            updatePaymentUI();
+            break;
+        case 'marks':
+            updateStudentSelects();
+            break;
+        case 'students':
+            updateStudentList();
+            break;
+    }
+    
+    console.log('Tab switched successfully to:', tabName);
 }
 
 // Update UI
