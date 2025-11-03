@@ -213,6 +213,7 @@ function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'block';
+        document.body.classList.add('modal-open');
         
         // Initialize modal-specific data
         if (modalId === 'paymentModal') {
@@ -224,6 +225,27 @@ function openModal(modalId) {
         }
     }
 }
+
+// Update your modal close handlers:
+document.querySelectorAll('.modal .close').forEach(closeBtn => {
+    closeBtn.addEventListener('click', function() {
+        const modal = this.closest('.modal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
+    });
+});
+
+document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
+    });
+});
+
 
 // ============================================================================
 // DATA EXPORT/IMPORT FUNCTIONS
@@ -967,43 +989,139 @@ function recordPayment() {
     const method = document.getElementById('paymentMethod').value;
     const notes = document.getElementById('paymentNotes').value.trim();
     
-    if (!studentId || !amount || !date) {
-        alert('Please fill in all required fields');
-        return;
+    // Validation
+    if (!studentId) {
+        alert('Please select a student');
+        return false;
+    }
+    
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid payment amount');
+        return false;
+    }
+    
+    if (!date) {
+        alert('Please select a payment date');
+        return false;
     }
     
     const student = students.find(s => s.id === studentId);
     if (!student) {
         alert('Student not found');
-        return;
+        return false;
     }
     
+    // Create payment record
     const payment = {
         id: generateId(),
         studentId,
         studentName: student.name,
         amount,
         date,
-        method,
+        method: method || 'Cash',
         notes,
         timestamp: new Date().toISOString()
     };
     
+    // Save payment
     payments.push(payment);
     saveAllData();
     
     // Log activity
-    logPaymentActivity(`Payment recorded: $${amount.toFixed(2)} from ${student.name} (${method})`);
+    logPaymentActivity(`Payment recorded: $${amount.toFixed(2)} from ${student.name} (${method || 'Cash'})`);
     
-    // Close modal and update UI
+    // Close modal first
     document.getElementById('paymentModal').style.display = 'none';
+    document.body.classList.remove('modal-open');
+    
+    // Update UI
     updatePaymentUI();
     
-    // Clear form
-    document.getElementById('paymentForm').reset();
+    // Reset form properly
+    resetPaymentForm();
     
+    // Show success message
     alert('✅ Payment recorded successfully!');
+    return true;
 }
+
+// Add this helper function to properly reset the payment form
+function resetPaymentForm() {
+    const form = document.getElementById('paymentForm');
+    if (form) {
+        form.reset();
+        // Set default date to today
+        const paymentDate = document.getElementById('paymentDate');
+        if (paymentDate) {
+            paymentDate.value = new Date().toISOString().split('T')[0];
+        }
+        // Set default method to Cash
+        const paymentMethod = document.getElementById('paymentMethod');
+        if (paymentMethod) {
+            paymentMethod.value = 'Cash';
+        }
+    }
+}
+
+// Also update your payment form event listener to prevent double submission
+document.getElementById('paymentForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    recordPayment();
+});
+
+// Optional: Add input validation for payment amount
+document.getElementById('paymentAmount')?.addEventListener('input', function(e) {
+    // Remove any non-numeric characters except decimal point
+    this.value = this.value.replace(/[^\d.]/g, '');
+    
+    // Ensure only one decimal point
+    const decimalCount = (this.value.match(/\./g) || []).length;
+    if (decimalCount > 1) {
+        this.value = this.value.slice(0, -1);
+    }
+    
+    // Limit to 2 decimal places
+    if (this.value.includes('.')) {
+        const parts = this.value.split('.');
+        if (parts[1].length > 2) {
+            this.value = parts[0] + '.' + parts[1].substring(0, 2);
+        }
+    }
+});
+
+// Optional: Add today's date button for convenience
+function addTodayDateButton() {
+    const paymentDateField = document.getElementById('paymentDate');
+    if (paymentDateField && !paymentDateField.parentNode.querySelector('.today-btn')) {
+        const todayBtn = document.createElement('button');
+        todayBtn.type = 'button';
+        todayBtn.className = 'today-btn';
+        todayBtn.textContent = 'Today';
+        todayBtn.style.marginLeft = '10px';
+        todayBtn.style.padding = '5px 10px';
+        todayBtn.style.background = '#667eea';
+        todayBtn.style.color = 'white';
+        todayBtn.style.border = 'none';
+        todayBtn.style.borderRadius = '4px';
+        todayBtn.style.cursor = 'pointer';
+        todayBtn.style.fontSize = '12px';
+        
+        todayBtn.addEventListener('click', function() {
+            paymentDateField.value = new Date().toISOString().split('T')[0];
+        });
+        
+        paymentDateField.parentNode.appendChild(todayBtn);
+    }
+}
+
+// Call this when opening the payment modal
+function openPaymentModal() {
+    openModal('paymentModal');
+    addTodayDateButton();
+}
+
+// Update your modal opening code:
+document.getElementById('recordPaymentBtn')?.addEventListener('click', openPaymentModal);
 
 function saveSessionAttendance() {
     const date = document.getElementById('sessionDate').value;
@@ -1059,27 +1177,293 @@ function saveSessionAttendance() {
 
 function updateSessionAttendanceList() {
     const container = document.getElementById('sessionAttendanceList');
-    if (!container) return;
-    
-    if (students.length === 0) {
-        container.innerHTML = '<p style="color: #666;">No students registered yet.</p>';
+    if (!container) {
+        console.error('Session attendance container not found');
         return;
     }
     
-    container.innerHTML = students.map(student => `
-        <div class="attendance-item">
-            <div>
-                <input type="checkbox" class="attendance-checkbox" id="session_${student.id}" checked>
-                <label for="session_${student.id}">
-                    <strong>${student.name}</strong> (${student.id})
-                </label>
+    if (!students || students.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #666;">
+                <p>No students registered yet.</p>
+                <small>Add students in the Students tab first.</small>
             </div>
-            <div>
-                <small style="color: #666;">Rate: $${student.baseRate || 0}/session</small>
+        `;
+        return;
+    }
+    
+    try {
+        container.innerHTML = students.map(student => {
+            // Validate student data
+            if (!student.id || !student.name) {
+                console.warn('Invalid student data:', student);
+                return '';
+            }
+            
+            const studentId = student.id.replace(/[^a-zA-Z0-9-_]/g, '_'); // Sanitize ID for HTML
+            const baseRate = student.baseRate || 0;
+            
+            return `
+                <div class="attendance-item" data-student-id="${studentId}">
+                    <div class="attendance-info">
+                        <input 
+                            type="checkbox" 
+                            class="attendance-checkbox" 
+                            id="session_${studentId}" 
+                            checked
+                            data-student-id="${student.id}"
+                        >
+                        <label for="session_${studentId}" class="attendance-label">
+                            <strong>${escapeHtml(student.name)}</strong> 
+                            <span class="student-id">(${escapeHtml(student.id)})</span>
+                        </label>
+                    </div>
+                    <div class="attendance-details">
+                        <small class="rate-info">Rate: $${baseRate.toFixed(2)}/session</small>
+                        ${student.email ? `<br><small class="email-info">${escapeHtml(student.email)}</small>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        // Add event listeners for checkboxes
+        addSessionAttendanceEventListeners();
+        
+    } catch (error) {
+        console.error('Error updating session attendance list:', error);
+        container.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #e74c3c;">
+                <p>Error loading students list</p>
+                <small>Please try refreshing the page</small>
             </div>
-        </div>
-    `).join('');
+        `;
+    }
 }
+
+// Helper function to escape HTML (prevent XSS)
+function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') return unsafe;
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// Add event listeners for attendance checkboxes
+function addSessionAttendanceEventListeners() {
+    const checkboxes = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const studentId = this.getAttribute('data-student-id');
+            const student = students.find(s => s.id === studentId);
+            if (student) {
+                console.log(`Student ${student.name} attendance: ${this.checked ? 'Present' : 'Absent'}`);
+            }
+        });
+    });
+}
+
+// Enhanced session attendance function
+function saveSessionAttendance() {
+    const date = document.getElementById('sessionDate').value;
+    const subject = document.getElementById('sessionSubject').value.trim();
+    const topic = document.getElementById('sessionTopic').value.trim();
+    
+    if (!date) {
+        alert('Please select a date');
+        return false;
+    }
+    
+    if (!subject) {
+        alert('Please enter a subject');
+        return false;
+    }
+    
+    // Get all checked students
+    const checkedBoxes = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox:checked');
+    
+    if (checkedBoxes.length === 0) {
+        if (!confirm('No students selected for this session. Continue anyway?')) {
+            return false;
+        }
+    }
+    
+    const attendanceRecords = [];
+    const presentStudents = [];
+    
+    checkedBoxes.forEach(checkbox => {
+        const studentId = checkbox.getAttribute('data-student-id');
+        const student = students.find(s => s.id === studentId);
+        
+        if (student) {
+            const record = {
+                id: generateId(),
+                date,
+                studentId: student.id,
+                studentName: student.name,
+                gender: student.gender,
+                subject,
+                topic: topic || 'General',
+                status: 'Present',
+                timestamp: new Date().toISOString()
+            };
+            
+            attendanceRecords.push(record);
+            presentStudents.push(student.name);
+        }
+    });
+    
+    // Save attendance records
+    if (attendanceRecords.length > 0) {
+        attendance.push(...attendanceRecords);
+        saveAllData();
+    }
+    
+    // Log activity
+    const activityMessage = presentStudents.length > 0 
+        ? `Session recorded: ${presentStudents.length} students (${presentStudents.join(', ')}) for ${subject}`
+        : `Session recorded: No students attended for ${subject}`;
+    
+    logPaymentActivity(activityMessage);
+    
+    // Close modal
+    document.getElementById('attendanceSessionModal').style.display = 'none';
+    document.body.classList.remove('modal-open');
+    
+    // Update UI
+    updateAttendanceUI();
+    
+    // Reset form
+    resetSessionAttendanceForm();
+    
+    // Show success message
+    const successMessage = presentStudents.length > 0
+        ? `✅ Session recorded for ${presentStudents.length} students!`
+        : '✅ Session recorded (no students attended)';
+    
+    alert(successMessage);
+    return true;
+}
+
+// Reset session attendance form
+function resetSessionAttendanceForm() {
+    const form = document.getElementById('attendanceSessionForm');
+    if (form) {
+        form.reset();
+        // Set default date
+        const sessionDate = document.getElementById('sessionDate');
+        if (sessionDate) {
+            sessionDate.value = new Date().toISOString().split('T')[0];
+        }
+        // Check all students by default
+        const checkboxes = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    }
+}
+
+// Enhanced logPaymentActivity with better error handling
+function logPaymentActivity(message) {
+    if (!message || typeof message !== 'string') {
+        console.warn('Invalid activity message:', message);
+        return;
+    }
+    
+    try {
+        const activity = {
+            timestamp: new Date().toISOString(),
+            message: message.substring(0, 500) // Limit message length
+        };
+        
+        paymentActivity.push(activity);
+        
+        // Keep only last 100 activities to prevent storage bloat
+        if (paymentActivity.length > 100) {
+            paymentActivity = paymentActivity.slice(-100);
+        }
+        
+        saveAllData();
+        
+    } catch (error) {
+        console.error('Error logging payment activity:', error);
+    }
+}
+
+// Optional: Add select all/none functionality
+function addSessionAttendanceControls() {
+    const container = document.getElementById('sessionAttendanceList');
+    if (!container) return;
+    
+    // Check if controls already exist
+    if (container.querySelector('.attendance-controls')) return;
+    
+    const controlsHtml = `
+        <div class="attendance-controls" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+            <button type="button" class="btn btn-sm" onclick="selectAllStudents()" style="margin-right: 10px;">
+                ✅ Select All
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="deselectAllStudents()">
+                ❌ Deselect All
+            </button>
+            <span style="margin-left: 10px; font-size: 0.9em; color: #666;">
+                <span id="selectedCount">${students.length}</span>/${students.length} selected
+            </span>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('afterbegin', controlsHtml);
+    updateSelectedCount();
+}
+
+// Select all students
+function selectAllStudents() {
+    const checkboxes = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    updateSelectedCount();
+}
+
+// Deselect all students
+function deselectAllStudents() {
+    const checkboxes = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateSelectedCount();
+}
+
+// Update selected count
+function updateSelectedCount() {
+    const countElement = document.getElementById('selectedCount');
+    if (countElement) {
+        const checkedCount = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox:checked').length;
+        countElement.textContent = checkedCount;
+    }
+}
+
+// Update the modal opening function to include controls
+function openSessionAttendanceModal() {
+    openModal('attendanceSessionModal');
+    updateSessionAttendanceList();
+    addSessionAttendanceControls();
+    
+    // Add event listener for checkbox changes to update count
+    const container = document.getElementById('sessionAttendanceList');
+    if (container) {
+        container.addEventListener('change', function(e) {
+            if (e.target.classList.contains('attendance-checkbox')) {
+                updateSelectedCount();
+            }
+        });
+    }
+}
+
+// Update your modal opening code:
+document.getElementById('markSessionBtn')?.addEventListener('click', openSessionAttendanceModal);
 
 function logPaymentActivity(message) {
     paymentActivity.push({
