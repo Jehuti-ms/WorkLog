@@ -793,11 +793,147 @@ tr:hover {
    RESPONSIVE TABLE STYLES FOR YOUR SPECIFIC TABLES
    ============================================================================ */
 
+/* Target your specific tables by ID */
+#weeklyTable,
+#subjectTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#weeklyTable th,
+#weeklyTable td,
+#subjectTable th,
+#subjectTable td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#weeklyTable th,
+#subjectTable th {
+    background: #667eea;
+    color: white;
+    font-weight: 600;
+}
+
+/* MOBILE FIX: Add wrapper containers and force scrolling */
+@media (max-width: 768px) {
+    /* Add these wrapper styles */
+    .table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 15px 0;
+        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        background: #f8f9fa;
+    }
+    
+    /* Make tables scroll horizontally */
+    #weeklyTable,
+    #subjectTable {
+        min-width: 600px;
+        width: auto;
+        margin-top: 0;
+        border-radius: 0;
+    }
+    
+    #weeklyTable th,
+    #weeklyTable td,
+    #subjectTable th,
+    #subjectTable td {
+        padding: 10px 8px;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+    
+    /* Specific column sizing */
+    #weeklyTable th:nth-child(1),
+    #weeklyTable td:nth-child(1) {
+        min-width: 80px; /* Week */
+    }
+    
+    #weeklyTable th:nth-child(2),
+    #weeklyTable td:nth-child(2) {
+        min-width: 70px; /* Hours */
+    }
+    
+    #weeklyTable th:nth-child(3),
+    #weeklyTable td:nth-child(3) {
+        min-width: 90px; /* Earnings */
+    }
+    
+    #weeklyTable th:nth-child(4),
+    #weeklyTable td:nth-child(4) {
+        min-width: 110px; /* Students Active */
+    }
+    
+    #weeklyTable th:nth-child(5),
+    #weeklyTable td:nth-child(5) {
+        min-width: 90px; /* Payments */
+    }
+    
+    #subjectTable th:nth-child(1),
+    #subjectTable td:nth-child(1) {
+        min-width: 100px; /* Subject */
+    }
+    
+    #subjectTable th:nth-child(2),
+    #subjectTable td:nth-child(2) {
+        min-width: 90px; /* Avg Marks */
+    }
+    
+    #subjectTable th:nth-child(3),
+    #subjectTable td:nth-child(3) {
+        min-width: 90px; /* Total Hours */
+    }
+    
+    #subjectTable th:nth-child(4),
+    #subjectTable td:nth-child(4) {
+        min-width: 100px; /* Total Earnings */
+    }
+    
+    #subjectTable th:nth-child(5),
+    #subjectTable td:nth-child(5) {
+        min-width: 80px; /* Sessions */
+    }
+}
+
+/* For very small screens */
+@media (max-width: 480px) {
+    .table-wrapper {
+        margin: 15px -10px;
+        width: calc(100% + 20px);
+        border-left: none;
+        border-right: none;
+        border-radius: 0;
+    }
+    
+    #weeklyTable,
+    #subjectTable {
+        min-width: 550px;
+    }
+    
+    #weeklyTable th,
+    #weeklyTable td,
+    #subjectTable th,
+    #subjectTable td {
+        padding: 8px 6px;
+        font-size: 13px;
+    }
+}
+
 /* ============================================================================
    MOBILE TABLE FIX - HIGH PRIORITY
    ============================================================================ */
 
 /* Force table wrappers to work */
+/*
 .table-wrapper {
     width: 100% !important;
     overflow-x: auto !important;
@@ -809,16 +945,16 @@ tr:hover {
 }
 
 /* Force tables to be scrollable on mobile */
-#weeklyTable,
+/*#weeklyTable,
 #subjectTable {
     min-width: 650px !important;
     width: auto !important;
 }
 
 /* Mobile-specific styles that will definitely apply */
-@media screen and (max-width: 768px) {
+/*@media screen and (max-width: 768px) {
     /* Override any existing styles */
-    #weeklyTable,
+   /* #weeklyTable,
     #subjectTable {
         min-width: 650px !important;
         width: auto !important;
@@ -832,14 +968,14 @@ tr:hover {
     }
     
     /* Debug borders to see if styles are applying */
-    #weeklyTable {
+   /* #weeklyTable {
         border: 2px solid red !important;
     }
     
     #subjectTable {
         border: 2px solid blue !important;
     }
-}
+}*/
 
 /* ============================================================================
    UTILITY CLASSES
