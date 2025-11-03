@@ -49,7 +49,6 @@
 
         <div class="content">
             <!-- Students Tab -->
-            <!-- Students Tab -->
 <div id="students" class="tab-content active">
     <h2>Student Register</h2>
     
@@ -64,48 +63,145 @@
         <small style="color: #666;">This rate will be automatically filled for new students</small>
     </div>
 
-            <div class="form-group">
-                <label>Student Name *</label>
-                <input type="text" id="studentName" placeholder="Enter student name">
+            <!-- Students Tab -->
+<div id="students" class="tab-content active">
+    <h2>Student Register</h2>
+    
+    <!-- Default Base Rate Panel -->
+    <div class="default-rate-panel">
+        <h4>📊 Default Rate Settings</h4>
+        <div class="form-group">
+            <label>Default Base Rate ($/session)</label>
+            <div style="display: flex; gap: 10px; align-items: flex-end;">
+                <input type="number" id="defaultBaseRate" step="0.01" min="0" placeholder="e.g., 25.00" 
+                       style="flex: 1;" class="rate-input">
+                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="applyDefaultRateToAll()">
+                        Apply to All
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadDefaultRate()">
+                        Load Rate
+                    </button>
+                </div>
             </div>
+            <small style="color: #666; display: block; margin-top: 5px;">
+                This rate will be automatically filled for new students. Current: $<span id="currentDefaultRate">0.00</span>
+            </small>
+        </div>
+    </div>
+
+    <!-- Student Form -->
+    <form id="studentForm">
+        <div class="form-grid">
             <div class="form-group">
-                <label>Student ID *</label>
-                <input type="text" id="studentId" placeholder="Enter student ID">
+                <label for="studentName">Student Name *</label>
+                <input type="text" id="studentName" placeholder="Enter student name" required>
+                <div class="field-error" id="nameError"></div>
             </div>
+            
             <div class="form-group">
-                <label>Gender *</label>
-                <select id="studentGender">
+                <label for="studentId">Student ID *</label>
+                <input type="text" id="studentId" placeholder="Enter student ID" required>
+                <div class="field-error" id="idError"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="studentGender">Gender *</label>
+                <select id="studentGender" required>
                     <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>
                 </select>
-            </div>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="studentEmail" placeholder="student@example.com">
-            </div>
-            <div class="form-group">
-                <label>Phone</label>
-                <input type="tel" id="studentPhone" placeholder="Phone number">
-            </div>
-            <div class="form-group">
-                <label>Base Rate ($/session) *</label>
-                <input type="number" id="studentBaseRate" step="0.01" min="0" placeholder="e.g., 25.00">
+                <div class="field-error" id="genderError"></div>
             </div>
             
-            <div style="display: flex; gap: 10px;">
-                <button class="btn" id="addStudentBtn">➕ Add Student</button>
-                <button class="btn btn-secondary" id="updateStudentBtn" style="display: none;">💾 Update Student</button>
-                <button class="btn btn-warning" id="cancelEditBtn" style="display: none;">❌ Cancel</button>
+            <div class="form-group">
+                <label for="studentEmail">Email</label>
+                <input type="email" id="studentEmail" placeholder="student@example.com">
+                <div class="field-hint">Optional</div>
             </div>
-        
-            <div id="studentList" style="margin-top: 30px;">
-                <h3>Registered Students (<span id="studentCount">0</span>)</h3>
-                <div id="studentsContainer"></div>
+            
+            <div class="form-group">
+                <label for="studentPhone">Phone</label>
+                <input type="tel" id="studentPhone" placeholder="Phone number">
+                <div class="field-hint">Optional</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="studentBaseRate">Base Rate ($/session) *</label>
+                <div style="position: relative;">
+                    <span class="currency-symbol">$</span>
+                    <input type="number" id="studentBaseRate" step="0.01" min="0" 
+                           placeholder="25.00" required 
+                           style="padding-left: 25px;">
+                </div>
+                <div class="field-error" id="rateError"></div>
+                <div class="field-hint">
+                    <a href="javascript:void(0)" onclick="useDefaultRate()" style="color: #667eea;">
+                        Use default rate
+                    </a>
+                </div>
             </div>
         </div>
-     </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <button type="button" class="btn btn-primary" id="addStudentBtn">
+                <span class="btn-icon">➕</span>
+                Add Student
+            </button>
+            <button type="button" class="btn btn-success" id="updateStudentBtn" style="display: none;">
+                <span class="btn-icon">💾</span>
+                Update Student
+            </button>
+            <button type="button" class="btn btn-warning" id="cancelEditBtn" style="display: none;">
+                <span class="btn-icon">❌</span>
+                Cancel Edit
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="clearStudentForm()">
+                <span class="btn-icon">🗑️</span>
+                Clear Form
+            </button>
+        </div>
+    </form>
+
+    <!-- Students List -->
+    <div id="studentList" style="margin-top: 30px;">
+        <div class="section-header">
+            <h3>Registered Students</h3>
+            <div class="student-stats">
+                <span class="stat-badge" id="studentCount">0</span> students
+                <span class="stat-divider">|</span>
+                <span class="stat-text">Avg. Rate: $<span id="averageRate">0.00</span></span>
+            </div>
+        </div>
+        
+        <div class="list-controls">
+            <div class="search-box">
+                <input type="text" id="studentSearch" placeholder="Search students..." 
+                       oninput="filterStudents()">
+                <span class="search-icon">🔍</span>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="sortStudents('name')">
+                Sort by Name
+            </button>
+            <button class="btn btn-sm btn-secondary" onclick="sortStudents('rate')">
+                Sort by Rate
+            </button>
+        </div>
+        
+        <div id="studentsContainer" class="students-container">
+            <!-- Students will be loaded here -->
+        </div>
+        
+        <div id="studentSummary" class="summary-card" style="display: none;">
+            <strong>Summary:</strong>
+            <span id="activeStudents">0</span> active,
+            <span id="totalEarningsPotential">$0</span> potential monthly
+        </div>
+    </div>
+</div>
 
             <!-- Attendance Tab -->
             <div id="attendance" class="tab-content">
