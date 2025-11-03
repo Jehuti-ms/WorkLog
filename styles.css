@@ -790,6 +790,171 @@ tr:hover {
 }
 
 /* ============================================================================
+   RESPONSIVE TABLE STYLES
+   ============================================================================ */
+.weekly-summary-table,
+.subject-performance-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.weekly-summary-table th,
+.weekly-summary-table td,
+.subject-performance-table th,
+.subject-performance-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+    white-space: nowrap;
+}
+
+.weekly-summary-table th,
+.subject-performance-table th {
+    background: #667eea;
+    color: white;
+    font-weight: 600;
+}
+
+/* Make tables responsive on mobile */
+@media (max-width: 768px) {
+    .weekly-summary-table,
+    .subject-performance-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .weekly-summary-table th,
+    .weekly-summary-table td,
+    .subject-performance-table th,
+    .subject-performance-table td {
+        padding: 10px 8px;
+        font-size: 14px;
+        min-width: 100px;
+    }
+    
+    /* Specific column adjustments for weekly summary */
+    .weekly-summary-table th:nth-child(1),
+    .weekly-summary-table td:nth-child(1) {
+        min-width: 120px; /* Week column */
+    }
+    
+    .weekly-summary-table th:nth-child(2),
+    .weekly-summary-table td:nth-child(2) {
+        min-width: 100px; /* Hours column */
+    }
+    
+    .weekly-summary-table th:nth-child(3),
+    .weekly-summary-table td:nth-child(3) {
+        min-width: 100px; /* Attendance column */
+    }
+    
+    .weekly-summary-table th:nth-child(4),
+    .weekly-summary-table td:nth-child(4) {
+        min-width: 120px; /* Performance column */
+    }
+    
+    /* Specific column adjustments for subject performance */
+    .subject-performance-table th:nth-child(1),
+    .subject-performance-table td:nth-child(1) {
+        min-width: 150px; /* Subject column */
+    }
+    
+    .subject-performance-table th:nth-child(2),
+    .subject-performance-table td:nth-child(2) {
+        min-width: 100px; /* Hours column */
+    }
+    
+    .subject-performance-table th:nth-child(3),
+    .subject-performance-table td:nth-child(3) {
+        min-width: 120px; /* Attendance column */
+    }
+    
+    .subject-performance-table th:nth-child(4),
+    .subject-performance-table td:nth-child(4) {
+        min-width: 120px; /* Performance column */
+    }
+}
+
+/* For very small screens */
+@media (max-width: 480px) {
+    .weekly-summary-table th,
+    .weekly-summary-table td,
+    .subject-performance-table th,
+    .subject-performance-table td {
+        padding: 8px 6px;
+        font-size: 13px;
+        min-width: 80px;
+    }
+    
+    .weekly-summary-table th:nth-child(1),
+    .weekly-summary-table td:nth-child(1) {
+        min-width: 100px; /* Week column */
+    }
+    
+    .subject-performance-table th:nth-child(1),
+    .subject-performance-table td:nth-child(1) {
+        min-width: 120px; /* Subject column */
+    }
+}
+
+/* Alternative: Stacked table layout for very complex tables */
+@media (max-width: 480px) {
+    /* If you prefer a stacked layout instead of horizontal scroll */
+    .weekly-summary-table.stacked,
+    .subject-performance-table.stacked {
+        display: block;
+    }
+    
+    .weekly-summary-table.stacked thead,
+    .subject-performance-table.stacked thead {
+        display: none;
+    }
+    
+    .weekly-summary-table.stacked tbody,
+    .subject-performance-table.stacked tbody {
+        display: block;
+    }
+    
+    .weekly-summary-table.stacked tr,
+    .subject-performance-table.stacked tr {
+        display: block;
+        margin-bottom: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 10px;
+    }
+    
+    .weekly-summary-table.stacked td,
+    .subject-performance-table.stacked td {
+        display: block;
+        text-align: right;
+        padding: 8px;
+        border: none;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .weekly-summary-table.stacked td:before,
+    .subject-performance-table.stacked td:before {
+        content: attr(data-label);
+        float: left;
+        font-weight: bold;
+        color: #667eea;
+    }
+    
+    .weekly-summary-table.stacked td:last-child,
+    .subject-performance-table.stacked td:last-child {
+        border-bottom: none;
+    }
+}
+
+/* ============================================================================
    UTILITY CLASSES
    ============================================================================ */
 .auto-fill-hint {
