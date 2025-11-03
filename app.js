@@ -13,7 +13,8 @@ let fieldMemory = {
     organization: '',
     baseRate: '',
     subject: '',
-    topic: ''
+    topic: '',
+    defaultBaseRate: '25.00' // Default base rate
 };
 
 // Initialize app
@@ -24,6 +25,7 @@ function init() {
     setupAllEventListeners();
     setDefaultDate();
     updateUI();
+    loadDefaultRate(); // Load saved default rate
 }
 
 // Load data from localStorage
@@ -68,7 +70,7 @@ function loadFieldMemory() {
     try {
         const saved = localStorage.getItem('worklog_field_memory');
         if (saved) {
-            fieldMemory = JSON.parse(saved);
+            fieldMemory = { ...fieldMemory, ...JSON.parse(saved) };
         }
         applyFieldMemory();
     } catch (error) {
@@ -89,11 +91,15 @@ function applyFieldMemory() {
     const rateInput = document.getElementById('baseRate');
     const subjectInput = document.getElementById('subject');
     const topicInput = document.getElementById('topic');
+    const defaultRateInput = document.getElementById('defaultBaseRate');
+    const studentBaseRateInput = document.getElementById('studentBaseRate');
     
     if (orgInput && fieldMemory.organization) orgInput.value = fieldMemory.organization;
     if (rateInput && fieldMemory.baseRate) rateInput.value = fieldMemory.baseRate;
     if (subjectInput && fieldMemory.subject) subjectInput.value = fieldMemory.subject;
     if (topicInput && fieldMemory.topic) topicInput.value = fieldMemory.topic;
+    if (defaultRateInput && fieldMemory.defaultBaseRate) defaultRateInput.value = fieldMemory.defaultBaseRate;
+    if (studentBaseRateInput && fieldMemory.defaultBaseRate) studentBaseRateInput.value = fieldMemory.defaultBaseRate;
 }
 
 function updateFieldMemory() {
@@ -101,11 +107,13 @@ function updateFieldMemory() {
     const rateInput = document.getElementById('baseRate');
     const subjectInput = document.getElementById('subject');
     const topicInput = document.getElementById('topic');
+    const defaultRateInput = document.getElementById('defaultBaseRate');
     
     if (orgInput) fieldMemory.organization = orgInput.value.trim();
     if (rateInput) fieldMemory.baseRate = rateInput.value.trim();
     if (subjectInput) fieldMemory.subject = subjectInput.value.trim();
     if (topicInput) fieldMemory.topic = topicInput.value.trim();
+    if (defaultRateInput) fieldMemory.defaultBaseRate = defaultRateInput.value.trim();
     
     saveFieldMemory();
 }
@@ -167,6 +175,27 @@ function setupAllEventListeners() {
     });
     
     console.log('All event listeners setup successfully');
+
+    // Student form listeners
+    document.getElementById('addStudentBtn')?.addEventListener('click', addStudent);
+    document.getElementById('updateStudentBtn')?.addEventListener('click', updateStudent);
+    document.getElementById('cancelEditBtn')?.addEventListener('click', cancelEdit);
+    
+    // Default rate listeners
+    document.getElementById('defaultBaseRate')?.addEventListener('change', function() {
+        updateFieldMemory();
+        // Auto-fill student base rate with default
+        const studentBaseRate = document.getElementById('studentBaseRate');
+        if (studentBaseRate && !studentBaseRate.value) {
+            studentBaseRate.value = this.value;
+        }
+    });
+    
+    document.getElementById('studentBaseRate')?.addEventListener('focus', function() {
+        if (!this.value && fieldMemory.defaultBaseRate) {
+            this.value = fieldMemory.defaultBaseRate;
+        }
+    });
 }
 
 // Tab switching
@@ -208,6 +237,45 @@ function setDefaultDate() {
     });
 }
 
+// Load default rate into the form
+function loadDefaultRate() {
+    const defaultRateInput = document.getElementById('defaultBaseRate');
+    const studentBaseRateInput = document.getElementById('studentBaseRate');
+    
+    if (defaultRateInput && fieldMemory.defaultBaseRate) {
+        defaultRateInput.value = fieldMemory.defaultBaseRate;
+    }
+    if (studentBaseRateInput && fieldMemory.defaultBaseRate && !studentBaseRateInput.value) {
+        studentBaseRateInput.value = fieldMemory.defaultBaseRate;
+    }
+}
+
+// Apply default rate to all existing students
+function applyDefaultRateToAll() {
+    const defaultRateInput = document.getElementById('defaultBaseRate');
+    const defaultRate = parseFloat(defaultRateInput?.value) || 0;
+    
+    if (!defaultRate) {
+        alert('Please set a default base rate first');
+        return;
+    }
+    
+    if (students.length === 0) {
+        alert('No students to update');
+        return;
+    }
+    
+    if (confirm(`Apply $${defaultRate.toFixed(2)} base rate to all ${students.length} students?`)) {
+        students.forEach(student => {
+            student.baseRate = defaultRate;
+        });
+        
+        saveAllData();
+        updateUI();
+        logPaymentActivity(`Applied default rate $${defaultRate.toFixed(2)} to all students`);
+        alert(`✅ Base rate applied to all ${students.length} students!`);
+    }
+}
 // Modal functions
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
@@ -350,13 +418,14 @@ function clearAllData() {
 // STUDENT MANAGEMENT FUNCTIONS
 // ============================================================================
 
+// Enhanced addStudent function with default rate
 function addStudent() {
     const name = document.getElementById('studentName').value.trim();
     const id = document.getElementById('studentId').value.trim();
     const gender = document.getElementById('studentGender').value;
     const email = document.getElementById('studentEmail').value.trim();
     const phone = document.getElementById('studentPhone').value.trim();
-    const baseRate = parseFloat(document.getElementById('studentBaseRate').value) || 0;
+    const baseRate = parseFloat(document.getElementById('studentBaseRate').value) || parseFloat(fieldMemory.defaultBaseRate) || 0;
     
     if (!name || !id || !gender) {
         alert('Please enter student name, ID and gender');
@@ -383,14 +452,7 @@ function addStudent() {
     students.push(student);
     saveAllData();
     updateUI();
-    
-    // Clear form
-    document.getElementById('studentName').value = '';
-    document.getElementById('studentId').value = '';
-    document.getElementById('studentGender').value = '';
-    document.getElementById('studentEmail').value = '';
-    document.getElementById('studentPhone').value = '';
-    document.getElementById('studentBaseRate').value = '';
+    resetStudentForm();
     
     // Log activity
     logPaymentActivity(`Added student: ${name} (Base rate: $${baseRate.toFixed(2)}/session)`);
@@ -398,28 +460,66 @@ function addStudent() {
     alert('✅ Student added successfully!');
 }
 
+// Enhanced updateStudentList with edit functionality
 function updateStudentList() {
-    const studentCount = document.getElementById('studentCount');
+    document.getElementById('studentCount').textContent = students.length;
+    
     const container = document.getElementById('studentsContainer');
-    
-    if (studentCount) studentCount.textContent = students.length;
-    
     if (students.length === 0) {
-        if (container) container.innerHTML = '<p style="color: #666;">No students registered yet.</p>';
+        container.innerHTML = '<p style="color: #666;">No students registered yet.</p>';
         return;
     }
     
-    if (container) {
-        container.innerHTML = students.map((s, i) => `
-            <div class="list-item">
-                <div>
-                    <strong>${s.name}</strong> (${s.id})<br>
-                    <small style="color: #666;">${s.gender} | ${s.email || 'No email'} | ${s.phone || 'No phone'} | Rate: $${s.baseRate || 0}/session</small>
+    container.innerHTML = students.map((student, index) => `
+        <div class="list-item ${student._editing ? 'edit-mode' : ''}" id="student-${student.id}">
+            <div style="flex: 1;">
+                <strong>${student.name}</strong> (${student.id})<br>
+                <small style="color: #666;">
+                    ${student.gender} | 
+                    ${student.email || 'No email'} | 
+                    ${student.phone || 'No phone'} | 
+                    Rate: $${student.baseRate || 0}/session
+                </small>
+                <div class="student-actions">
+                    <button class="btn btn-sm btn-edit" onclick="editStudent(${index})">✏️ Edit</button>
+                    <button class="btn btn-sm btn-delete" onclick="deleteStudent(${index})">🗑️ Delete</button>
                 </div>
-                <button class="btn btn-secondary" onclick="deleteStudent(${i})">🗑️</button>
             </div>
-        `).join('');
+        </div>
+    `).join('');
+}
+
+// Edit student function
+function editStudent(index) {
+    const student = students[index];
+    
+    if (!student) {
+        alert('Student not found');
+        return;
     }
+    
+    // Fill form with student data
+    document.getElementById('studentName').value = student.name;
+    document.getElementById('studentId').value = student.id;
+    document.getElementById('studentGender').value = student.gender;
+    document.getElementById('studentEmail').value = student.email || '';
+    document.getElementById('studentPhone').value = student.phone || '';
+    document.getElementById('studentBaseRate').value = student.baseRate || '';
+    
+    // Store editing index
+    document.getElementById('studentForm').dataset.editingIndex = index;
+    
+    // Show/hide buttons
+    document.getElementById('addStudentBtn').style.display = 'none';
+    document.getElementById('updateStudentBtn').style.display = 'inline-block';
+    document.getElementById('cancelEditBtn').style.display = 'inline-block';
+    
+    // Scroll to form
+    document.getElementById('studentName').scrollIntoView({ behavior: 'smooth' });
+    
+    // Mark student as being edited for UI feedback
+    student._editing = true;
+    updateStudentList();
 }
 
 function updateStudentSelects() {
@@ -442,15 +542,109 @@ function updatePaymentStudentSelect() {
     }
 }
 
+// Enhanced delete student function
 function deleteStudent(index) {
-    if (confirm('Are you sure you want to delete this student?')) {
-        const student = students[index];
+    const student = students[index];
+    if (!student) return;
+    
+    if (confirm(`Are you sure you want to delete student "${student.name}" (${student.id})?`)) {
+        // Check if student has related data
+        const hasAttendance = attendance.some(a => a.studentId === student.id);
+        const hasMarks = marks.some(m => m.studentId === student.id);
+        const hasPayments = payments.some(p => p.studentId === student.id);
+        
+        let warning = '';
+        if (hasAttendance) warning += '\n• Attendance records';
+        if (hasMarks) warning += '\n• Marks records';
+        if (hasPayments) warning += '\n• Payment records';
+        
+        if (warning && !confirm(`This student has associated data that will also be deleted:${warning}\n\nContinue with deletion?`)) {
+            return;
+        }
+        
         students.splice(index, 1);
         saveAllData();
         updateUI();
         logPaymentActivity(`Deleted student: ${student.name}`);
         alert('✅ Student deleted successfully!');
     }
+}
+
+// Update student function
+function updateStudent() {
+    const form = document.getElementById('studentForm');
+    const editingIndex = parseInt(form.dataset.editingIndex);
+    
+    if (isNaN(editingIndex) || !students[editingIndex]) {
+        alert('No student selected for editing');
+        return;
+    }
+    
+    const student = students[editingIndex];
+    const originalName = student.name;
+    
+    const name = document.getElementById('studentName').value.trim();
+    const id = document.getElementById('studentId').value.trim();
+    const gender = document.getElementById('studentGender').value;
+    const email = document.getElementById('studentEmail').value.trim();
+    const phone = document.getElementById('studentPhone').value.trim();
+    const baseRate = parseFloat(document.getElementById('studentBaseRate').value) || 0;
+    
+    if (!name || !id || !gender) {
+        alert('Please enter student name, ID and gender');
+        return;
+    }
+    
+    // Check if student ID already exists (excluding current student)
+    const duplicate = students.find((s, i) => s.id === id && i !== editingIndex);
+    if (duplicate) {
+        alert('Student ID already exists. Please use a different ID.');
+        return;
+    }
+    
+    // Update student data
+    student.name = name;
+    student.id = id;
+    student.gender = gender;
+    student.email = email;
+    student.phone = phone;
+    student.baseRate = baseRate;
+    delete student._editing; // Remove editing flag
+    
+    saveAllData();
+    updateUI();
+    resetStudentForm();
+    
+    // Log activity
+    logPaymentActivity(`Updated student: ${originalName} → ${name} (Rate: $${baseRate.toFixed(2)}/session)`);
+    
+    alert('✅ Student updated successfully!');
+}
+
+// Cancel edit function
+function cancelEdit() {
+    resetStudentForm();
+    
+    // Clear editing flags
+    students.forEach(student => {
+        delete student._editing;
+    });
+    
+    updateStudentList();
+}
+
+// Reset student form function
+function resetStudentForm() {
+    document.getElementById('studentForm').reset();
+    delete document.getElementById('studentForm').dataset.editingIndex;
+    
+    // Show/hide buttons
+    document.getElementById('addStudentBtn').style.display = 'inline-block';
+    document.getElementById('updateStudentBtn').style.display = 'none';
+    document.getElementById('cancelEditBtn').style.display = 'none';
+    
+    // Reload default rate
+    loadDefaultRate();
 }
 
 // ============================================================================
