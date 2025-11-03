@@ -981,7 +981,7 @@ tr:hover {
    App Icon
    ============================================================================ */
 
-/* .icon-wrapper {
+ .icon-wrapper {
     display: inline-block;
     width: 32px;
     height: 32px;
@@ -995,13 +995,13 @@ tr:hover {
     width: 512px;
     height: 512px;
     transform: scale(0.0625); /* 32/512 = 0.0625 */
-  /*  transform-origin: top left;
+    transform-origin: top left;
     position: absolute;
     top: 0;
     left: 0;
 }
-*/
-   .app-icon-bg {
+
+   /*.app-icon-bg {
     width: 100px;
     height: 100px;
     background-image: url('icons/app-icon.svg');
