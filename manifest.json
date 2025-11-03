@@ -13,7 +13,7 @@
   "categories": ["education", "productivity", "utilities"],
   "screenshots": [
     {
-      "src": "screenshot-wide.png",
+      "src": "icons/icon-600x600.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide"
