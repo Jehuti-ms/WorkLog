@@ -907,4 +907,86 @@ button[type="submit"]:hover {
     font-weight: bold;
 }
 
+/* Breakdown Analysis Styles */
+.breakdown-header {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #667eea;
+}
+
+.breakdown-summary {
+    color: #666;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+.breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.breakdown-table th {
+    background: #667eea;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.breakdown-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.breakdown-table tr:hover {
+    background: #f8f9fa;
+}
+
+.details-cell {
+    font-size: 0.85em;
+    color: #666;
+    max-width: 200px;
+}
+
+.breakdown-footer {
+    text-align: center;
+    margin-top: 15px;
+    color: #999;
+    font-size: 0.8em;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.button-group .btn {
+    flex: 1;
+    min-width: 120px;
+}
+
+@media (max-width: 768px) {
+    .breakdown-table {
+        font-size: 0.9em;
+    }
+    
+    .breakdown-table th,
+    .breakdown-table td {
+        padding: 8px 6px;
+    }
+    
+    .button-group .btn {
+        min-width: 100px;
+        font-size: 0.85em;
+    }
+}
+
 
