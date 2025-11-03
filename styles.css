@@ -285,6 +285,13 @@ input[readonly] {
     }
 }
 
+#studentList .list-controls .btn-sm {
+    margin-bottom: 15px;
+}
+
+#studentList .list-controls .btn-sm:last-child {
+    margin-bottom: 0;
+}
 /* ============================================================================
    LAYOUT COMPONENTS
    ============================================================================ */
