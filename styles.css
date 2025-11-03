@@ -262,6 +262,29 @@ input[readonly] {
     font-size: 12px;
 }
 
+/* Specifically target only these two buttons in the payments section */
+#payments .controls #recordPaymentBtn,
+#payments .controls #markSessionBtn {
+    margin-bottom: 20px;
+}
+
+/* Remove margin from the last one if needed */
+#payments .controls #markSessionBtn {
+    margin-bottom: 10px;
+}
+
+/* Mobile adjustment */
+@media (max-width: 768px) {
+    #payments .controls #recordPaymentBtn,
+    #payments .controls #markSessionBtn {
+        margin-bottom: 16px;
+    }
+    
+    #payments .controls #markSessionBtn {
+        margin-bottom: 8px;
+    }
+}
+
 /* ============================================================================
    LAYOUT COMPONENTS
    ============================================================================ */
