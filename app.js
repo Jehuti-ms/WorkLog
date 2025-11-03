@@ -1954,6 +1954,46 @@ function updateSubjectTable() {
     }).join('');
 }
 
+// Force mobile table responsiveness
+function fixMobileTables() {
+    const weeklyTable = document.getElementById('weeklyTable');
+    const subjectTable = document.getElementById('subjectTable');
+    
+    // Create wrappers if they don't exist
+    if (weeklyTable && !weeklyTable.parentElement.classList.contains('table-wrapper')) {
+        const weeklyWrapper = document.createElement('div');
+        weeklyWrapper.className = 'table-wrapper';
+        weeklyTable.parentNode.insertBefore(weeklyWrapper, weeklyTable);
+        weeklyWrapper.appendChild(weeklyTable);
+    }
+    
+    if (subjectTable && !subjectTable.parentElement.classList.contains('table-wrapper')) {
+        const subjectWrapper = document.createElement('div');
+        subjectWrapper.className = 'table-wrapper';
+        subjectTable.parentNode.insertBefore(subjectWrapper, subjectTable);
+        subjectWrapper.appendChild(subjectTable);
+    }
+    
+    // Force table widths
+    if (window.innerWidth <= 768) {
+        if (weeklyTable) {
+            weeklyTable.style.minWidth = '650px';
+            weeklyTable.style.width = 'auto';
+        }
+        if (subjectTable) {
+            subjectTable.style.minWidth = '650px';
+            subjectTable.style.width = 'auto';
+        }
+    }
+}
+
+// Run on load and resize
+document.addEventListener('DOMContentLoaded', fixMobileTables);
+window.addEventListener('resize', fixMobileTables);
+
+// Also try immediately
+setTimeout(fixMobileTables, 100);
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
