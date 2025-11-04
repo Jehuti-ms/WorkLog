@@ -2015,3 +2015,60 @@ function getWeekNumber(date) {
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', init);
+
+// In app.js - Add these callback functions for auth system
+
+// Callback when user data needs to be loaded
+function loadUserData(userId) {
+    const userDataKey = `worklog_data_${userId}`;
+    try {
+        const userData = JSON.parse(localStorage.getItem(userDataKey));
+        if (userData) {
+            students = userData.students || [];
+            hoursLog = userData.hoursLog || [];
+            marks = userData.marks || [];
+            attendance = userData.attendance || [];
+            payments = userData.payments || [];
+            paymentActivity = userData.paymentActivity || [];
+            fieldMemory = userData.fieldMemory || fieldMemory;
+        }
+    } catch (error) {
+        console.error('Error loading user data:', error);
+    }
+    
+    updateUI();
+}
+
+// Callback before logout
+function onBeforeLogout() {
+    saveAllData();
+}
+
+// Callback when new user data is initialized
+function onUserDataInitialized(userData) {
+    students = userData.students;
+    hoursLog = userData.hoursLog;
+    marks = userData.marks;
+    attendance = userData.attendance;
+    payments = userData.payments;
+    paymentActivity = userData.paymentActivity;
+    fieldMemory = userData.fieldMemory;
+    
+    updateUI();
+}
+
+// Provide data stats to auth system
+function getDataStats() {
+    return {
+        students: students.length,
+        sessions: hoursLog.length
+    };
+}
+
+// Make functions available globally for auth system
+window.loadUserData = loadUserData;
+window.onBeforeLogout = onBeforeLogout;
+window.onUserDataInitialized = onUserDataInitialized;
+window.getDataStats = getDataStats;
+window.exportUserData = exportData; // Your existing export function
+
