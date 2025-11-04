@@ -3,223 +3,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WorkLog - Student Management</title>
+    <title>WorkLog - Student Tracker</title>
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
+    
+    <!-- Theme Color -->
     <meta name="theme-color" content="#667eea">
     
-    <!-- Icons -->
+    <!-- Apple Touch Icon -->
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-    <link rel="icon" href="./icons/icon-192x192.png" type="image/png">
+    
+    <!-- MS Application -->
+    <meta name="msapplication-TileColor" content="#667eea">
+    <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
+
+    <link rel="icon" href="icons/icon-192x192.png" type="image/png">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="auth.css">
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* Landing page specific styles */
+        .landing-container {
             min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
-        
-        .welcome-container {
+
+        .landing-content {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             max-width: 500px;
             width: 100%;
-            padding: 40px 30px;
             text-align: center;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
         }
-        
-        .logo {
-            font-size: 4rem;
+
+        .landing-logo {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .landing-title {
+            font-size: 2.5em;
             margin-bottom: 10px;
-        }
-        
-        h1 {
             color: #333;
-            margin-bottom: 10px;
-            font-size: 2.5rem;
+            font-weight: 700;
         }
-        
-        .subtitle {
+
+        .landing-subtitle {
+            font-size: 1.2em;
             color: #666;
-            font-size: 1.2rem;
             margin-bottom: 30px;
+            line-height: 1.5;
         }
-        
-        .features {
+
+        .landing-features {
             text-align: left;
-            margin: 40px 0;
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 12px;
+            margin: 30px 0;
         }
-        
-        .feature-item {
-            margin: 15px 0;
-            padding: 12px;
-            background: white;
-            border-radius: 8px;
+
+        .feature {
             display: flex;
-            align-items: center;
-            font-size: 1rem;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
         }
-        
-        .feature-item::before {
-            content: "✅";
-            margin-right: 12px;
-            font-size: 1.1rem;
+
+        .feature-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            margin-top: 2px;
         }
-        
-        .welcome-btn {
+
+        .feature-content h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+
+        .feature-content p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .landing-actions {
+            margin-top: 30px;
+        }
+
+        .btn-landing {
             display: block;
             width: 100%;
-            padding: 18px;
-            margin: 12px 0;
-            font-size: 1.1rem;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .welcome-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        
-        .btn-primary { 
-            background: linear-gradient(135deg, #667eea, #764ba2);
-        }
-        
-        .btn-secondary { 
-            background: #6c757d;
-        }
-        
-        #instructions {
-            margin-top: 25px;
-            text-align: left;
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 12px;
-            display: none;
-        }
-        
-        #instructions h3 {
-            color: #333;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 8px;
-        }
-        
-        #instructions ol {
-            margin-left: 20px;
-            line-height: 1.6;
-        }
-        
-        #instructions li {
-            margin: 12px 0;
-            padding-left: 8px;
-        }
-        
-        .tip-box {
-            background: #e7f3ff;
-            border-left: 4px solid #667eea;
             padding: 15px;
-            margin-top: 20px;
-            border-radius: 0 8px 8px 0;
+            margin: 10px 0;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
         }
-        
-        @media (max-width: 600px) {
-            .welcome-container {
-                padding: 30px 20px;
-                margin: 10px;
-            }
-            
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .logo {
-                font-size: 3rem;
-            }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-landing:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .landing-footer {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+            line-height: 1.4;
         }
     </style>
 </head>
 <body>
-    <div class="welcome-container">
-        <div class="logo">📊</div>
-        <h1>WorkLog</h1>
-        <p class="subtitle">Student Tracker & Payment Management</p>
-        
-        <div class="features">
-            <div class="feature-item">Track student attendance & payments</div>
-            <div class="feature-item">Log teaching hours & earnings</div>
-            <div class="feature-item">Record marks & grades</div>
-            <div class="feature-item">Calculate student balances automatically</div>
-            <div class="feature-item">Export/import your data safely</div>
-            <div class="feature-item">Works offline - PWA ready</div>
-        </div>
+    <div class="landing-container">
+        <div class="landing-content">
+            <div class="landing-logo">📚</div>
+            <h1 class="landing-title">WorkLog</h1>
+            <p class="landing-subtitle">Complete Tutor Management System</p>
+            
+            <div class="landing-features">
+                <div class="feature">
+                    <span class="feature-icon">👥</span>
+                    <div class="feature-content">
+                        <h4>Student Management</h4>
+                        <p>Track all your students with detailed profiles and contact information</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">⏱️</span>
+                    <div class="feature-content">
+                        <h4>Hours Tracking</h4>
+                        <p>Log sessions, calculate payments, and track your teaching hours</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">📊</span>
+                    <div class="feature-content">
+                        <h4>Progress Monitoring</h4>
+                        <p>Track student marks, attendance, and academic performance</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">💳</span>
+                    <div class="feature-content">
+                        <h4>Payment Management</h4>
+                        <p>Handle payments, track balances, and manage financial records</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">☁️</span>
+                    <div class="feature-content">
+                        <h4>Cloud Sync</h4>
+                        <p>Access your data from any device with automatic cloud synchronization</p>
+                    </div>
+                </div>
+            </div>
 
-        <a href="app.html" class="welcome-btn btn-primary">🚀 Launch WorkLog</a>
-        <button class="welcome-btn btn-secondary" onclick="showInstructions()">📖 How to Use</button>
-        
-        <div id="instructions">
-            <h3>Quick Start Guide</h3>
-            <ol>
-                <li><strong>Add Students:</strong> Go to Students tab, fill details and set base rates</li>
-                <li><strong>Track Attendance:</strong> Use Attendance tab to mark session presence</li>
-                <li><strong>Record Payments:</strong> Use Payments tab when students make payments</li>
-                <li><strong>Log Hours:</strong> Track your teaching hours and calculate earnings</li>
-                <li><strong>Record Marks:</strong> Keep track of student grades and performance</li>
-                <li><strong>View Reports:</strong> Check analytics and financial summaries</li>
-            </ol>
-            <div class="tip-box">
-                <strong>💡 Pro Tip:</strong> Export your data regularly to keep backups safe. All data is stored locally in your browser.
+            <div class="landing-actions">
+                <button class="btn-landing btn-primary" onclick="showAuthModal()">
+                    Get Started - Sign Up
+                </button>
+                <button class="btn-landing btn-secondary" onclick="showAuthModal('login')">
+                    I Have an Account - Sign In
+                </button>
+            </div>
+
+            <div class="landing-footer">
+                <strong>No installation required</strong> • Works on all devices • Your data is secure
             </div>
         </div>
     </div>
 
+    <!-- Include auth modals -->
+    <div id="auth-modals-container"></div>
+
+    <!-- Scripts -->
+    <script src="auth.js"></script>
+    
     <script>
-        function showInstructions() {
-            const instructions = document.getElementById('instructions');
-            const isHidden = instructions.style.display === 'none' || !instructions.style.display;
-            
-            if (isHidden) {
-                instructions.style.display = 'block';
-                event.target.textContent = '📖 Hide Instructions';
+        // Load auth modals
+        fetch('auth.html')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('auth-modals-container').innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error loading auth modals:', error);
+            });
+
+        // Show auth modal
+        function showAuthModal(tab = 'signup') {
+            if (typeof Auth !== 'undefined') {
+                Auth.showAuthModal();
+                if (tab === 'login') {
+                    setTimeout(() => Auth.showLogin(), 100);
+                }
             } else {
-                instructions.style.display = 'none';
-                event.target.textContent = '📖 How to Use';
+                // Fallback - redirect to app with auth parameter
+                window.location.href = 'app.html?auth=' + tab;
             }
         }
-        
-        // PWA installation prompt
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(function(registration) {
-                        console.log('ServiceWorker registration successful');
-                    })
-                    .catch(function(error) {
-                        console.log('ServiceWorker registration failed');
-                    });
-            });
+
+        // Check if user is already logged in
+        function checkExistingSession() {
+            const savedUserId = localStorage.getItem('worklog_current_user');
+            if (savedUserId) {
+                // User is logged in, redirect to app
+                window.location.href = 'app.html';
+            }
         }
+
+        // Check session on load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkExistingSession();
+            
+            // Initialize auth if modals are loaded
+            setTimeout(() => {
+                if (typeof Auth !== 'undefined') {
+                    Auth.initialize();
+                }
+            }, 1000);
+        });
     </script>
 </body>
 </html>
