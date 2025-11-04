@@ -20,6 +20,7 @@
 
     <link rel="icon" href="icons/icon-192x192.png" type="image/png">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="auth.css">
 </head>
 <body>
     <div class="container">
@@ -532,8 +533,24 @@
             </form>
         </div>
     </div>
+    <!-- Include auth modals -->
+    <div id="auth-modals-container">
+        <!-- This will be populated by auth.html -->
+    </div>
 
     <input type="file" id="importFile" style="display: none" accept=".json">
+     <script src="auth.js"></script>
     <script src="app.js"></script>
+      <script>
+        // Load auth modals
+        fetch('auth.html')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('auth-modals-container').innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error loading auth modals:', error);
+            });
+    </script>
 </body>   
 </html>
