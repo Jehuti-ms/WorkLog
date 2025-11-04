@@ -1,0 +1,157 @@
+<!-- auth.html -->
+<!-- Auth Modal -->
+<div id="authModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>Welcome to WorkLog</h2>
+            <span class="close" onclick="Auth.closeAuthModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="authTabs" class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Sign In</button>
+                <button class="auth-tab" data-tab="signup">Sign Up</button>
+            </div>
+            
+            <!-- Login Form -->
+            <div id="login" class="auth-tab-content active">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">Email:</label>
+                        <input type="email" id="loginEmail" required placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password:</label>
+                        <input type="password" id="loginPassword" required placeholder="Enter your password">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
+                        Sign In
+                    </button>
+                    <div style="text-align: center;">
+                        <a href="javascript:void(0)" onclick="Auth.showForgotPassword()" style="color: #007bff; text-decoration: none;">
+                            Forgot Password?
+                        </a>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Sign Up Form -->
+            <div id="signup" class="auth-tab-content">
+                <form id="signupForm">
+                    <div class="form-group">
+                        <label for="signupName">Full Name:</label>
+                        <input type="text" id="signupName" required placeholder="Enter your full name">
+                    </div>
+                    <div class="form-group">
+                        <label for="signupEmail">Email:</label>
+                        <input type="email" id="signupEmail" required placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password:</label>
+                        <input type="password" id="signupPassword" required minlength="6" placeholder="At least 6 characters">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password:</label>
+                        <input type="password" id="confirmPassword" required placeholder="Confirm your password">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        Create Account
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Forgot Password Form -->
+            <div id="forgotPassword" class="auth-tab-content">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h3>Reset Password</h3>
+                    <p style="color: #666; font-size: 14px;">Enter your email to receive a password reset link</p>
+                </div>
+                <form id="forgotPasswordForm">
+                    <div class="form-group">
+                        <label for="resetEmail">Email:</label>
+                        <input type="email" id="resetEmail" required placeholder="your@email.com">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
+                        Send Reset Link
+                    </button>
+                    <div style="text-align: center;">
+                        <a href="javascript:void(0)" onclick="Auth.showLogin()" style="color: #007bff; text-decoration: none;">
+                            Back to Sign In
+                        </a>
+                    </div>
+                </form>
+            </div>
+            
+            <div id="authStatus" style="margin-top: 15px; text-align: center;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Password Reset Modal -->
+<div id="resetPasswordModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>Set New Password</h2>
+            <span class="close" onclick="Auth.closeResetPasswordModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="resetPasswordForm">
+                <div class="form-group">
+                    <label for="newPassword">New Password:</label>
+                    <input type="password" id="newPassword" required minlength="6" placeholder="At least 6 characters">
+                </div>
+                <div class="form-group">
+                    <label for="confirmNewPassword">Confirm New Password:</label>
+                    <input type="password" id="confirmNewPassword" required placeholder="Confirm your new password">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    Update Password
+                </button>
+            </form>
+            <div id="resetPasswordStatus" style="margin-top: 15px; text-align: center;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- User Profile Modal -->
+<div id="profileModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>Your Profile</h2>
+            <span class="close" onclick="Auth.closeProfileModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="profile-info" style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 48px; color: #007bff; margin-bottom: 10px;">👤</div>
+                <h3 id="profileUserName">User Name</h3>
+                <p id="profileUserEmail" style="color: #666; margin: 5px 0;"></p>
+                <p id="profileMemberSince" style="color: #666; font-size: 12px;"></p>
+            </div>
+            
+            <div class="profile-stats" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4>Your Data</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #007bff;" id="profileStudentsCount">0</div>
+                        <div style="font-size: 12px; color: #666;">Students</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #28a745;" id="profileSessionsCount">0</div>
+                        <div style="font-size: 12px; color: #666;">Sessions</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="profile-actions">
+                <button onclick="Auth.showChangePassword()" class="btn" style="width: 100%; margin-bottom: 10px;">
+                    🔒 Change Password
+                </button>
+                <button onclick="Auth.exportUserData()" class="btn" style="width: 100%; margin-bottom: 10px;">
+                    📤 Export Data
+                </button>
+                <button onclick="Auth.logout()" class="btn btn-secondary" style="width: 100%;">
+                    🚪 Sign Out
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
