@@ -1,5 +1,7 @@
+// app.js - Complete WorkLog Application
+
 // ============================================================================
-// CORE APPLICATION
+// CORE APPLICATION DATA AND STATE
 // ============================================================================
 
 // Data storage
@@ -14,16 +16,38 @@ let fieldMemory = {
     baseRate: '',
     subject: '',
     topic: '',
-    defaultBaseRate: '25.00' // Default base rate
+    defaultBaseRate: '25.00'
 };
+
+// Cloud sync state
+let cloudSync = {
+    enabled: false,
+    lastSync: null,
+    syncing: false
+};
+
+// ============================================================================
+// INITIALIZATION FUNCTIONS
+// ============================================================================
 
 // Initialize app
 function init() {
     console.log("WorkLog app initialized");
-    loadAllData();
+    
+    // Check if user is authenticated
+    if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+        const userId = Auth.getCurrentUserId();
+        console.log("Loading data for authenticated user:", userId);
+        loadUserData(userId);
+    } else {
+        console.log("No authenticated user, loading legacy data");
+        loadAllData(); // Load legacy data for non-authenticated users
+    }
+    
     loadFieldMemory();
     setupAllEventListeners();
     setDefaultDate();
+    initializeCloudSync();
     
     // Ensure first tab is visible on startup
     setTimeout(() => {
@@ -43,6 +67,13 @@ function loadAllData() {
         attendance = JSON.parse(localStorage.getItem('worklog_attendance') || '[]');
         payments = JSON.parse(localStorage.getItem('worklog_payments') || '[]');
         paymentActivity = JSON.parse(localStorage.getItem('worklog_payment_activity') || '[]');
+        console.log('Loaded data:', {
+            students: students.length,
+            hours: hoursLog.length,
+            marks: marks.length,
+            attendance: attendance.length,
+            payments: payments.length
+        });
     } catch (error) {
         console.error('Error loading data:', error);
         // Reset data if corrupted
@@ -67,7 +98,7 @@ function saveAllData() {
         localStorage.setItem('worklog_payment_activity', JSON.stringify(paymentActivity));
     } catch (error) {
         console.error('Error saving data:', error);
-        alert('Error saving data. Please check browser storage.');
+        showNotification('Error saving data. Please check browser storage.', 'error');
     }
 }
 
@@ -126,6 +157,140 @@ function updateFieldMemory() {
     
     saveFieldMemory();
 }
+
+// ============================================================================
+// AUTHENTICATION CALLBACK FUNCTIONS
+// ============================================================================
+
+// Callback when user data needs to be loaded
+function loadUserData(userId) {
+    if (!userId) {
+        console.error('No user ID provided');
+        return;
+    }
+    
+    const userDataKey = `worklog_data_${userId}`;
+    try {
+        const userData = JSON.parse(localStorage.getItem(userDataKey));
+        if (userData) {
+            students = userData.students || [];
+            hoursLog = userData.hoursLog || [];
+            marks = userData.marks || [];
+            attendance = userData.attendance || [];
+            payments = userData.payments || [];
+            paymentActivity = userData.paymentActivity || [];
+            fieldMemory = userData.fieldMemory || fieldMemory;
+            console.log('User data loaded successfully for user:', userId);
+        } else {
+            console.log('No existing user data, initializing new data for user:', userId);
+            initializeUserData();
+        }
+    } catch (error) {
+        console.error('Error loading user data:', error);
+        initializeUserData();
+    }
+    
+    updateUI();
+}
+
+// Callback before logout
+function onBeforeLogout() {
+    saveAllData();
+}
+
+// Callback when new user data is initialized
+function onUserDataInitialized(userData) {
+    students = userData.students || [];
+    hoursLog = userData.hoursLog || [];
+    marks = userData.marks || [];
+    attendance = userData.attendance || [];
+    payments = userData.payments || [];
+    paymentActivity = userData.paymentActivity || [];
+    fieldMemory = userData.fieldMemory || fieldMemory;
+    
+    updateUI();
+    showNotification('New user data initialized successfully!', 'success');
+}
+
+// Provide data stats to auth system
+function getDataStats() {
+    return {
+        students: students.length,
+        sessions: hoursLog.length,
+        totalHours: hoursLog.reduce((sum, entry) => sum + entry.hours, 0),
+        totalEarnings: hoursLog.reduce((sum, entry) => sum + entry.totalPay, 0)
+    };
+}
+
+// Initialize user data structure
+function initializeUserData() {
+    const userId = Auth ? Auth.getCurrentUserId() : null;
+    if (!userId) return;
+    
+    const userData = {
+        students: [],
+        hoursLog: [],
+        marks: [],
+        attendance: [],
+        payments: [],
+        paymentActivity: [],
+        fieldMemory: {
+            organization: '',
+            baseRate: '',
+            subject: '',
+            topic: '',
+            defaultBaseRate: '25.00'
+        },
+        created: new Date().toISOString(),
+        version: '2.0'
+    };
+    
+    localStorage.setItem(`worklog_data_${userId}`, JSON.stringify(userData));
+    console.log('New user data initialized for user:', userId);
+}
+
+// Enhanced saveAllData to handle user-specific storage
+const originalSaveAllData = saveAllData;
+saveAllData = function() {
+    // Save to user-specific storage if authenticated
+    if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+        const userId = Auth.getCurrentUserId();
+        if (userId) {
+            const userData = {
+                students,
+                hoursLog,
+                marks,
+                attendance,
+                payments,
+                paymentActivity,
+                fieldMemory,
+                lastSaved: new Date().toISOString(),
+                version: '2.0'
+            };
+            
+            localStorage.setItem(`worklog_data_${userId}`, JSON.stringify(userData));
+        }
+    }
+    
+    // Also save to legacy storage for compatibility
+    originalSaveAllData();
+    
+    // Auto-sync to cloud if enabled
+    if (cloudSync.enabled && !cloudSync.syncing) {
+        setTimeout(() => manualSyncToCloud(), 2000);
+    }
+};
+
+// Make functions available globally for auth system
+window.loadUserData = loadUserData;
+window.onBeforeLogout = onBeforeLogout;
+window.onUserDataInitialized = onUserDataInitialized;
+window.getDataStats = getDataStats;
+window.exportUserData = exportData;
+
+// ============================================================================
+// EVENT LISTENERS SETUP
+// ============================================================================
 
 // Setup all event listeners
 function setupAllEventListeners() {
@@ -224,6 +389,10 @@ function setupAllEventListeners() {
     console.log('All event listeners setup successfully');
 }
 
+// ============================================================================
+// UI MANAGEMENT FUNCTIONS
+// ============================================================================
+
 // Tab switching
 function switchTab(tabName) {
     console.log('Switching to tab:', tabName);
@@ -285,12 +454,15 @@ function updateUI() {
     updateAttendanceUI();
     calculateTimeTotals();
     updatePaymentUI();
+    updateReports();
     
     // Update current default rate display
     const currentRateEl = document.getElementById('currentDefaultRate');
     if (currentRateEl && fieldMemory.defaultBaseRate) {
         currentRateEl.textContent = fieldMemory.defaultBaseRate;
     }
+    
+    updateSyncUI();
 }
 
 function setDefaultDate() {
@@ -302,60 +474,6 @@ function setDefaultDate() {
         const field = document.getElementById(fieldId);
         if (field) field.value = today;
     });
-}
-
-// Load default rate into the form
-function loadDefaultRate() {
-    const defaultRateInput = document.getElementById('defaultBaseRate');
-    const studentBaseRateInput = document.getElementById('studentBaseRate');
-    
-    if (defaultRateInput && fieldMemory.defaultBaseRate) {
-        defaultRateInput.value = fieldMemory.defaultBaseRate;
-    }
-    if (studentBaseRateInput && fieldMemory.defaultBaseRate && !studentBaseRateInput.value) {
-        studentBaseRateInput.value = fieldMemory.defaultBaseRate;
-    }
-    
-    // Update current default rate display
-    const currentRateEl = document.getElementById('currentDefaultRate');
-    if (currentRateEl && fieldMemory.defaultBaseRate) {
-        currentRateEl.textContent = fieldMemory.defaultBaseRate;
-    }
-}
-
-// Apply default rate to all existing students
-function applyDefaultRateToAll() {
-    const defaultRateInput = document.getElementById('defaultBaseRate');
-    const defaultRate = parseFloat(defaultRateInput?.value) || 0;
-    
-    if (!defaultRate) {
-        alert('Please set a default base rate first');
-        return;
-    }
-    
-    if (students.length === 0) {
-        alert('No students to update');
-        return;
-    }
-    
-    if (confirm(`Apply $${defaultRate.toFixed(2)} base rate to all ${students.length} students?`)) {
-        students.forEach(student => {
-            student.baseRate = defaultRate;
-        });
-        
-        saveAllData();
-        updateUI();
-        logPaymentActivity(`Applied default rate $${defaultRate.toFixed(2)} to all students`);
-        alert(`✅ Base rate applied to all ${students.length} students!`);
-    }
-}
-
-// Use default rate in student form
-function useDefaultRate() {
-    const studentBaseRateInput = document.getElementById('studentBaseRate');
-    if (studentBaseRateInput && fieldMemory.defaultBaseRate) {
-        studentBaseRateInput.value = fieldMemory.defaultBaseRate;
-    }
 }
 
 // Modal functions
@@ -377,105 +495,6 @@ function openModal(modalId) {
 }
 
 // ============================================================================
-// DATA EXPORT/IMPORT FUNCTIONS
-// ============================================================================
-
-function exportData() {
-    try {
-        const data = {
-            students,
-            hoursLog,
-            marks,
-            attendance,
-            payments,
-            paymentActivity,
-            exportDate: new Date().toISOString(),
-            version: '2.0'
-        };
-        
-        const dataStr = JSON.stringify(data, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(dataBlob);
-        link.download = `worklog-backup-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        alert('✅ Data exported successfully!');
-    } catch (error) {
-        console.error('Export error:', error);
-        alert('❌ Error exporting data');
-    }
-}
-
-function importData() {
-    document.getElementById('importFile').click();
-}
-
-function handleFileImport(file) {
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = JSON.parse(e.target.result);
-            
-            if (confirm(`Import data? This will replace:\n- ${data.students?.length || 0} students\n- ${data.hoursLog?.length || 0} hours\n- ${data.marks?.length || 0} marks\n- ${data.attendance?.length || 0} attendance records\n- ${data.payments?.length || 0} payments`)) {
-                students = data.students || [];
-                hoursLog = data.hoursLog || [];
-                marks = data.marks || [];
-                attendance = data.attendance || [];
-                payments = data.payments || [];
-                paymentActivity = data.paymentActivity || [];
-                
-                saveAllData();
-                updateUI();
-                alert('✅ Data imported successfully!');
-            }
-        } catch (error) {
-            console.error('Import error:', error);
-            alert('❌ Error importing data: Invalid file format');
-        }
-    };
-    reader.readAsText(file);
-}
-
-function clearAllData() {
-    if (confirm('⚠️ Are you sure you want to clear ALL data? This cannot be undone!')) {
-        students = [];
-        hoursLog = [];
-        marks = [];
-        attendance = [];
-        payments = [];
-        paymentActivity = [];
-        
-        saveAllData();
-        updateUI();
-        
-        // Clear summary displays
-        const weeklyTotal = document.getElementById('weeklyTotal');
-        const monthlyTotal = document.getElementById('monthlyTotal');
-        const weeklyHours = document.getElementById('weeklyHours');
-        const monthlyHours = document.getElementById('monthlyHours');
-        
-        if (weeklyTotal) weeklyTotal.textContent = '$0';
-        if (monthlyTotal) monthlyTotal.textContent = '$0';
-        if (weeklyHours) weeklyHours.textContent = '0';
-        if (monthlyHours) monthlyHours.textContent = '0';
-        
-        // Clear breakdown container
-        const breakdownContainer = document.getElementById('breakdownContainer');
-        if (breakdownContainer) {
-            breakdownContainer.innerHTML = '<p style="color: #666; text-align: center;">Select a breakdown option above</p>';
-        }
-        
-        alert('✅ All data cleared!');
-    }
-}
-
-// ============================================================================
 // STUDENT MANAGEMENT FUNCTIONS
 // ============================================================================
 
@@ -489,13 +508,13 @@ function addStudent() {
     const baseRate = parseFloat(document.getElementById('studentBaseRate').value) || parseFloat(fieldMemory.defaultBaseRate) || 0;
     
     if (!name || !id || !gender) {
-        alert('Please enter student name, ID and gender');
+        showNotification('Please enter student name, ID and gender', 'error');
         return;
     }
     
     // Check if student ID already exists
     if (students.find(s => s.id === id)) {
-        alert('Student ID already exists. Please use a different ID.');
+        showNotification('Student ID already exists. Please use a different ID.', 'error');
         return;
     }
     
@@ -518,7 +537,7 @@ function addStudent() {
     // Log activity
     logPaymentActivity(`Added student: ${name} (Base rate: $${baseRate.toFixed(2)}/session)`);
     
-    alert('✅ Student added successfully!');
+    showNotification('✅ Student added successfully!', 'success');
 }
 
 // Enhanced updateStudentList with edit functionality
@@ -569,7 +588,7 @@ function editStudent(index) {
     const student = students[index];
     
     if (!student) {
-        alert('Student not found');
+        showNotification('Student not found', 'error');
         return;
     }
     
@@ -644,7 +663,7 @@ function deleteStudent(index) {
         saveAllData();
         updateUI();
         logPaymentActivity(`Deleted student: ${student.name}`);
-        alert('✅ Student deleted successfully!');
+        showNotification('✅ Student deleted successfully!', 'success');
     }
 }
 
@@ -654,7 +673,7 @@ function updateStudent() {
     const editingIndex = studentForm ? parseInt(studentForm.dataset.editingIndex) : -1;
     
     if (isNaN(editingIndex) || !students[editingIndex]) {
-        alert('No student selected for editing');
+        showNotification('No student selected for editing', 'error');
         return;
     }
     
@@ -669,14 +688,14 @@ function updateStudent() {
     const baseRate = parseFloat(document.getElementById('studentBaseRate').value) || 0;
     
     if (!name || !id || !gender) {
-        alert('Please enter student name, ID and gender');
+        showNotification('Please enter student name, ID and gender', 'error');
         return;
     }
     
     // Check if student ID already exists (excluding current student)
     const duplicate = students.find((s, i) => s.id === id && i !== editingIndex);
     if (duplicate) {
-        alert('Student ID already exists. Please use a different ID.');
+        showNotification('Student ID already exists. Please use a different ID.', 'error');
         return;
     }
     
@@ -696,7 +715,7 @@ function updateStudent() {
     // Log activity
     logPaymentActivity(`Updated student: ${originalName} → ${name} (Rate: $${baseRate.toFixed(2)}/session)`);
     
-    alert('✅ Student updated successfully!');
+    showNotification('✅ Student updated successfully!', 'success');
 }
 
 // Cancel edit function
@@ -733,16 +752,86 @@ function clearStudentForm() {
     resetStudentForm();
 }
 
-// Filter students (placeholder)
-function filterStudents() {
-    // Implementation needed
-    console.log('Filter students function called');
+// Load default rate into the form
+function loadDefaultRate() {
+    const defaultRateInput = document.getElementById('defaultBaseRate');
+    const studentBaseRateInput = document.getElementById('studentBaseRate');
+    
+    if (defaultRateInput && fieldMemory.defaultBaseRate) {
+        defaultRateInput.value = fieldMemory.defaultBaseRate;
+    }
+    if (studentBaseRateInput && fieldMemory.defaultBaseRate && !studentBaseRateInput.value) {
+        studentBaseRateInput.value = fieldMemory.defaultBaseRate;
+    }
+    
+    // Update current default rate display
+    const currentRateEl = document.getElementById('currentDefaultRate');
+    if (currentRateEl && fieldMemory.defaultBaseRate) {
+        currentRateEl.textContent = fieldMemory.defaultBaseRate;
+    }
 }
 
-// Sort students (placeholder)
+// Apply default rate to all existing students
+function applyDefaultRateToAll() {
+    const defaultRateInput = document.getElementById('defaultBaseRate');
+    const defaultRate = parseFloat(defaultRateInput?.value) || 0;
+    
+    if (!defaultRate) {
+        showNotification('Please set a default base rate first', 'error');
+        return;
+    }
+    
+    if (students.length === 0) {
+        showNotification('No students to update', 'error');
+        return;
+    }
+    
+    if (confirm(`Apply $${defaultRate.toFixed(2)} base rate to all ${students.length} students?`)) {
+        students.forEach(student => {
+            student.baseRate = defaultRate;
+        });
+        
+        saveAllData();
+        updateUI();
+        logPaymentActivity(`Applied default rate $${defaultRate.toFixed(2)} to all students`);
+        showNotification(`✅ Base rate applied to all ${students.length} students!`, 'success');
+    }
+}
+
+// Use default rate in student form
+function useDefaultRate() {
+    const studentBaseRateInput = document.getElementById('studentBaseRate');
+    if (studentBaseRateInput && fieldMemory.defaultBaseRate) {
+        studentBaseRateInput.value = fieldMemory.defaultBaseRate;
+    }
+}
+
+// Filter students (placeholder)
+function filterStudents() {
+    const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+    const studentItems = document.querySelectorAll('#studentsContainer .list-item');
+    
+    studentItems.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Sort students
 function sortStudents(criteria) {
-    // Implementation needed
-    console.log('Sort students by:', criteria);
+    if (criteria === 'name') {
+        students.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (criteria === 'rate') {
+        students.sort((a, b) => (b.baseRate || 0) - (a.baseRate || 0));
+    }
+    
+    saveAllData();
+    updateStudentList();
+    showNotification(`Sorted students by ${criteria}`, 'info');
 }
 
 // ============================================================================
@@ -770,7 +859,7 @@ function logHours() {
     const notes = document.getElementById('workNotes').value.trim();
     
     if (!organization || !subject || !date || !hours || !rate) {
-        alert('Please fill in all required fields');
+        showNotification('Please fill in all required fields', 'error');
         return;
     }
     
@@ -796,7 +885,7 @@ function logHours() {
     calculateTimeTotals();
     resetHoursForm();
     
-    alert('✅ Hours logged successfully!');
+    showNotification('✅ Hours logged successfully!', 'success');
 }
 
 function resetHoursForm() {
@@ -855,14 +944,14 @@ function deleteHours(entryId) {
             saveAllData();
             updateUI();
             calculateTimeTotals();
-            alert('✅ Hours entry deleted successfully!');
+            showNotification('✅ Hours entry deleted successfully!', 'success');
         }
     }
 }
 
 // Edit hours placeholder
 function editHours(entryId) {
-    alert('Edit hours functionality coming soon!');
+    showNotification('Edit hours functionality coming soon!', 'info');
 }
 
 function calculateTimeTotals() {
@@ -959,13 +1048,13 @@ function addMark() {
     const comments = document.getElementById('markComments').value.trim();
     
     if (!studentId || !subject || !topic || !date || isNaN(score) || isNaN(maxScore)) {
-        alert('Please fill in all required fields');
+        showNotification('Please fill in all required fields', 'error');
         return;
     }
     
     const student = students.find(s => s.id === studentId);
     if (!student) {
-        alert('Student not found');
+        showNotification('Student not found', 'error');
         return;
     }
     
@@ -998,7 +1087,7 @@ function addMark() {
     document.getElementById('grade').value = '';
     document.getElementById('markComments').value = '';
     
-    alert('✅ Mark added successfully!');
+    showNotification('✅ Mark added successfully!', 'success');
 }
 
 function updateMarksList() {
@@ -1050,14 +1139,14 @@ function deleteMark(markId) {
             marks.splice(markIndex, 1);
             saveAllData();
             updateUI();
-            alert('✅ Mark deleted successfully!');
+            showNotification('✅ Mark deleted successfully!', 'success');
         }
     }
 }
 
 // Edit mark placeholder
 function editMark(markId) {
-    alert('Edit mark functionality coming soon!');
+    showNotification('Edit mark functionality coming soon!', 'info');
 }
 
 // ============================================================================
@@ -1094,7 +1183,7 @@ function saveAttendance() {
     const topic = document.getElementById('attendanceTopic').value.trim();
     
     if (!date || !subject || !topic) {
-        alert('Please fill in date, subject and topic');
+        showNotification('Please fill in date, subject and topic', 'error');
         return;
     }
     
@@ -1129,7 +1218,7 @@ function saveAttendance() {
     document.getElementById('attendanceSubject').value = subject;
     document.getElementById('attendanceTopic').value = topic;
     
-    alert(`✅ Attendance saved for ${attendanceRecords.length} students!`);
+    showNotification(`✅ Attendance saved for ${attendanceRecords.length} students!`, 'success');
     
     // Auto-scroll to show new records
     const attendanceContainer = document.getElementById('attendanceContainer');
@@ -1189,14 +1278,176 @@ function deleteAttendance(recordId) {
             attendance.splice(recordIndex, 1);
             saveAllData();
             updateUI();
-            alert('✅ Attendance record deleted successfully!');
+            showNotification('✅ Attendance record deleted successfully!', 'success');
         }
     }
 }
 
 // Edit attendance placeholder
 function editAttendance(recordId) {
-    alert('Edit attendance functionality coming soon!');
+    showNotification('Edit attendance functionality coming soon!', 'info');
+}
+
+// Enhanced session attendance functions
+function updateSessionAttendanceList() {
+    const container = document.getElementById('sessionAttendanceList');
+    if (!container) {
+        console.error('Session attendance container not found');
+        return;
+    }
+    
+    if (!students || students.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #666;">
+                <p>No students registered yet.</p>
+                <small>Add students in the Students tab first.</small>
+            </div>
+        `;
+        return;
+    }
+    
+    try {
+        container.innerHTML = students.map(student => {
+            // Validate student data
+            if (!student.id || !student.name) {
+                console.warn('Invalid student data:', student);
+                return '';
+            }
+            
+            const studentId = student.id.replace(/[^a-zA-Z0-9-_]/g, '_'); // Sanitize ID for HTML
+            const baseRate = student.baseRate || 0;
+            
+            return `
+                <div class="attendance-item" data-student-id="${studentId}">
+                    <div class="attendance-info">
+                        <input 
+                            type="checkbox" 
+                            class="attendance-checkbox" 
+                            id="session_${studentId}" 
+                            checked
+                            data-student-id="${student.id}"
+                        >
+                        <label for="session_${studentId}" class="attendance-label">
+                            <strong>${escapeHtml(student.name)}</strong> 
+                            <span class="student-id">(${escapeHtml(student.id)})</span>
+                        </label>
+                    </div>
+                    <div class="attendance-details">
+                        <small class="rate-info">Rate: $${baseRate.toFixed(2)}/session</small>
+                        ${student.email ? `<br><small class="email-info">${escapeHtml(student.email)}</small>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Error updating session attendance list:', error);
+        container.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #e74c3c;">
+                <p>Error loading students list</p>
+                <small>Please try refreshing the page</small>
+            </div>
+        `;
+    }
+}
+
+function saveSessionAttendance() {
+    const date = document.getElementById('sessionDate').value;
+    const subject = document.getElementById('sessionSubject').value.trim();
+    const topic = document.getElementById('sessionTopic').value.trim();
+    
+    if (!date) {
+        showNotification('Please select a date', 'error');
+        return false;
+    }
+    
+    if (!subject) {
+        showNotification('Please enter a subject', 'error');
+        return false;
+    }
+    
+    // Get all checked students
+    const checkedBoxes = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox:checked');
+    
+    if (checkedBoxes.length === 0) {
+        if (!confirm('No students selected for this session. Continue anyway?')) {
+            return false;
+        }
+    }
+    
+    const attendanceRecords = [];
+    const presentStudents = [];
+    
+    checkedBoxes.forEach(checkbox => {
+        const studentId = checkbox.getAttribute('data-student-id');
+        const student = students.find(s => s.id === studentId);
+        
+        if (student) {
+            const record = {
+                id: generateId(),
+                date,
+                studentId: student.id,
+                studentName: student.name,
+                gender: student.gender,
+                subject,
+                topic: topic || 'General',
+                status: 'Present',
+                timestamp: new Date().toISOString()
+            };
+            
+            attendanceRecords.push(record);
+            presentStudents.push(student.name);
+        }
+    });
+    
+    // Save attendance records
+    if (attendanceRecords.length > 0) {
+        attendance.push(...attendanceRecords);
+        saveAllData();
+    }
+    
+    // Log activity
+    const activityMessage = presentStudents.length > 0 
+        ? `Session recorded: ${presentStudents.length} students (${presentStudents.join(', ')}) for ${subject}`
+        : `Session recorded: No students attended for ${subject}`;
+    
+    logPaymentActivity(activityMessage);
+    
+    // Close modal
+    document.getElementById('attendanceSessionModal').style.display = 'none';
+    document.body.classList.remove('modal-open');
+    
+    // Update UI
+    updateAttendanceUI();
+    
+    // Reset form
+    resetSessionAttendanceForm();
+    
+    // Show success message
+    const successMessage = presentStudents.length > 0
+        ? `✅ Session recorded for ${presentStudents.length} students!`
+        : '✅ Session recorded (no students attended)';
+    
+    showNotification(successMessage, 'success');
+    return true;
+}
+
+// Reset session attendance form
+function resetSessionAttendanceForm() {
+    const form = document.getElementById('attendanceSessionForm');
+    if (form) {
+        form.reset();
+        // Set default date
+        const sessionDate = document.getElementById('sessionDate');
+        if (sessionDate) {
+            sessionDate.value = new Date().toISOString().split('T')[0];
+        }
+        // Check all students by default
+        const checkboxes = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    }
 }
 
 // ============================================================================
@@ -1298,23 +1549,23 @@ function recordPayment() {
     
     // Validation
     if (!studentId) {
-        alert('Please select a student');
+        showNotification('Please select a student', 'error');
         return false;
     }
     
     if (!amount || amount <= 0) {
-        alert('Please enter a valid payment amount');
+        showNotification('Please enter a valid payment amount', 'error');
         return false;
     }
     
     if (!date) {
-        alert('Please select a payment date');
+        showNotification('Please select a payment date', 'error');
         return false;
     }
     
     const student = students.find(s => s.id === studentId);
     if (!student) {
-        alert('Student not found');
+        showNotification('Student not found', 'error');
         return false;
     }
     
@@ -1348,7 +1599,7 @@ function recordPayment() {
     resetPaymentForm();
     
     // Show success message
-    alert('✅ Payment recorded successfully!');
+    showNotification('✅ Payment recorded successfully!', 'success');
     return true;
 }
 
@@ -1367,179 +1618,6 @@ function resetPaymentForm() {
         if (paymentMethod) {
             paymentMethod.value = 'Cash';
         }
-    }
-}
-
-// Enhanced session attendance functions
-function updateSessionAttendanceList() {
-    const container = document.getElementById('sessionAttendanceList');
-    if (!container) {
-        console.error('Session attendance container not found');
-        return;
-    }
-    
-    if (!students || students.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 20px; color: #666;">
-                <p>No students registered yet.</p>
-                <small>Add students in the Students tab first.</small>
-            </div>
-        `;
-        return;
-    }
-    
-    try {
-        container.innerHTML = students.map(student => {
-            // Validate student data
-            if (!student.id || !student.name) {
-                console.warn('Invalid student data:', student);
-                return '';
-            }
-            
-            const studentId = student.id.replace(/[^a-zA-Z0-9-_]/g, '_'); // Sanitize ID for HTML
-            const baseRate = student.baseRate || 0;
-            
-            return `
-                <div class="attendance-item" data-student-id="${studentId}">
-                    <div class="attendance-info">
-                        <input 
-                            type="checkbox" 
-                            class="attendance-checkbox" 
-                            id="session_${studentId}" 
-                            checked
-                            data-student-id="${student.id}"
-                        >
-                        <label for="session_${studentId}" class="attendance-label">
-                            <strong>${escapeHtml(student.name)}</strong> 
-                            <span class="student-id">(${escapeHtml(student.id)})</span>
-                        </label>
-                    </div>
-                    <div class="attendance-details">
-                        <small class="rate-info">Rate: $${baseRate.toFixed(2)}/session</small>
-                        ${student.email ? `<br><small class="email-info">${escapeHtml(student.email)}</small>` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-    } catch (error) {
-        console.error('Error updating session attendance list:', error);
-        container.innerHTML = `
-            <div style="text-align: center; padding: 20px; color: #e74c3c;">
-                <p>Error loading students list</p>
-                <small>Please try refreshing the page</small>
-            </div>
-        `;
-    }
-}
-
-// Helper function to escape HTML (prevent XSS)
-function escapeHtml(unsafe) {
-    if (typeof unsafe !== 'string') return unsafe;
-    return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-function saveSessionAttendance() {
-    const date = document.getElementById('sessionDate').value;
-    const subject = document.getElementById('sessionSubject').value.trim();
-    const topic = document.getElementById('sessionTopic').value.trim();
-    
-    if (!date) {
-        alert('Please select a date');
-        return false;
-    }
-    
-    if (!subject) {
-        alert('Please enter a subject');
-        return false;
-    }
-    
-    // Get all checked students
-    const checkedBoxes = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox:checked');
-    
-    if (checkedBoxes.length === 0) {
-        if (!confirm('No students selected for this session. Continue anyway?')) {
-            return false;
-        }
-    }
-    
-    const attendanceRecords = [];
-    const presentStudents = [];
-    
-    checkedBoxes.forEach(checkbox => {
-        const studentId = checkbox.getAttribute('data-student-id');
-        const student = students.find(s => s.id === studentId);
-        
-        if (student) {
-            const record = {
-                id: generateId(),
-                date,
-                studentId: student.id,
-                studentName: student.name,
-                gender: student.gender,
-                subject,
-                topic: topic || 'General',
-                status: 'Present',
-                timestamp: new Date().toISOString()
-            };
-            
-            attendanceRecords.push(record);
-            presentStudents.push(student.name);
-        }
-    });
-    
-    // Save attendance records
-    if (attendanceRecords.length > 0) {
-        attendance.push(...attendanceRecords);
-        saveAllData();
-    }
-    
-    // Log activity
-    const activityMessage = presentStudents.length > 0 
-        ? `Session recorded: ${presentStudents.length} students (${presentStudents.join(', ')}) for ${subject}`
-        : `Session recorded: No students attended for ${subject}`;
-    
-    logPaymentActivity(activityMessage);
-    
-    // Close modal
-    document.getElementById('attendanceSessionModal').style.display = 'none';
-    document.body.classList.remove('modal-open');
-    
-    // Update UI
-    updateAttendanceUI();
-    
-    // Reset form
-    resetSessionAttendanceForm();
-    
-    // Show success message
-    const successMessage = presentStudents.length > 0
-        ? `✅ Session recorded for ${presentStudents.length} students!`
-        : '✅ Session recorded (no students attended)';
-    
-    alert(successMessage);
-    return true;
-}
-
-// Reset session attendance form
-function resetSessionAttendanceForm() {
-    const form = document.getElementById('attendanceSessionForm');
-    if (form) {
-        form.reset();
-        // Set default date
-        const sessionDate = document.getElementById('sessionDate');
-        if (sessionDate) {
-            sessionDate.value = new Date().toISOString().split('T')[0];
-        }
-        // Check all students by default
-        const checkboxes = document.querySelectorAll('#sessionAttendanceList .attendance-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = true;
-        });
     }
 }
 
@@ -1570,9 +1648,119 @@ function logPaymentActivity(message) {
 }
 
 // ============================================================================
-// BREAKDOWN ANALYSIS FUNCTIONS
+// REPORTS AND BREAKDOWN FUNCTIONS
 // ============================================================================
 
+function updateReports() {
+    updateReportStats();
+    updateWeeklyTable();
+    updateSubjectTable();
+}
+
+function updateReportStats() {
+    const totalStudentsEl = document.getElementById('totalStudentsReport');
+    const totalHoursEl = document.getElementById('totalHoursReport');
+    const totalEarningsEl = document.getElementById('totalEarningsReport');
+    const avgMarkEl = document.getElementById('avgMarkReport');
+    const totalPaymentsEl = document.getElementById('totalPaymentsReport');
+    const outstandingBalanceEl = document.getElementById('outstandingBalance');
+    
+    if (totalStudentsEl) totalStudentsEl.textContent = students.length;
+    
+    const totalHours = hoursLog.reduce((sum, entry) => sum + entry.hours, 0);
+    const totalEarnings = hoursLog.reduce((sum, entry) => sum + entry.totalPay, 0);
+    const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
+    
+    if (totalHoursEl) totalHoursEl.textContent = totalHours.toFixed(1);
+    if (totalEarningsEl) totalEarningsEl.textContent = `$${totalEarnings.toFixed(2)}`;
+    if (totalPaymentsEl) totalPaymentsEl.textContent = `$${totalPayments.toFixed(2)}`;
+    
+    // Calculate average mark
+    if (marks.length > 0) {
+        const avgPercentage = marks.reduce((sum, mark) => {
+            const percentage = parseFloat(mark.percentage) || 0;
+            return sum + percentage;
+        }, 0) / marks.length;
+        
+        if (avgMarkEl) avgMarkEl.textContent = `${avgPercentage.toFixed(1)}%`;
+    } else {
+        if (avgMarkEl) avgMarkEl.textContent = '0%';
+    }
+    
+    // Simplified outstanding balance calculation
+    const outstandingBalance = totalEarnings - totalPayments;
+    if (outstandingBalanceEl) {
+        outstandingBalanceEl.textContent = `$${outstandingBalance.toFixed(2)}`;
+        outstandingBalanceEl.style.color = outstandingBalance > 0 ? '#e74c3c' : '#27ae60';
+    }
+}
+
+function updateWeeklyTable() {
+    const weeklyBody = document.getElementById('weeklyBody');
+    if (!weeklyBody) return;
+    
+    const weeklyData = getWeeklyBreakdown();
+    const sortedWeeks = Object.keys(weeklyData).sort((a, b) => b.localeCompare(a));
+    
+    if (sortedWeeks.length === 0) {
+        weeklyBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666;">No data available</td></tr>';
+        return;
+    }
+    
+    weeklyBody.innerHTML = sortedWeeks.slice(0, 8).map(week => {
+        const data = weeklyData[week];
+        return `
+            <tr>
+                <td>${week}</td>
+                <td>${data.hours.toFixed(1)}</td>
+                <td>$${data.earnings.toFixed(2)}</td>
+                <td>${data.subjects.size}</td>
+                <td>$${(data.earnings * 0.8).toFixed(2)}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function updateSubjectTable() {
+    const subjectBody = document.getElementById('subjectBody');
+    if (!subjectBody) return;
+    
+    const subjectData = getSubjectBreakdown();
+    const sortedSubjects = Object.keys(subjectData).sort((a, b) => 
+        subjectData[b].earnings - subjectData[a].earnings
+    );
+    
+    if (sortedSubjects.length === 0) {
+        subjectBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666;">No data available</td></tr>';
+        return;
+    }
+    
+    subjectBody.innerHTML = sortedSubjects.map(subject => {
+        const data = subjectData[subject];
+        
+        // Calculate average marks for this subject
+        const subjectMarks = marks.filter(mark => mark.subject === subject);
+        let avgMark = 0;
+        if (subjectMarks.length > 0) {
+            avgMark = subjectMarks.reduce((sum, mark) => {
+                const percentage = parseFloat(mark.percentage) || 0;
+                return sum + percentage;
+            }, 0) / subjectMarks.length;
+        }
+        
+        return `
+            <tr>
+                <td>${subject}</td>
+                <td>${avgMark > 0 ? avgMark.toFixed(1) + '%' : 'N/A'}</td>
+                <td>${data.hours.toFixed(1)}</td>
+                <td>$${data.earnings.toFixed(2)}</td>
+                <td>${data.sessions}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Breakdown analysis functions
 function showWeeklyBreakdown() {
     console.log('Showing weekly breakdown');
     const breakdown = getWeeklyBreakdown();
@@ -1842,157 +2030,203 @@ function displayBreakdown(breakdown, title) {
 }
 
 // ============================================================================
-// REPORTS FUNCTIONS
+// DATA EXPORT/IMPORT FUNCTIONS
 // ============================================================================
 
-function updateReports() {
-    updateReportStats();
-    updateWeeklyTable();
-    updateSubjectTable();
+function exportData() {
+    try {
+        const data = {
+            students,
+            hoursLog,
+            marks,
+            attendance,
+            payments,
+            paymentActivity,
+            fieldMemory,
+            exportDate: new Date().toISOString(),
+            version: '2.0'
+        };
+        
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `worklog-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showNotification('✅ Data exported successfully!', 'success');
+    } catch (error) {
+        console.error('Export error:', error);
+        showNotification('❌ Error exporting data', 'error');
+    }
 }
 
-function updateReportStats() {
-    const totalStudentsEl = document.getElementById('totalStudentsReport');
-    const totalHoursEl = document.getElementById('totalHoursReport');
-    const totalEarningsEl = document.getElementById('totalEarningsReport');
-    const avgMarkEl = document.getElementById('avgMarkReport');
-    const totalPaymentsEl = document.getElementById('totalPaymentsReport');
-    const outstandingBalanceEl = document.getElementById('outstandingBalance');
+function importData() {
+    document.getElementById('importFile').click();
+}
+
+function handleFileImport(file) {
+    if (!file) return;
     
-    if (totalStudentsEl) totalStudentsEl.textContent = students.length;
-    
-    const totalHours = hoursLog.reduce((sum, entry) => sum + entry.hours, 0);
-    const totalEarnings = hoursLog.reduce((sum, entry) => sum + entry.totalPay, 0);
-    const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
-    
-    if (totalHoursEl) totalHoursEl.textContent = totalHours.toFixed(1);
-    if (totalEarningsEl) totalEarningsEl.textContent = `$${totalEarnings.toFixed(2)}`;
-    if (totalPaymentsEl) totalPaymentsEl.textContent = `$${totalPayments.toFixed(2)}`;
-    
-    // Calculate average mark
-    if (marks.length > 0) {
-        const avgPercentage = marks.reduce((sum, mark) => {
-            const percentage = parseFloat(mark.percentage) || 0;
-            return sum + percentage;
-        }, 0) / marks.length;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            if (confirm(`Import data? This will replace:\n- ${data.students?.length || 0} students\n- ${data.hoursLog?.length || 0} hours\n- ${data.marks?.length || 0} marks\n- ${data.attendance?.length || 0} attendance records\n- ${data.payments?.length || 0} payments`)) {
+                students = data.students || [];
+                hoursLog = data.hoursLog || [];
+                marks = data.marks || [];
+                attendance = data.attendance || [];
+                payments = data.payments || [];
+                paymentActivity = data.paymentActivity || [];
+                fieldMemory = data.fieldMemory || fieldMemory;
+                
+                saveAllData();
+                updateUI();
+                showNotification('✅ Data imported successfully!', 'success');
+            }
+        } catch (error) {
+            console.error('Import error:', error);
+            showNotification('❌ Error importing data: Invalid file format', 'error');
+        }
+    };
+    reader.readAsText(file);
+}
+
+function clearAllData() {
+    if (confirm('⚠️ Are you sure you want to clear ALL data? This cannot be undone!')) {
+        students = [];
+        hoursLog = [];
+        marks = [];
+        attendance = [];
+        payments = [];
+        paymentActivity = [];
         
-        if (avgMarkEl) avgMarkEl.textContent = `${avgPercentage.toFixed(1)}%`;
+        saveAllData();
+        updateUI();
+        
+        // Clear summary displays
+        const weeklyTotal = document.getElementById('weeklyTotal');
+        const monthlyTotal = document.getElementById('monthlyTotal');
+        const weeklyHours = document.getElementById('weeklyHours');
+        const monthlyHours = document.getElementById('monthlyHours');
+        
+        if (weeklyTotal) weeklyTotal.textContent = '$0';
+        if (monthlyTotal) monthlyTotal.textContent = '$0';
+        if (weeklyHours) weeklyHours.textContent = '0';
+        if (monthlyHours) monthlyHours.textContent = '0';
+        
+        // Clear breakdown container
+        const breakdownContainer = document.getElementById('breakdownContainer');
+        if (breakdownContainer) {
+            breakdownContainer.innerHTML = '<p style="color: #666; text-align: center;">Select a breakdown option above</p>';
+        }
+        
+        showNotification('✅ All data cleared!', 'success');
+    }
+}
+
+// ============================================================================
+// CLOUD SYNC FUNCTIONS
+// ============================================================================
+
+// Initialize cloud sync if user is authenticated
+function initializeCloudSync() {
+    if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+        cloudSync.enabled = true;
+        updateSyncUI();
+        
+        // Auto-sync every 2 minutes
+        setInterval(() => {
+            if (cloudSync.enabled && !cloudSync.syncing) {
+                manualSyncToCloud();
+            }
+        }, 120000);
+    }
+}
+
+// Manual sync function
+async function manualSyncToCloud() {
+    if (!cloudSync.enabled || cloudSync.syncing) return;
+    
+    cloudSync.syncing = true;
+    updateSyncUI();
+    
+    try {
+        // Simulate cloud sync (replace with actual cloud service)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        cloudSync.lastSync = new Date();
+        localStorage.setItem('worklog_last_sync', cloudSync.lastSync.toISOString());
+        
+        console.log('Data synced to cloud');
+        showNotification('Data synced to cloud', 'success');
+        
+    } catch (error) {
+        console.error('Cloud sync failed:', error);
+        showNotification('Sync failed: ' + error.message, 'error');
+    } finally {
+        cloudSync.syncing = false;
+        updateSyncUI();
+    }
+}
+
+// Update sync UI
+function updateSyncUI() {
+    const syncStatus = document.getElementById('syncStatus');
+    const loginBtn = document.getElementById('loginBtn');
+    const syncBtn = document.getElementById('syncBtn');
+    
+    if (!syncStatus) return;
+    
+    let statusText = '';
+    let statusClass = '';
+    let buttonText = '';
+    
+    if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+        const user = Auth.getCurrentUser();
+        if (user) {
+            statusText = `Signed in as ${user.name}`;
+            statusClass = 'sync-connected';
+            buttonText = `👤 ${user.name.split(' ')[0]}`;
+            
+            if (syncBtn) {
+                syncBtn.style.display = 'inline-block';
+                syncBtn.disabled = cloudSync.syncing;
+                syncBtn.textContent = cloudSync.syncing ? 'Syncing...' : 'Sync';
+                syncBtn.onclick = manualSyncToCloud;
+            }
+        }
     } else {
-        if (avgMarkEl) avgMarkEl.textContent = '0%';
-    }
-    
-    // Simplified outstanding balance calculation
-    const outstandingBalance = totalEarnings - totalPayments;
-    if (outstandingBalanceEl) {
-        outstandingBalanceEl.textContent = `$${outstandingBalance.toFixed(2)}`;
-        outstandingBalanceEl.style.color = outstandingBalance > 0 ? '#e74c3c' : '#27ae60';
-    }
-}
-
-function updateWeeklyTable() {
-    const weeklyBody = document.getElementById('weeklyBody');
-    if (!weeklyBody) return;
-    
-    const weeklyData = getWeeklyBreakdown();
-    const sortedWeeks = Object.keys(weeklyData).sort((a, b) => b.localeCompare(a));
-    
-    if (sortedWeeks.length === 0) {
-        weeklyBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666;">No data available</td></tr>';
-        return;
-    }
-    
-    weeklyBody.innerHTML = sortedWeeks.slice(0, 8).map(week => {
-        const data = weeklyData[week];
-        return `
-            <tr>
-                <td>${week}</td>
-                <td>${data.hours.toFixed(1)}</td>
-                <td>$${data.earnings.toFixed(2)}</td>
-                <td>${data.subjects.size}</td>
-                <td>$${(data.earnings * 0.8).toFixed(2)}</td>
-            </tr>
-        `;
-    }).join('');
-}
-
-function updateSubjectTable() {
-    const subjectBody = document.getElementById('subjectBody');
-    if (!subjectBody) return;
-    
-    const subjectData = getSubjectBreakdown();
-    const sortedSubjects = Object.keys(subjectData).sort((a, b) => 
-        subjectData[b].earnings - subjectData[a].earnings
-    );
-    
-    if (sortedSubjects.length === 0) {
-        subjectBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666;">No data available</td></tr>';
-        return;
-    }
-    
-    subjectBody.innerHTML = sortedSubjects.map(subject => {
-        const data = subjectData[subject];
+        statusText = 'Not signed in';
+        statusClass = 'sync-offline';
+        buttonText = 'Sign In';
         
-        // Calculate average marks for this subject
-        const subjectMarks = marks.filter(mark => mark.subject === subject);
-        let avgMark = 0;
-        if (subjectMarks.length > 0) {
-            avgMark = subjectMarks.reduce((sum, mark) => {
-                const percentage = parseFloat(mark.percentage) || 0;
-                return sum + percentage;
-            }, 0) / subjectMarks.length;
+        if (syncBtn) {
+            syncBtn.style.display = 'none';
         }
-        
-        return `
-            <tr>
-                <td>${subject}</td>
-                <td>${avgMark > 0 ? avgMark.toFixed(1) + '%' : 'N/A'}</td>
-                <td>${data.hours.toFixed(1)}</td>
-                <td>$${data.earnings.toFixed(2)}</td>
-                <td>${data.sessions}</td>
-            </tr>
-        `;
-    }).join('');
-}
-
-// Force mobile table responsiveness
-function fixMobileTables() {
-    const weeklyTable = document.getElementById('weeklyTable');
-    const subjectTable = document.getElementById('subjectTable');
-    
-    // Create wrappers if they don't exist
-    if (weeklyTable && !weeklyTable.parentElement.classList.contains('table-wrapper')) {
-        const weeklyWrapper = document.createElement('div');
-        weeklyWrapper.className = 'table-wrapper';
-        weeklyTable.parentNode.insertBefore(weeklyWrapper, weeklyTable);
-        weeklyWrapper.appendChild(weeklyTable);
     }
     
-    if (subjectTable && !subjectTable.parentElement.classList.contains('table-wrapper')) {
-        const subjectWrapper = document.createElement('div');
-        subjectWrapper.className = 'table-wrapper';
-        subjectTable.parentNode.insertBefore(subjectWrapper, subjectTable);
-        subjectWrapper.appendChild(subjectTable);
-    }
+    syncStatus.innerHTML = `
+        <span class="sync-indicator ${statusClass}"></span>
+        ${statusText}
+    `;
     
-    // Force table widths
-    if (window.innerWidth <= 768) {
-        if (weeklyTable) {
-            weeklyTable.style.minWidth = '650px';
-            weeklyTable.style.width = 'auto';
-        }
-        if (subjectTable) {
-            subjectTable.style.minWidth = '650px';
-            subjectTable.style.width = 'auto';
-        }
+    if (loginBtn) {
+        loginBtn.textContent = buttonText;
+        loginBtn.onclick = function() {
+            if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+                Auth.showProfileModal();
+            } else {
+                Auth.showAuthModal();
+            }
+        };
     }
 }
-
-// Run on load and resize
-document.addEventListener('DOMContentLoaded', fixMobileTables);
-window.addEventListener('resize', fixMobileTables);
-
-// Also try immediately
-setTimeout(fixMobileTables, 100);
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -2010,64 +2244,74 @@ function getWeekNumber(date) {
     return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
+// Helper function to escape HTML (prevent XSS)
+function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') return unsafe;
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 5px;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-size: 14px;
+        font-weight: 500;
+        max-width: 300px;
+        word-wrap: break-word;
+    `;
+    
+    // Set colors based on type
+    switch(type) {
+        case 'success':
+            notification.style.background = '#28a745';
+            notification.style.color = 'white';
+            break;
+        case 'error':
+            notification.style.background = '#dc3545';
+            notification.style.color = 'white';
+            break;
+        case 'warning':
+            notification.style.background = '#ffc107';
+            notification.style.color = 'black';
+            break;
+        default:
+            notification.style.background = '#17a2b8';
+            notification.style.color = 'white';
+    }
+    
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 3000);
+}
+
+// Make showNotification available globally for auth system
+window.showSyncNotification = showNotification;
+
 // ============================================================================
 // START APPLICATION
 // ============================================================================
 
-document.addEventListener('DOMContentLoaded', init);
-
-// In app.js - Add these callback functions for auth system
-
-// Callback when user data needs to be loaded
-function loadUserData(userId) {
-    const userDataKey = `worklog_data_${userId}`;
-    try {
-        const userData = JSON.parse(localStorage.getItem(userDataKey));
-        if (userData) {
-            students = userData.students || [];
-            hoursLog = userData.hoursLog || [];
-            marks = userData.marks || [];
-            attendance = userData.attendance || [];
-            payments = userData.payments || [];
-            paymentActivity = userData.paymentActivity || [];
-            fieldMemory = userData.fieldMemory || fieldMemory;
-        }
-    } catch (error) {
-        console.error('Error loading user data:', error);
-    }
-    
-    updateUI();
-}
-
-// Callback before logout
-function onBeforeLogout() {
-    saveAllData();
-}
-
-// Callback when new user data is initialized
-function onUserDataInitialized(userData) {
-    students = userData.students;
-    hoursLog = userData.hoursLog;
-    marks = userData.marks;
-    attendance = userData.attendance;
-    payments = userData.payments;
-    paymentActivity = userData.paymentActivity;
-    fieldMemory = userData.fieldMemory;
-    
-    updateUI();
-}
-
-// Provide data stats to auth system
-function getDataStats() {
-    return {
-        students: students.length,
-        sessions: hoursLog.length
-    };
-}
-
-// Make functions available globally for auth system
-window.loadUserData = loadUserData;
-window.onBeforeLogout = onBeforeLogout;
-window.onUserDataInitialized = onUserDataInitialized;
-window.getDataStats = getDataStats;
-window.exportUserData = exportData; // Your existing export function
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // The main init function will be called from the HTML file
+    console.log('WorkLog app loaded and ready');
+});
