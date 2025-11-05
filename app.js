@@ -19,13 +19,6 @@ let fieldMemory = {
     defaultBaseRate: '25.00'
 };
 
-// Cloud sync state
-let cloudSync = {
-    enabled: false,
-    lastSync: null,
-    syncing: false
-};
-
 // ============================================================================
 // INITIALIZATION FUNCTIONS
 // ============================================================================
