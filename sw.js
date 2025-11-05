@@ -2,8 +2,7 @@
 const cacheName = 'worklog-app-v2'; // Changed cache name to force update
 const assetsToCache = [
   './',
-  './index.html',    // Keep this for the welcome screen
-  './app.html',      // ADD THIS - your main app
+  './index.html',    // New index with authorisation 
   './styles.css',
   './app.js',
   './manifest.json',
