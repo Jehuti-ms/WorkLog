@@ -40,7 +40,13 @@ function init() {
     loadFieldMemory();
     setupAllEventListeners();
     setDefaultDate();
-       
+    
+    // Load default rate into display
+    const currentRateEl = document.getElementById('currentDefaultRate');
+    if (currentRateEl && fieldMemory.defaultBaseRate) {
+        currentRateEl.textContent = fieldMemory.defaultBaseRate;
+    }
+    
     // Ensure first tab is visible on startup
     setTimeout(() => {
         switchTab('students');
@@ -151,6 +157,71 @@ function updateFieldMemory() {
 }
 
 // ============================================================================
+// DEFAULT RATE MANAGEMENT FUNCTIONS
+// ============================================================================
+
+function saveDefaultRate() {
+    const defaultRateInput = document.getElementById('defaultBaseRate');
+    const defaultRate = parseFloat(defaultRateInput.value) || 0;
+    
+    if (!defaultRate || defaultRate <= 0) {
+        showNotification('Please enter a valid default rate', 'error');
+        return;
+    }
+    
+    fieldMemory.defaultBaseRate = defaultRate.toFixed(2);
+    saveFieldMemory();
+    
+    // Update current rate display
+    const currentRateEl = document.getElementById('currentDefaultRate');
+    if (currentRateEl) {
+        currentRateEl.textContent = defaultRate.toFixed(2);
+    }
+    
+    showNotification(`✅ Default rate set to $${defaultRate.toFixed(2)}/session`, 'success');
+}
+
+function applyDefaultRateToAll() {
+    const defaultRate = parseFloat(fieldMemory.defaultBaseRate) || 0;
+    
+    if (!defaultRate) {
+        showNotification('Please set a default base rate first', 'error');
+        return;
+    }
+    
+    if (students.length === 0) {
+        showNotification('No students to update', 'error');
+        return;
+    }
+    
+    if (confirm(`Apply $${defaultRate.toFixed(2)} base rate to all ${students.length} students?`)) {
+        students.forEach(student => {
+            student.baseRate = defaultRate;
+        });
+        
+        saveAllData();
+        updateUI();
+        logPaymentActivity(`Applied default rate $${defaultRate.toFixed(2)} to all students`);
+        showNotification(`✅ Base rate applied to all ${students.length} students!`, 'success');
+    }
+}
+
+function useDefaultRate() {
+    const studentBaseRateInput = document.getElementById('studentBaseRate');
+    const defaultRate = parseFloat(fieldMemory.defaultBaseRate) || 0;
+    
+    if (!defaultRate) {
+        showNotification('Please set a default base rate first', 'error');
+        return;
+    }
+    
+    if (studentBaseRateInput) {
+        studentBaseRateInput.value = defaultRate.toFixed(2);
+        showNotification(`✅ Default rate applied to form: $${defaultRate.toFixed(2)}`, 'success');
+    }
+}
+
+// ============================================================================
 // AUTHENTICATION CALLBACK FUNCTIONS
 // ============================================================================
 
@@ -242,11 +313,12 @@ function initializeUserData() {
 }
 
 // Enhanced saveAllData to trigger cloud sync
-// Enhanced saveAllData to trigger cloud sync
 const originalSaveAllData = saveAllData;
 saveAllData = function() {
     // Mark that we have local changes
-    cloudSync.lastLocalChange = new Date().toISOString();
+    if (window.cloudSync) {
+        window.cloudSync.lastLocalChange = new Date().toISOString();
+    }
     
     // Save to user-specific storage if authenticated
     if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
@@ -307,65 +379,104 @@ function setupAllEventListeners() {
     });
     
     // Main buttons
-    document.getElementById('exportDataBtn')?.addEventListener('click', exportData);
-    document.getElementById('importDataBtn')?.addEventListener('click', importData);
-    document.getElementById('clearAllDataBtn')?.addEventListener('click', clearAllData);
+    const exportDataBtn = document.getElementById('exportDataBtn');
+    const importDataBtn = document.getElementById('importDataBtn');
+    const clearAllDataBtn = document.getElementById('clearAllDataBtn');
+    
+    if (exportDataBtn) exportDataBtn.addEventListener('click', exportData);
+    if (importDataBtn) importDataBtn.addEventListener('click', importData);
+    if (clearAllDataBtn) clearAllDataBtn.addEventListener('click', clearAllData);
     
     // Form inputs with onchange
-    document.getElementById('hoursWorked')?.addEventListener('input', calculateTotalPay);
-    document.getElementById('baseRate')?.addEventListener('input', calculateTotalPay);
-    document.getElementById('score')?.addEventListener('input', calculatePercentage);
-    document.getElementById('maxScore')?.addEventListener('input', calculatePercentage);
-    document.getElementById('marksStudent')?.addEventListener('change', updateStudentDetails);
+    const hoursWorked = document.getElementById('hoursWorked');
+    const baseRate = document.getElementById('baseRate');
+    const score = document.getElementById('score');
+    const maxScore = document.getElementById('maxScore');
+    const marksStudent = document.getElementById('marksStudent');
+    
+    if (hoursWorked) hoursWorked.addEventListener('input', calculateTotalPay);
+    if (baseRate) baseRate.addEventListener('input', calculateTotalPay);
+    if (score) score.addEventListener('input', calculatePercentage);
+    if (maxScore) maxScore.addEventListener('input', calculatePercentage);
+    if (marksStudent) marksStudent.addEventListener('change', updateStudentDetails);
     
     // Breakdown buttons
-    document.getElementById('weeklyBreakdownBtn')?.addEventListener('click', showWeeklyBreakdown);
-    document.getElementById('biWeeklyBreakdownBtn')?.addEventListener('click', showBiWeeklyBreakdown);
-    document.getElementById('monthlyBreakdownBtn')?.addEventListener('click', showMonthlyBreakdown);
-    document.getElementById('subjectBreakdownBtn')?.addEventListener('click', showSubjectBreakdown);
+    const weeklyBreakdownBtn = document.getElementById('weeklyBreakdownBtn');
+    const biWeeklyBreakdownBtn = document.getElementById('biWeeklyBreakdownBtn');
+    const monthlyBreakdownBtn = document.getElementById('monthlyBreakdownBtn');
+    const subjectBreakdownBtn = document.getElementById('subjectBreakdownBtn');
+    
+    if (weeklyBreakdownBtn) weeklyBreakdownBtn.addEventListener('click', showWeeklyBreakdown);
+    if (biWeeklyBreakdownBtn) biWeeklyBreakdownBtn.addEventListener('click', showBiWeeklyBreakdown);
+    if (monthlyBreakdownBtn) monthlyBreakdownBtn.addEventListener('click', showMonthlyBreakdown);
+    if (subjectBreakdownBtn) subjectBreakdownBtn.addEventListener('click', showSubjectBreakdown);
     
     // Payment buttons
-    document.getElementById('recordPaymentBtn')?.addEventListener('click', () => openModal('paymentModal'));
-    document.getElementById('markSessionBtn')?.addEventListener('click', () => openModal('attendanceSessionModal'));
+    const recordPaymentBtn = document.getElementById('recordPaymentBtn');
+    const markSessionBtn = document.getElementById('markSessionBtn');
+    
+    if (recordPaymentBtn) recordPaymentBtn.addEventListener('click', () => openModal('paymentModal'));
+    if (markSessionBtn) markSessionBtn.addEventListener('click', () => openModal('attendanceSessionModal'));
     
     // Modal forms
-    document.getElementById('paymentForm')?.addEventListener('submit', function(e) {
-        e.preventDefault();
-        recordPayment();
-    });
+    const paymentForm = document.getElementById('paymentForm');
+    const attendanceSessionForm = document.getElementById('attendanceSessionForm');
     
-    document.getElementById('attendanceSessionForm')?.addEventListener('submit', function(e) {
-        e.preventDefault();
-        saveSessionAttendance();
-    });
+    if (paymentForm) {
+        paymentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            recordPayment();
+        });
+    }
+    
+    if (attendanceSessionForm) {
+        attendanceSessionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveSessionAttendance();
+        });
+    }
     
     // Student form listeners
-    document.getElementById('addStudentBtn')?.addEventListener('click', addStudent);
-    document.getElementById('updateStudentBtn')?.addEventListener('click', updateStudent);
-    document.getElementById('cancelEditBtn')?.addEventListener('click', cancelEdit);
+    const addStudentBtn = document.getElementById('addStudentBtn');
+    const updateStudentBtn = document.getElementById('updateStudentBtn');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    
+    if (addStudentBtn) addStudentBtn.addEventListener('click', addStudent);
+    if (updateStudentBtn) updateStudentBtn.addEventListener('click', updateStudent);
+    if (cancelEditBtn) cancelEditBtn.addEventListener('click', cancelEdit);
     
     // Default rate listeners
-    document.getElementById('defaultBaseRate')?.addEventListener('change', function() {
-        updateFieldMemory();
-        // Update current default rate display
-        const currentRateEl = document.getElementById('currentDefaultRate');
-        if (currentRateEl) {
-            currentRateEl.textContent = this.value || '0.00';
-        }
-    });
+    const defaultBaseRate = document.getElementById('defaultBaseRate');
+    const studentBaseRate = document.getElementById('studentBaseRate');
     
-    document.getElementById('studentBaseRate')?.addEventListener('focus', function() {
-        if (!this.value && fieldMemory.defaultBaseRate) {
-            this.value = fieldMemory.defaultBaseRate;
-        }
-    });
+    if (defaultBaseRate) {
+        defaultBaseRate.addEventListener('change', function() {
+            updateFieldMemory();
+            // Update current default rate display
+            const currentRateEl = document.getElementById('currentDefaultRate');
+            if (currentRateEl) {
+                currentRateEl.textContent = this.value || '0.00';
+            }
+        });
+    }
+    
+    if (studentBaseRate) {
+        studentBaseRate.addEventListener('focus', function() {
+            if (!this.value && fieldMemory.defaultBaseRate) {
+                this.value = fieldMemory.defaultBaseRate;
+            }
+        });
+    }
     
     // File import listener
-    document.getElementById('importFile')?.addEventListener('change', function(e) {
-        if (e.target.files[0]) {
-            handleFileImport(e.target.files[0]);
-        }
-    });
+    const importFile = document.getElementById('importFile');
+    if (importFile) {
+        importFile.addEventListener('change', function(e) {
+            if (e.target.files[0]) {
+                handleFileImport(e.target.files[0]);
+            }
+        });
+    }
     
     // Modal close handlers
     document.querySelectorAll('.modal .close').forEach(closeBtn => {
@@ -462,9 +573,7 @@ function updateUI() {
     if (currentRateEl && fieldMemory.defaultBaseRate) {
         currentRateEl.textContent = fieldMemory.defaultBaseRate;
     }
-    
 }
-
 
 function setDefaultDate() {
     const today = new Date().toISOString().split('T')[0];
@@ -769,41 +878,6 @@ function loadDefaultRate() {
     const currentRateEl = document.getElementById('currentDefaultRate');
     if (currentRateEl && fieldMemory.defaultBaseRate) {
         currentRateEl.textContent = fieldMemory.defaultBaseRate;
-    }
-}
-
-// Apply default rate to all existing students
-function applyDefaultRateToAll() {
-    const defaultRateInput = document.getElementById('defaultBaseRate');
-    const defaultRate = parseFloat(defaultRateInput?.value) || 0;
-    
-    if (!defaultRate) {
-        showNotification('Please set a default base rate first', 'error');
-        return;
-    }
-    
-    if (students.length === 0) {
-        showNotification('No students to update', 'error');
-        return;
-    }
-    
-    if (confirm(`Apply $${defaultRate.toFixed(2)} base rate to all ${students.length} students?`)) {
-        students.forEach(student => {
-            student.baseRate = defaultRate;
-        });
-        
-        saveAllData();
-        updateUI();
-        logPaymentActivity(`Applied default rate $${defaultRate.toFixed(2)} to all students`);
-        showNotification(`✅ Base rate applied to all ${students.length} students!`, 'success');
-    }
-}
-
-// Use default rate in student form
-function useDefaultRate() {
-    const studentBaseRateInput = document.getElementById('studentBaseRate');
-    if (studentBaseRateInput && fieldMemory.defaultBaseRate) {
-        studentBaseRateInput.value = fieldMemory.defaultBaseRate;
     }
 }
 
