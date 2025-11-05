@@ -19,6 +19,9 @@ let fieldMemory = {
     defaultBaseRate: '25.00'
 };
 
+// Cloud sync timeout reference
+let cloudSyncTimeout = null;
+
 // ============================================================================
 // INITIALIZATION FUNCTIONS
 // ============================================================================
@@ -34,7 +37,7 @@ function init() {
         loadUserData(userId);
     } else {
         console.log("No authenticated user, loading legacy data");
-        loadAllData(); // Load legacy data for non-authenticated users
+        loadAllData();
     }
     
     loadFieldMemory();
@@ -94,6 +97,35 @@ function saveAllData() {
         localStorage.setItem('worklog_attendance', JSON.stringify(attendance));
         localStorage.setItem('worklog_payments', JSON.stringify(payments));
         localStorage.setItem('worklog_payment_activity', JSON.stringify(paymentActivity));
+        
+        // Save to user-specific storage if authenticated
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            const userId = Auth.getCurrentUserId();
+            if (userId) {
+                const userData = {
+                    students,
+                    hoursLog,
+                    marks,
+                    attendance,
+                    payments,
+                    paymentActivity,
+                    fieldMemory,
+                    lastSaved: new Date().toISOString(),
+                    version: '2.0'
+                };
+                localStorage.setItem(`worklog_data_${userId}`, JSON.stringify(userData));
+            }
+        }
+        
+        // Auto-sync to Supabase if enabled (debounced)
+        if (window.cloudSync && window.cloudSync.enabled && !window.cloudSync.syncing) {
+            clearTimeout(cloudSyncTimeout);
+            cloudSyncTimeout = setTimeout(() => {
+                if (window.manualSyncToSupabase) {
+                    window.manualSyncToSupabase();
+                }
+            }, 5000);
+        }
     } catch (error) {
         console.error('Error saving data:', error);
         showNotification('Error saving data. Please check browser storage.', 'error');
@@ -311,48 +343,6 @@ function initializeUserData() {
     localStorage.setItem(`worklog_data_${userId}`, JSON.stringify(userData));
     console.log('New user data initialized for user:', userId);
 }
-
-// Enhanced saveAllData to trigger cloud sync
-const originalSaveAllData = saveAllData;
-saveAllData = function() {
-    // Mark that we have local changes
-    if (window.cloudSync) {
-        window.cloudSync.lastLocalChange = new Date().toISOString();
-    }
-    
-    // Save to user-specific storage if authenticated
-    if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
-        const userId = Auth.getCurrentUserId();
-        if (userId) {
-            const userData = {
-                students,
-                hoursLog,
-                marks,
-                attendance,
-                payments,
-                paymentActivity,
-                fieldMemory,
-                lastSaved: new Date().toISOString(),
-                version: '2.0'
-            };
-            
-            localStorage.setItem(`worklog_data_${userId}`, JSON.stringify(userData));
-        }
-    }
-    
-    // Also save to legacy storage for compatibility
-    originalSaveAllData();
-    
-    // Auto-sync to Supabase if enabled (debounced)
-    if (window.cloudSync && window.cloudSync.enabled && !window.cloudSync.syncing) {
-        clearTimeout(window.cloudSyncTimeout);
-        window.cloudSyncTimeout = setTimeout(() => {
-            if (window.manualSyncToSupabase) {
-                window.manualSyncToSupabase();
-            }
-        }, 5000);
-    }
-};
 
 // Make functions available globally for auth system
 window.loadUserData = loadUserData;
