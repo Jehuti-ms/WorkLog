@@ -80,21 +80,6 @@ function loadAllData() {
     }
 }
 
-// Save data to localStorage
-function saveAllData() {
-    try {
-        localStorage.setItem('worklog_students', JSON.stringify(students));
-        localStorage.setItem('worklog_hours', JSON.stringify(hoursLog));
-        localStorage.setItem('worklog_marks', JSON.stringify(marks));
-        localStorage.setItem('worklog_attendance', JSON.stringify(attendance));
-        localStorage.setItem('worklog_payments', JSON.stringify(payments));
-        localStorage.setItem('worklog_payment_activity', JSON.stringify(paymentActivity));
-    } catch (error) {
-        console.error('Error saving data:', error);
-        showNotification('Error saving data. Please check browser storage.', 'error');
-    }
-}
-
 // Field memory functions
 function loadFieldMemory() {
     try {
