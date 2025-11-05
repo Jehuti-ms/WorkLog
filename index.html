@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="auth.css">
     
-    <!-- Enhanced Auth Bar Styles -->
+    <!-- Fixed Auth Bar Styles -->
     <style>
         .auth-bar {
             background: rgba(255, 255, 255, 0.95);
@@ -73,16 +73,29 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
+
+        /* Ensure main app is always visible */
+        .container {
+            display: block !important;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <!-- Enhanced Auth Bar with Logout -->
     <div class="auth-bar">
         <div class="auth-info">
-            <span class="user-welcome" id="userWelcome">Welcome to WorkLog! Please sign in</span>
+            <span class="user-welcome" id="userWelcome">Welcome to WorkLog!</span>
             <span class="sync-status" id="syncStatus">
                 <span class="sync-indicator sync-offline"></span>
-                Loading...
+                Ready
             </span>
         </div>
         <div class="auth-actions">
@@ -93,7 +106,7 @@
         </div>
     </div>
 
-    <!-- Main Container -->
+    <!-- Main Container - ALWAYS VISIBLE -->
     <div class="container">
         <!-- Header -->
         <header class="app-header">
@@ -110,7 +123,6 @@
             </div>
         </header>
 
-        <!-- Rest of your app content remains exactly the same -->
         <!-- Navigation Tabs -->
         <div class="tabs-container">
             <div class="tabs">
@@ -123,39 +135,165 @@
             </div>
         </div>
 
-        <!-- All your tab contents remain exactly the same -->
+        <!-- Tab Contents -->
         <div class="tab-content active" id="students">
-            <!-- Your existing students tab content -->
+            <h2>Student Register</h2>
+            
+            <!-- Default Base Rate Panel -->
+            <div class="default-rate-panel">
+                <h4>📊 Default Rate Settings</h4>
+                <div class="form-group">
+                    <label>Default Base Rate ($/session)</label>
+                    <div style="display: flex; gap: 10px; align-items: flex-end;">
+                        <input type="number" id="defaultBaseRate" step="0.01" min="0" placeholder="e.g., 25.00" 
+                               style="flex: 1;" class="rate-input">
+                        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="applyDefaultRateToAll()">
+                                Apply to All
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="loadDefaultRate()">
+                                Load Rate
+                            </button>
+                        </div>
+                    </div>
+                    <small style="color: #fff; display: block; margin-top: 5px; opacity: 0.9;">
+                        This rate will be automatically filled for new students. Current: $<span id="currentDefaultRate">0.00</span>
+                    </small>
+                </div>
+            </div>
+
+            <!-- Student Form -->
+            <form id="studentForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="studentName">Student Name *</label>
+                        <input type="text" id="studentName" placeholder="Enter student name" required>
+                        <div class="field-error" id="nameError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="studentId">Student ID *</label>
+                        <input type="text" id="studentId" placeholder="Enter student ID" required>
+                        <div class="field-error" id="idError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="studentGender">Gender *</label>
+                        <select id="studentGender" required>
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <div class="field-error" id="genderError"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="studentEmail">Email</label>
+                        <input type="email" id="studentEmail" placeholder="student@example.com">
+                        <div class="field-hint">Optional</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="studentPhone">Phone</label>
+                        <input type="tel" id="studentPhone" placeholder="Phone number">
+                        <div class="field-hint">Optional</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="studentBaseRate">Base Rate ($/session) *</label>
+                        <div style="position: relative;">
+                            <span class="currency-symbol">$</span>
+                            <input type="number" id="studentBaseRate" step="0.01" min="0" 
+                                   placeholder="25.00" required 
+                                   style="padding-left: 25px;">
+                        </div>
+                        <div class="field-error" id="rateError"></div>
+                        <div class="field-hint">
+                            <a href="javascript:void(0)" onclick="useDefaultRate()" style="color: #667eea;">
+                                Use default rate
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-primary" id="addStudentBtn">
+                        <span class="btn-icon">➕</span>
+                        Add Student
+                    </button>
+                    <button type="button" class="btn btn-success" id="updateStudentBtn" style="display: none;">
+                        <span class="btn-icon">💾</span>
+                        Update Student
+                    </button>
+                    <button type="button" class="btn btn-warning" id="cancelEditBtn" style="display: none;">
+                        <span class="btn-icon">❌</span>
+                        Cancel Edit
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="clearStudentForm()">
+                        <span class="btn-icon">🗑️</span>
+                        Clear Form
+                    </button>
+                </div>
+            </form>
+
+            <!-- Students List -->
+            <div id="studentList" style="margin-top: 30px;">
+                <div class="section-header">
+                    <h3>Registered Students</h3>
+                    <div class="student-stats">
+                        <span class="stat-badge" id="studentCount">0</span> students
+                        <span class="stat-divider">|</span>
+                        <span class="stat-text">Avg. Rate: $<span id="averageRate">0.00</span></span>
+                    </div>
+                </div>
+                
+                <div class="list-controls">
+                    <div class="search-box">
+                        <input type="text" id="studentSearch" placeholder="Search students..." 
+                               oninput="filterStudents()">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                    <button class="btn btn-sm btn-secondary" onclick="sortStudents('name')">
+                        Sort by Name
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="sortStudents('rate')">
+                        Sort by Rate
+                    </button>
+                </div>
+                
+                <div id="studentsContainer" class="students-container">
+                    <!-- Students will be loaded here -->
+                </div>
+            </div>
         </div>
 
+        <!-- Other tabs (simplified for now) -->
         <div class="tab-content" id="attendance">
-            <!-- Your existing attendance tab content -->
+            <h2>Attendance Tracking</h2>
+            <p>Attendance features will be implemented here.</p>
         </div>
 
         <div class="tab-content" id="hours">
-            <!-- Your existing hours tab content -->
+            <h2>Hours Tracker</h2>
+            <p>Hours tracking features will be implemented here.</p>
         </div>
 
         <div class="tab-content" id="marks">
-            <!-- Your existing marks tab content -->
+            <h2>Marks Register</h2>
+            <p>Marks tracking features will be implemented here.</p>
         </div>
 
         <div class="tab-content" id="payments">
-            <!-- Your existing payments tab content -->
+            <h2>Payments</h2>
+            <p>Payment tracking features will be implemented here.</p>
         </div>
 
         <div class="tab-content" id="reports">
-            <!-- Your existing reports tab content -->
+            <h2>Reports & Analytics</h2>
+            <p>Reporting features will be implemented here.</p>
         </div>
-    </div>
-
-    <!-- Your existing modals -->
-    <div id="paymentModal" class="modal">
-        <!-- Your existing payment modal -->
-    </div>
-
-    <div id="attendanceSessionModal" class="modal">
-        <!-- Your existing attendance modal -->
     </div>
 
     <!-- Include auth modals -->
@@ -168,7 +306,7 @@
     <script src="app.js"></script>
     
     <script>
-        // Enhanced initialization with logout button handling
+        // SIMPLIFIED initialization - app always visible
         async function initializeApp() {
             try {
                 // Load auth modals
@@ -179,28 +317,56 @@
                 // Initialize auth system
                 if (typeof Auth !== 'undefined') {
                     await Auth.initialize();
-                    // Update UI based on auth state
                     updateAuthUI();
                 }
                 
-                // Initialize main app
+                // Initialize main app ALWAYS
                 if (typeof init === 'function') {
                     init();
                 }
                 
-                // Setup auth button listeners
+                // Setup tab system
+                setupTabs();
                 setupAuthListeners();
                 
             } catch (error) {
                 console.error('Error initializing app:', error);
-                // Fallback
+                // Fallback - still try to init main app
                 if (typeof init === 'function') {
                     init();
                 }
             }
         }
 
-        // Update auth UI based on login state
+        // Simple tab system
+        function setupTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    switchTab(tabName);
+                });
+            });
+        }
+
+        function switchTab(tabName) {
+            // Remove active class from all tabs and contents
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Add active class to selected tab and content
+            const selectedTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+            const selectedContent = document.getElementById(tabName);
+            
+            if (selectedTab) selectedTab.classList.add('active');
+            if (selectedContent) selectedContent.classList.add('active');
+        }
+
+        // Update auth UI
         function updateAuthUI() {
             const showAuthBtn = document.getElementById('showAuthBtn');
             const logoutBtn = document.getElementById('logoutBtn');
@@ -214,7 +380,7 @@
                     logoutBtn.style.display = 'inline-block';
                 }
             } else {
-                userWelcome.textContent = 'Welcome to WorkLog! Please sign in';
+                userWelcome.textContent = 'Welcome to WorkLog!';
                 showAuthBtn.style.display = 'inline-block';
                 logoutBtn.style.display = 'none';
             }
