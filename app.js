@@ -40,8 +40,7 @@ function init() {
     loadFieldMemory();
     setupAllEventListeners();
     setDefaultDate();
-    initializeCloudSync();
-    
+       
     // Ensure first tab is visible on startup
     setTimeout(() => {
         switchTab('students');
@@ -243,6 +242,7 @@ function initializeUserData() {
 }
 
 // Enhanced saveAllData to trigger cloud sync
+// Enhanced saveAllData to trigger cloud sync
 const originalSaveAllData = saveAllData;
 saveAllData = function() {
     // Mark that we have local changes
@@ -271,12 +271,14 @@ saveAllData = function() {
     // Also save to legacy storage for compatibility
     originalSaveAllData();
     
-    // Auto-sync to cloud if enabled (debounced)
-    if (cloudSync.enabled && !cloudSync.syncing) {
+    // Auto-sync to Supabase if enabled (debounced)
+    if (window.cloudSync && window.cloudSync.enabled && !window.cloudSync.syncing) {
         clearTimeout(window.cloudSyncTimeout);
         window.cloudSyncTimeout = setTimeout(() => {
-            manualSyncToCloud();
-        }, 5000); // Sync 5 seconds after last change
+            if (window.manualSyncToSupabase) {
+                window.manualSyncToSupabase();
+            }
+        }, 5000);
     }
 };
 
@@ -461,7 +463,7 @@ function updateUI() {
         currentRateEl.textContent = fieldMemory.defaultBaseRate;
     }
     
-   
+}
 
 
 function setDefaultDate() {
