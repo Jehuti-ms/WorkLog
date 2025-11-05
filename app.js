@@ -19,6 +19,15 @@ let fieldMemory = {
     defaultBaseRate: '25.00'
 };
 
+// Cloud sync state
+let cloudSync = {
+    enabled: false,
+    binId: null,
+    lastSync: null,
+    syncing: false,
+    lastLocalChange: null
+};
+
 // ============================================================================
 // INITIALIZATION FUNCTIONS
 // ============================================================================
@@ -77,6 +86,21 @@ function loadAllData() {
         payments = [];
         paymentActivity = [];
         saveAllData();
+    }
+}
+
+// Save data to localStorage
+function saveAllData() {
+    try {
+        localStorage.setItem('worklog_students', JSON.stringify(students));
+        localStorage.setItem('worklog_hours', JSON.stringify(hoursLog));
+        localStorage.setItem('worklog_marks', JSON.stringify(marks));
+        localStorage.setItem('worklog_attendance', JSON.stringify(attendance));
+        localStorage.setItem('worklog_payments', JSON.stringify(payments));
+        localStorage.setItem('worklog_payment_activity', JSON.stringify(paymentActivity));
+    } catch (error) {
+        console.error('Error saving data:', error);
+        showNotification('Error saving data. Please check browser storage.', 'error');
     }
 }
 
@@ -227,9 +251,12 @@ function initializeUserData() {
     console.log('New user data initialized for user:', userId);
 }
 
-// Enhanced saveAllData to handle user-specific storage
+// Enhanced saveAllData to trigger cloud sync
 const originalSaveAllData = saveAllData;
 saveAllData = function() {
+    // Mark that we have local changes
+    cloudSync.lastLocalChange = new Date().toISOString();
+    
     // Save to user-specific storage if authenticated
     if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
         const userId = Auth.getCurrentUserId();
@@ -253,9 +280,12 @@ saveAllData = function() {
     // Also save to legacy storage for compatibility
     originalSaveAllData();
     
-    // Auto-sync to cloud if enabled
+    // Auto-sync to cloud if enabled (debounced)
     if (cloudSync.enabled && !cloudSync.syncing) {
-        setTimeout(() => manualSyncToCloud(), 2000);
+        clearTimeout(window.cloudSyncTimeout);
+        window.cloudSyncTimeout = setTimeout(() => {
+            manualSyncToCloud();
+        }, 5000); // Sync 5 seconds after last change
     }
 };
 
@@ -782,34 +812,6 @@ function useDefaultRate() {
     if (studentBaseRateInput && fieldMemory.defaultBaseRate) {
         studentBaseRateInput.value = fieldMemory.defaultBaseRate;
     }
-}
-
-// Filter students (placeholder)
-function filterStudents() {
-    const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
-    const studentItems = document.querySelectorAll('#studentsContainer .list-item');
-    
-    studentItems.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        if (text.includes(searchTerm)) {
-            item.style.display = '';
-        } else {
-            item.style.display = 'none';
-        }
-    });
-}
-
-// Sort students
-function sortStudents(criteria) {
-    if (criteria === 'name') {
-        students.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (criteria === 'rate') {
-        students.sort((a, b) => (b.baseRate || 0) - (a.baseRate || 0));
-    }
-    
-    saveAllData();
-    updateStudentList();
-    showNotification(`Sorted students by ${criteria}`, 'info');
 }
 
 // ============================================================================
@@ -2122,15 +2124,6 @@ const CLOUD_CONFIG = {
     }
 };
 
-// Cloud sync state
-let cloudSync = {
-    enabled: false,
-    binId: null,
-    lastSync: null,
-    syncing: false,
-    lastLocalChange: null
-};
-
 // Initialize cloud sync
 function initializeCloudSync() {
     // Check if user is authenticated
@@ -2398,44 +2391,6 @@ async function mergeCloudData(cloudData) {
         updateUI();
     }
 }
-
-// Enhanced saveAllData to trigger cloud sync
-const originalSaveAllData = saveAllData;
-saveAllData = function() {
-    // Mark that we have local changes
-    cloudSync.lastLocalChange = new Date().toISOString();
-    
-    // Save to user-specific storage if authenticated
-    if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
-        const userId = Auth.getCurrentUserId();
-        if (userId) {
-            const userData = {
-                students,
-                hoursLog,
-                marks,
-                attendance,
-                payments,
-                paymentActivity,
-                fieldMemory,
-                lastSaved: new Date().toISOString(),
-                version: '2.0'
-            };
-            
-            localStorage.setItem(`worklog_data_${userId}`, JSON.stringify(userData));
-        }
-    }
-    
-    // Also save to legacy storage for compatibility
-    originalSaveAllData();
-    
-    // Auto-sync to cloud if enabled (debounced)
-    if (cloudSync.enabled && !cloudSync.syncing) {
-        clearTimeout(window.cloudSyncTimeout);
-        window.cloudSyncTimeout = setTimeout(() => {
-            manualSyncToCloud();
-        }, 5000); // Sync 5 seconds after last change
-    }
-};
 
 // Update sync UI with real status
 function updateSyncUI() {
