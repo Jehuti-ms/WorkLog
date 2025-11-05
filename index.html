@@ -14,99 +14,23 @@
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="auth.css">
-    
-    <!-- Fixed Auth Bar Styles -->
-    <style>
-        .auth-bar {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 12px 20px;
-            border-bottom: 1px solid #e8ecef;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 14px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .auth-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .user-welcome {
-            font-weight: 600;
-            color: #667eea;
-        }
-
-        .sync-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #666;
-        }
-
-        .sync-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .sync-connected { background: #28a745; }
-        .sync-syncing { background: #ffc107; animation: pulse 1.5s infinite; }
-        .sync-pending { background: #ffc107; animation: pulse 2s infinite; }
-        .sync-error { background: #dc3545; }
-        .sync-offline { background: #6c757d; }
-
-        .auth-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        /* Ensure main app is always visible */
-        .container {
-            display: block !important;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-    </style>
 </head>
 <body>
-    <!-- Enhanced Auth Bar with Logout -->
-    <div class="auth-bar">
-        <div class="auth-info">
-            <span class="user-welcome" id="userWelcome">Welcome to WorkLog!</span>
-            <span class="sync-status" id="syncStatus">
+    <!-- Cloud Sync Bar (Your Original) -->
+    <div class="cloud-sync-bar">
+        <div class="sync-status">
+            <span id="syncStatus">
                 <span class="sync-indicator sync-offline"></span>
-                Ready
+                Loading...
             </span>
         </div>
-        <div class="auth-actions">
-            <button class="btn btn-primary btn-sm" id="showAuthBtn">Sign In / Register</button>
-            <button class="btn btn-secondary btn-sm" id="logoutBtn" style="display: none;" onclick="Auth.logout()">
-                🚪 Logout
-            </button>
+        <div class="sync-controls">
+            <button id="syncBtn" class="btn btn-sm" style="display: none;">Sync</button>
+            <button id="loginBtn" class="btn btn-sm">Sign In</button>
         </div>
     </div>
 
-    <!-- Main Container - ALWAYS VISIBLE -->
+    <!-- Main Container -->
     <div class="container">
         <!-- Header -->
         <header class="app-header">
@@ -266,33 +190,102 @@
                 <div id="studentsContainer" class="students-container">
                     <!-- Students will be loaded here -->
                 </div>
+                
+                <div id="studentSummary" class="summary-card" style="display: none;">
+                    <strong>Summary:</strong>
+                    <span id="activeStudents">0</span> active,
+                    <span id="totalEarningsPotential">$0</span> potential monthly
+                </div>
             </div>
         </div>
 
-        <!-- Other tabs (simplified for now) -->
+        <!-- Other tabs (attendance, hours, marks, payments, reports) -->
+        <!-- Include the content from your previous implementation -->
         <div class="tab-content" id="attendance">
-            <h2>Attendance Tracking</h2>
-            <p>Attendance features will be implemented here.</p>
+            <!-- Attendance tab content -->
         </div>
 
         <div class="tab-content" id="hours">
-            <h2>Hours Tracker</h2>
-            <p>Hours tracking features will be implemented here.</p>
+            <!-- Hours tab content -->
         </div>
 
         <div class="tab-content" id="marks">
-            <h2>Marks Register</h2>
-            <p>Marks tracking features will be implemented here.</p>
+            <!-- Marks tab content -->
         </div>
 
         <div class="tab-content" id="payments">
-            <h2>Payments</h2>
-            <p>Payment tracking features will be implemented here.</p>
+            <!-- Payments tab content -->
         </div>
 
         <div class="tab-content" id="reports">
-            <h2>Reports & Analytics</h2>
-            <p>Reporting features will be implemented here.</p>
+            <!-- Reports tab content -->
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Record Payment</h3>
+            <form id="paymentForm">
+                <div class="form-group">
+                    <label>Student *</label>
+                    <select id="paymentStudent" required>
+                        <option value="">Select Student</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Payment Amount ($) *</label>
+                    <input type="number" id="paymentAmount" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label>Payment Date *</label>
+                    <input type="date" id="paymentDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select id="paymentMethod">
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="paymentNotes" rows="3" placeholder="Payment notes..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">💳 Record Payment</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Attendance Session Modal -->
+    <div id="attendanceSessionModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Mark Session Attendance</h3>
+            <form id="attendanceSessionForm">
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="sessionDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Subject *</label>
+                    <input type="text" id="sessionSubject" placeholder="e.g., Mathematics" required>
+                </div>
+                <div class="form-group">
+                    <label>Topic</label>
+                    <input type="text" id="sessionTopic" placeholder="e.g., Algebra">
+                </div>
+                <div style="margin-top: 15px;">
+                    <h4>Mark Present Students</h4>
+                    <div id="sessionAttendanceList" class="attendance-container">
+                        <!-- Students will be listed here -->
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">📝 Save Session</button>
+            </form>
         </div>
     </div>
 
@@ -306,7 +299,7 @@
     <script src="app.js"></script>
     
     <script>
-        // SIMPLIFIED initialization - app always visible
+        // Load auth modals and initialize app
         async function initializeApp() {
             try {
                 // Load auth modals
@@ -317,95 +310,20 @@
                 // Initialize auth system
                 if (typeof Auth !== 'undefined') {
                     await Auth.initialize();
-                    updateAuthUI();
                 }
                 
-                // Initialize main app ALWAYS
+                // Initialize main app
                 if (typeof init === 'function') {
                     init();
                 }
-                
-                // Setup tab system
-                setupTabs();
-                setupAuthListeners();
-                
             } catch (error) {
                 console.error('Error initializing app:', error);
-                // Fallback - still try to init main app
+                // Fallback: try to initialize without auth modals
                 if (typeof init === 'function') {
                     init();
                 }
             }
         }
-
-        // Simple tab system
-        function setupTabs() {
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const tabName = this.getAttribute('data-tab');
-                    switchTab(tabName);
-                });
-            });
-        }
-
-        function switchTab(tabName) {
-            // Remove active class from all tabs and contents
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // Add active class to selected tab and content
-            const selectedTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
-            const selectedContent = document.getElementById(tabName);
-            
-            if (selectedTab) selectedTab.classList.add('active');
-            if (selectedContent) selectedContent.classList.add('active');
-        }
-
-        // Update auth UI
-        function updateAuthUI() {
-            const showAuthBtn = document.getElementById('showAuthBtn');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const userWelcome = document.getElementById('userWelcome');
-            
-            if (Auth.isAuthenticated()) {
-                const user = Auth.getCurrentUser();
-                if (user) {
-                    userWelcome.textContent = `Welcome, ${user.name}!`;
-                    showAuthBtn.style.display = 'none';
-                    logoutBtn.style.display = 'inline-block';
-                }
-            } else {
-                userWelcome.textContent = 'Welcome to WorkLog!';
-                showAuthBtn.style.display = 'inline-block';
-                logoutBtn.style.display = 'none';
-            }
-        }
-
-        // Setup auth button listeners
-        function setupAuthListeners() {
-            const showAuthBtn = document.getElementById('showAuthBtn');
-            if (showAuthBtn) {
-                showAuthBtn.onclick = function() {
-                    if (typeof Auth !== 'undefined') {
-                        if (Auth.isAuthenticated()) {
-                            Auth.showProfileModal();
-                        } else {
-                            Auth.showAuthModal();
-                        }
-                    }
-                };
-            }
-        }
-
-        // Listen for auth state changes
-        document.addEventListener('authStateChanged', function() {
-            updateAuthUI();
-        });
 
         // Start the app
         document.addEventListener('DOMContentLoaded', initializeApp);
