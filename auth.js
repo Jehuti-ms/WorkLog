@@ -46,12 +46,15 @@ const Auth = (function() {
                 isAuthenticated = true;
                 this.updateUI();
                 
+                // Dispatch auth state change
+                document.dispatchEvent(new CustomEvent('authStateChanged', { 
+                    detail: { user: currentUser, action: 'auto-login' }
+                }));
+                
                 // Notify main app to load user data
                 if (window.loadUserData) {
                     window.loadUserData(currentUserId);
                 }
-            } else {
-                this.showAuthModal();
             }
         },
 
@@ -66,28 +69,40 @@ const Auth = (function() {
             });
 
             // Login form
-            document.getElementById('loginForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.loginUser();
-            });
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.loginUser();
+                });
+            }
 
             // Signup form
-            document.getElementById('signupForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.signupUser();
-            });
+            const signupForm = document.getElementById('signupForm');
+            if (signupForm) {
+                signupForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.signupUser();
+                });
+            }
 
             // Forgot password form
-            document.getElementById('forgotPasswordForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.sendPasswordReset();
-            });
+            const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+            if (forgotPasswordForm) {
+                forgotPasswordForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.sendPasswordReset();
+                });
+            }
 
             // Reset password form
-            document.getElementById('resetPasswordForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.resetPassword();
-            });
+            const resetPasswordForm = document.getElementById('resetPasswordForm');
+            if (resetPasswordForm) {
+                resetPasswordForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.resetPassword();
+                });
+            }
         },
 
         // Switch between auth tabs
@@ -107,7 +122,8 @@ const Auth = (function() {
             if (activeContent) activeContent.classList.add('active');
             
             // Clear status messages
-            document.getElementById('authStatus').innerHTML = '';
+            const authStatus = document.getElementById('authStatus');
+            if (authStatus) authStatus.innerHTML = '';
         },
 
         // Show specific auth screens
@@ -187,6 +203,11 @@ const Auth = (function() {
             // Save login state
             localStorage.setItem('worklog_current_user', userId);
             
+            // Dispatch auth state change
+            document.dispatchEvent(new CustomEvent('authStateChanged', { 
+                detail: { user: user, action: 'register' }
+            }));
+            
             this.showAuthStatus('Account created successfully! Redirecting...', 'success');
             
             setTimeout(() => {
@@ -235,6 +256,11 @@ const Auth = (function() {
             
             // Save login state
             localStorage.setItem('worklog_current_user', userId);
+            
+            // Dispatch auth state change
+            document.dispatchEvent(new CustomEvent('authStateChanged', { 
+                detail: { user: user, action: 'login' }
+            }));
             
             this.showAuthStatus('Login successful! Redirecting...', 'success');
             
@@ -335,6 +361,11 @@ const Auth = (function() {
                 
                 localStorage.removeItem('worklog_current_user');
                 
+                // Dispatch auth state change
+                document.dispatchEvent(new CustomEvent('authStateChanged', { 
+                    detail: { action: 'logout' }
+                }));
+                
                 // Clear UI
                 this.updateUI();
                 
@@ -430,40 +461,54 @@ const Auth = (function() {
             const studentsCount = document.getElementById('profileStudentsCount');
             const sessionsCount = document.getElementById('profileSessionsCount');
             
-            userName.textContent = currentUser.name;
-            userEmail.textContent = currentUser.email;
-            memberSince.textContent = `Member since ${new Date(currentUser.createdAt).toLocaleDateString()}`;
+            if (userName) userName.textContent = currentUser.name;
+            if (userEmail) userEmail.textContent = currentUser.email;
+            if (memberSince) memberSince.textContent = `Member since ${new Date(currentUser.createdAt).toLocaleDateString()}`;
             
             // Get data stats from main app
             if (window.getDataStats) {
                 const stats = window.getDataStats();
-                studentsCount.textContent = stats.students || 0;
-                sessionsCount.textContent = stats.sessions || 0;
+                if (studentsCount) studentsCount.textContent = stats.students || 0;
+                if (sessionsCount) sessionsCount.textContent = stats.sessions || 0;
             }
             
-            modal.style.display = 'block';
-            document.body.classList.add('modal-open');
+            if (modal) {
+                modal.style.display = 'block';
+                document.body.classList.add('modal-open');
+            }
         },
 
         closeProfileModal: function() {
-            document.getElementById('profileModal').style.display = 'none';
-            document.body.classList.remove('modal-open');
+            const modal = document.getElementById('profileModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
         },
 
         // Modal management
         showAuthModal: function() {
-            document.getElementById('authModal').style.display = 'block';
-            document.body.classList.add('modal-open');
+            const modal = document.getElementById('authModal');
+            if (modal) {
+                modal.style.display = 'block';
+                document.body.classList.add('modal-open');
+            }
         },
 
         closeAuthModal: function() {
-            document.getElementById('authModal').style.display = 'none';
-            document.body.classList.remove('modal-open');
+            const modal = document.getElementById('authModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
         },
 
         closeResetPasswordModal: function() {
-            document.getElementById('resetPasswordModal').style.display = 'none';
-            document.body.classList.remove('modal-open');
+            const modal = document.getElementById('resetPasswordModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            }
         },
 
         // Getters for main app
@@ -506,12 +551,16 @@ const Auth = (function() {
 
         showAuthStatus: function(message, type) {
             const statusEl = document.getElementById('authStatus');
-            statusEl.innerHTML = `<div class="status-${type}">${message}</div>`;
+            if (statusEl) {
+                statusEl.innerHTML = `<div class="status-${type}">${message}</div>`;
+            }
         },
 
         showResetPasswordStatus: function(message, type) {
             const statusEl = document.getElementById('resetPasswordStatus');
-            statusEl.innerHTML = `<div class="status-${type}">${message}</div>`;
+            if (statusEl) {
+                statusEl.innerHTML = `<div class="status-${type}">${message}</div>`;
+            }
         },
 
         showNotification: function(message) {
@@ -531,20 +580,6 @@ const Auth = (function() {
         }
     };
 })();
-
-// After successful login:
-function login(email, password) {
-    // ... your existing login logic
-    // After successful login:
-    document.dispatchEvent(new Event('authStateChanged'));
-}
-
-// After logout:
-function logout() {
-    // ... your existing logout logic  
-    // After logout:
-    document.dispatchEvent(new Event('authStateChanged'));
-}
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
