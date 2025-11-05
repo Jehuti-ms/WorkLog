@@ -461,8 +461,8 @@ function updateUI() {
         currentRateEl.textContent = fieldMemory.defaultBaseRate;
     }
     
-    updateSyncUI();
-}
+   
+
 
 function setDefaultDate() {
     const today = new Date().toISOString().split('T')[0];
