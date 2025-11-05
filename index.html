@@ -11,12 +11,11 @@
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <link rel="icon" href="icons/icon-192x192.png" type="image/png">
 
-    <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="auth.css">
 </head>
 <body>
-    <!-- Cloud Sync Bar (Your Original) -->
+    <!-- Cloud Sync Bar with Logout -->
     <div class="cloud-sync-bar">
         <div class="sync-status">
             <span id="syncStatus">
@@ -27,6 +26,8 @@
         <div class="sync-controls">
             <button id="syncBtn" class="btn btn-sm" style="display: none;">Sync</button>
             <button id="loginBtn" class="btn btn-sm">Sign In</button>
+            <button id="logoutBtn" class="btn btn-sm btn-secondary" style="display: none;">🚪 Logout</button>
+            <button id="profileBtn" class="btn btn-sm" style="display: none;">👤 Profile</button>
         </div>
     </div>
 
@@ -200,7 +201,6 @@
         </div>
 
         <!-- Other tabs (attendance, hours, marks, payments, reports) -->
-        <!-- Include the content from your previous implementation -->
         <div class="tab-content" id="attendance">
             <!-- Attendance tab content -->
         </div>
@@ -310,18 +310,85 @@
                 // Initialize auth system
                 if (typeof Auth !== 'undefined') {
                     await Auth.initialize();
+                    updateAuthButtons();
                 }
                 
                 // Initialize main app
                 if (typeof init === 'function') {
                     init();
                 }
+                
+                // Setup button listeners
+                setupAuthButtonListeners();
+                
+                // Listen for auth changes
+                document.addEventListener('authStateChanged', updateAuthButtons);
+                
             } catch (error) {
                 console.error('Error initializing app:', error);
-                // Fallback: try to initialize without auth modals
                 if (typeof init === 'function') {
                     init();
                 }
+            }
+        }
+
+        // Update auth buttons based on login state
+        function updateAuthButtons() {
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const profileBtn = document.getElementById('profileBtn');
+            const syncStatus = document.getElementById('syncStatus');
+            
+            if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+                const user = Auth.getCurrentUser();
+                if (user) {
+                    // User is logged in
+                    if (loginBtn) loginBtn.style.display = 'none';
+                    if (logoutBtn) logoutBtn.style.display = 'inline-block';
+                    if (profileBtn) profileBtn.style.display = 'inline-block';
+                    if (syncStatus) {
+                        syncStatus.innerHTML = `<span class="sync-indicator sync-connected"></span> Signed in as ${user.name}`;
+                    }
+                }
+            } else {
+                // User is not logged in
+                if (loginBtn) loginBtn.style.display = 'inline-block';
+                if (logoutBtn) logoutBtn.style.display = 'none';
+                if (profileBtn) profileBtn.style.display = 'none';
+                if (syncStatus) {
+                    syncStatus.innerHTML = `<span class="sync-indicator sync-offline"></span> Not signed in`;
+                }
+            }
+        }
+
+        // Setup auth button listeners
+        function setupAuthButtonListeners() {
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const profileBtn = document.getElementById('profileBtn');
+            
+            if (loginBtn) {
+                loginBtn.onclick = function() {
+                    if (typeof Auth !== 'undefined') {
+                        Auth.showAuthModal();
+                    }
+                };
+            }
+            
+            if (logoutBtn) {
+                logoutBtn.onclick = function() {
+                    if (typeof Auth !== 'undefined') {
+                        Auth.logout();
+                    }
+                };
+            }
+            
+            if (profileBtn) {
+                profileBtn.onclick = function() {
+                    if (typeof Auth !== 'undefined') {
+                        Auth.showProfileModal();
+                    }
+                };
             }
         }
 
