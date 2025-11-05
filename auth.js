@@ -532,6 +532,20 @@ const Auth = (function() {
     };
 })();
 
+// After successful login:
+function login(email, password) {
+    // ... your existing login logic
+    // After successful login:
+    document.dispatchEvent(new Event('authStateChanged'));
+}
+
+// After logout:
+function logout() {
+    // ... your existing logout logic  
+    // After logout:
+    document.dispatchEvent(new Event('authStateChanged'));
+}
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     Auth.initialize();
