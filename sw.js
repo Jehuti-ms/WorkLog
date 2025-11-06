@@ -1,16 +1,16 @@
-// Service Worker for WorkLog App
-const cacheName = 'worklog-app-v2'; // Changed cache name to force update
+// Service Worker for WorkLog App - FIXED VERSION
+const cacheName = 'worklog-app-v3'; // Increment version
 const assetsToCache = [
-  './',
-  './index.html',    // New index with authorisation 
   './styles.css',
   './app.js',
+  './auth.js',
+  './cloud-sync.js',
   './manifest.json',
-  './sw.js',
   './icons/icon-72x72.png',
   './icons/icon-144x144.png', 
   './icons/icon-192x192.png',
   './icons/icon-512x512.png'
+  // REMOVED: index.html and auth.html from cache
 ];
 
 self.addEventListener('install', event => {
@@ -26,7 +26,7 @@ self.addEventListener('install', event => {
           });
       })
   );
-  self.skipWaiting(); // ADD THIS - forces immediate activation
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
@@ -43,10 +43,18 @@ self.addEventListener('activate', event => {
       );
     })
   );
-  self.clients.claim(); // ADD THIS - controls all clients immediately
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
+  // DON'T cache HTML files - always fetch fresh versions
+  if (event.request.url.includes('.html')) {
+    console.log('Fetching fresh HTML:', event.request.url);
+    event.respondWith(fetch(event.request));
+    return;
+  }
+  
+  // For other assets, try cache first
   event.respondWith(
     caches.match(event.request)
       .then(response => {
