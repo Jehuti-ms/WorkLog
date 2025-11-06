@@ -418,3 +418,74 @@ window.manualSync = () => window.cloudSync.manualSync();
 window.exportCloudData = () => window.cloudSync.exportCloudData();
 window.importToCloud = () => window.cloudSync.importToCloud();
 window.getSyncStats = () => window.cloudSync.getSyncStats();
+
+// Ensure global functions are available immediately
+window.toggleAutoSync = function() {
+    if (window.cloudSync) {
+        window.cloudSync.toggleAutoSync();
+    } else {
+        console.error('Cloud sync not initialized');
+        alert('Cloud sync is not ready yet. Please wait a moment and try again.');
+    }
+};
+
+window.manualSync = function() {
+    if (window.cloudSync) {
+        window.cloudSync.manualSync();
+    } else {
+        console.error('Cloud sync not initialized');
+        alert('Cloud sync is not ready yet. Please wait a moment and try again.');
+    }
+};
+
+window.exportCloudData = function() {
+    if (window.cloudSync) {
+        window.cloudSync.exportCloudData();
+    } else {
+        console.error('Cloud sync not initialized');
+        alert('Cloud sync is not ready yet. Please wait a moment and try again.');
+    }
+};
+
+window.importToCloud = function() {
+    if (window.cloudSync) {
+        window.cloudSync.importToCloud();
+    } else {
+        console.error('Cloud sync not initialized');
+        alert('Cloud sync is not ready yet. Please wait a moment and try again.');
+    }
+};
+
+window.getSyncStats = function() {
+    if (window.cloudSync) {
+        return window.cloudSync.getSyncStats();
+    } else {
+        console.error('Cloud sync not initialized');
+        alert('Cloud sync is not ready yet. Please wait a moment and try again.');
+        return Promise.resolve(null);
+    }
+};
+
+window.showSyncStats = function() {
+    if (window.cloudSync) {
+        // Use the showSyncStats function from app.js
+        if (typeof window.showSyncStats === 'function') {
+            window.showSyncStats();
+        } else {
+            alert('Sync stats function not available. Make sure app.js is loaded.');
+        }
+    } else {
+        console.error('Cloud sync not initialized');
+        alert('Cloud sync is not ready yet. Please wait a moment and try again.');
+    }
+};
+
+// Make closeSyncStats available globally
+window.closeSyncStats = function() {
+    const modal = document.getElementById('syncStatsModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};
+
+console.log('✅ Cloud sync functions registered globally');
