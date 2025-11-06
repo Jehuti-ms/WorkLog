@@ -251,6 +251,96 @@ async function forgotPassword(email) {
 }
 
 // ============================================================================
+// DATA PERSISTENCE FUNCTIONS
+// ============================================================================
+
+// Load authentication data from localStorage
+function loadAuthData() {
+    try {
+        const savedData = localStorage.getItem(AUTH_CONFIG.storageKey);
+        if (savedData) {
+            const parsedData = JSON.parse(savedData);
+            authState.users = parsedData.users || [];
+            authState.sessions = parsedData.sessions || [];
+            console.log('Auth data loaded from storage');
+        } else {
+            // Initialize with demo user for testing
+            initializeDemoData();
+        }
+    } catch (error) {
+        console.error('Error loading auth data:', error);
+        // Initialize with empty state
+        authState.users = [];
+        authState.sessions = [];
+    }
+}
+
+// Save authentication data to localStorage
+function saveAuthData() {
+    try {
+        const dataToSave = {
+            users: authState.users,
+            sessions: authState.sessions,
+            lastUpdated: new Date().toISOString()
+        };
+        localStorage.setItem(AUTH_CONFIG.storageKey, JSON.stringify(dataToSave));
+        console.log('Auth data saved to storage');
+    } catch (error) {
+        console.error('Error saving auth data:', error);
+    }
+}
+
+// Check existing session on page load
+function checkExistingSession() {
+    const sessionId = localStorage.getItem('worklog_session');
+    if (sessionId) {
+        const session = validateSession(sessionId);
+        if (session) {
+            const user = authState.users.find(u => u.id === session.userId);
+            if (user && user.isActive) {
+                authState.isAuthenticated = true;
+                authState.currentUser = user;
+                console.log('Existing session restored for user:', user.name);
+                
+                // If we're on auth page but already logged in, redirect to main app
+                if (window.location.pathname.includes('auth.html') && authState.isAuthenticated) {
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                }
+                return true;
+            }
+        } else {
+            // Invalid session, clean up
+            localStorage.removeItem('worklog_session');
+        }
+    }
+    return false;
+}
+
+// Initialize demo data for testing
+function initializeDemoData() {
+    // Only initialize if no users exist
+    if (authState.users.length === 0) {
+        const demoUser = {
+            id: 'demo_user_123',
+            name: 'Demo User',
+            email: 'demo@example.com',
+            password: hashPassword('demopassword123'),
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+            isActive: true,
+            profile: {
+                avatar: generateAvatar('Demo User'),
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            }
+        };
+        authState.users.push(demoUser);
+        console.log('Demo user initialized');
+    }
+}
+
+// ============================================================================
 // SESSION MANAGEMENT
 // ============================================================================
 
@@ -592,6 +682,19 @@ function showTerms() {
 
 function showPrivacy() {
     alert('🔒 Privacy Policy\n\nThis is a demo application. In a real app, you would show a proper privacy policy here.');
+}
+
+// Clear all auth data (for debugging)
+function clearAuthData() {
+    localStorage.removeItem(AUTH_CONFIG.storageKey);
+    localStorage.removeItem('worklog_session');
+    authState = {
+        isAuthenticated: false,
+        currentUser: null,
+        users: [],
+        sessions: []
+    };
+    console.log('Auth data cleared');
 }
 
 // ============================================================================
