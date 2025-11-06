@@ -24,69 +24,45 @@ let authState = {
 
 // Initialize authentication system
 function initAuth() {
+    console.log('Initializing auth system...');
     loadAuthData();
     checkExistingSession();
     setupAuthEventListeners();
     
+    // Update auth button if we're on the main app
+    if (typeof setupAuthUI === 'function') {
+        setupAuthUI();
+    }
+    
     console.log('Auth system initialized');
 }
 
-// Load authentication data from localStorage
-function loadAuthData() {
-    try {
-        const saved = localStorage.getItem(AUTH_CONFIG.storageKey);
-        if (saved) {
-            const data = JSON.parse(saved);
-            authState.users = data.users || [];
-            authState.sessions = data.sessions || [];
-        }
-    } catch (error) {
-        console.error('Error loading auth data:', error);
-        authState.users = [];
-        authState.sessions = [];
-    }
-}
+// Remove the DOMContentLoaded event listener from auth.js and replace with:
+// Make functions available globally
+window.Auth = {
+    isAuthenticated: function() {
+        return authState.isAuthenticated;
+    },
+    getCurrentUser: function() {
+        return authState.currentUser;
+    },
+    getCurrentUserId: function() {
+        return authState.currentUser ? authState.currentUser.id : null;
+    },
+    showAuthModal: function() {
+        window.location.href = 'auth.html';
+    },
+    showProfileModal: function() {
+        alert('👤 User Profile\n\nThis would show user profile and settings in the main app.');
+    },
+    logoutUser: logoutUser
+};
 
-// Save authentication data to localStorage
-function saveAuthData() {
-    try {
-        localStorage.setItem(AUTH_CONFIG.storageKey, JSON.stringify({
-            users: authState.users,
-            sessions: authState.sessions,
-            lastUpdated: new Date().toISOString()
-        }));
-    } catch (error) {
-        console.error('Error saving auth data:', error);
-    }
-}
-
-// Check for existing valid session
-function checkExistingSession() {
-    const sessionId = localStorage.getItem('worklog_session');
-    if (sessionId) {
-        const session = authState.sessions.find(s => s.id === sessionId && new Date(s.expires) > new Date());
-        if (session) {
-            const user = authState.users.find(u => u.id === session.userId);
-            if (user) {
-                authState.isAuthenticated = true;
-                authState.currentUser = user;
-                console.log('Existing session found for user:', user.email);
-                
-                // Redirect to main app if we're on auth page
-                if (window.location.pathname.includes('auth.html')) {
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1000);
-                }
-                
-                return true;
-            }
-        } else {
-            // Clear expired session
-            localStorage.removeItem('worklog_session');
-        }
-    }
-    return false;
+// For auth.html page
+if (window.location.pathname.includes('auth.html')) {
+    document.addEventListener('DOMContentLoaded', function() {
+        initAuth();
+    });
 }
 
 // ============================================================================
