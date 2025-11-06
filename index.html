@@ -717,28 +717,35 @@
     </script>
     <!-- In your index.html, make sure scripts are loaded in this order -->
 <!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> -->
+<!-- JavaScript Files -->
 <script src="auth.js"></script>
 <script src="cloud-sync.js"></script>
 <script src="app.js"></script>
 
 <script>
-    // Simple initialization that won't break
+    // Enhanced initialization with proper auth handling
     document.addEventListener('DOMContentLoaded', function() {
         console.log('DOM loaded, initializing app...');
-        try {
-            // Initialize auth first
-            if (typeof initAuth === 'function') {
-                initAuth();
-            }
-            
-            // Then initialize main app
+        
+        // Initialize auth first
+        if (typeof initAuth === 'function') {
+            initAuth();
+        } else {
+            console.error('Auth system not loaded');
+        }
+        
+        // Check if user is authenticated before initializing main app
+        if (window.Auth && window.Auth.isAuthenticated()) {
+            console.log('User is authenticated, initializing main app...');
             if (typeof init === 'function') {
                 init();
-            } else {
-                console.log('Main app init function not found');
             }
-        } catch (error) {
-            console.error('Error during initialization:', error);
+        } else {
+            console.log('User not authenticated, main app will not initialize');
+            // Show login prompt or redirect
+            document.getElementById('authButton').textContent = '🔐 Login Required';
+            document.getElementById('authButton').style.background = '#ffc107';
+            document.getElementById('authButton').style.color = '#212529';
         }
     });
 </script>
