@@ -38,6 +38,9 @@ function init() {
     // Setup event listeners
     setupEventListeners();
     
+    // Load default rate settings
+    loadDefaultRate(); // ADD THIS LINE
+    
     // Update stats
     updateStats();
     
@@ -225,7 +228,10 @@ function addStudent() {
         const gender = document.getElementById('studentGender').value;
         const email = document.getElementById('studentEmail').value;
         const phone = document.getElementById('studentPhone').value;
-        const rate = document.getElementById('studentBaseRate').value || appData.settings.defaultRate;
+        const rateInput = document.getElementById('studentBaseRate').value;
+        
+        // Use default rate if no rate specified
+        const rate = rateInput ? parseFloat(rateInput) : (appData.settings.defaultRate || 25.00);
         
         if (!name || !id || !gender) {
             alert('Please fill in required fields: Name, ID, and Gender');
@@ -238,7 +244,7 @@ function addStudent() {
             gender,
             email,
             phone,
-            rate: parseFloat(rate) || 0,
+            rate: rate,
             createdAt: new Date().toISOString()
         };
         
@@ -274,6 +280,68 @@ function deleteStudent(index) {
         loadStudents();
         alert('✅ Student deleted successfully!');
     }
+}
+
+// ============================================================================
+// DEFAULT RATE MANAGEMENT
+// ============================================================================
+
+function loadDefaultRate() {
+    const defaultRate = appData.settings.defaultRate || 25.00;
+    document.getElementById('defaultBaseRate').value = defaultRate;
+    document.getElementById('currentDefaultRate').textContent = defaultRate.toFixed(2);
+    
+    // Auto-fill the student form with default rate
+    const studentRateInput = document.getElementById('studentBaseRate');
+    if (studentRateInput && !studentRateInput.value) {
+        studentRateInput.value = defaultRate;
+    }
+}
+
+function saveDefaultRate() {
+    const defaultRate = parseFloat(document.getElementById('defaultBaseRate').value);
+    
+    if (!defaultRate || defaultRate <= 0) {
+        alert('Please enter a valid default rate');
+        return;
+    }
+    
+    appData.settings.defaultRate = defaultRate;
+    saveAllData();
+    loadDefaultRate();
+    
+    alert('✅ Default rate saved successfully!');
+}
+
+function applyDefaultRateToAll() {
+    if (!confirm('Are you sure you want to apply the default rate to ALL existing students?')) {
+        return;
+    }
+    
+    const defaultRate = appData.settings.defaultRate || 25.00;
+    let updatedCount = 0;
+    
+    appData.students.forEach(student => {
+        student.rate = defaultRate;
+        updatedCount++;
+    });
+    
+    saveAllData();
+    loadStudents();
+    
+    alert(`✅ Default rate applied to ${updatedCount} students!`);
+}
+
+function useDefaultRate() {
+    const defaultRate = appData.settings.defaultRate || 25.00;
+    const studentRateInput = document.getElementById('studentBaseRate');
+    
+    if (studentRateInput) {
+        studentRateInput.value = defaultRate;
+        studentRateInput.focus();
+    }
+    
+    alert(`📝 Default rate ($${defaultRate}) filled in the form!`);
 }
 
 // ============================================================================
