@@ -12,17 +12,32 @@
 <body>
     <div class="container">
         <!-- Header Section -->
-        <header class="header">
-            <h1>📚 WorkLog</h1>
-            <p class="subtitle">Student Tracker & Hours Management System</p>
-            
-            <div class="storage-status">
-                <span class="status" id="localStatus">💾 Local Storage: Active</span>
-                <span class="status" id="syncStatus">☁️ Cloud Sync: Ready</span>
-                <span class="status" id="dataStatus">📊 Data: 0 Students, 0 Sessions</span>
-                <button class="btn btn-sm" id="authButton" style="margin-left: 10px;">Sign In</button>
+<header class="header">
+    <h1>📚 WorkLog</h1>
+    <p class="subtitle">Student Tracker & Hours Management System</p>
+    
+    <div class="storage-status">
+        <span class="status" id="localStatus">💾 Local Storage: Active</span>
+        <span class="status" id="syncStatus">☁️ Cloud Sync: Ready</span>
+        <span class="status" id="dataStatus">📊 Data: 0 Students, 0 Sessions</span>
+        
+        <!-- Updated Auth Section -->
+        <div class="auth-section" style="display: inline-block; margin-left: 10px;">
+            <button class="btn btn-sm" id="authButton">Sign In</button>
+            <div id="userMenu" class="user-menu" style="display: none;">
+                <div class="user-info">
+                    <span id="userName">User</span>
+                </div>
+                <button class="user-menu-item" onclick="window.Auth.showProfileModal()">
+                    👤 Profile & Settings
+                </button>
+                <button class="user-menu-item" onclick="window.Auth.logoutUser()">
+                    🚪 Logout
+                </button>
             </div>
-        </header>
+        </div>
+    </div>
+</header>
 
         <!-- Cloud Sync Bar -->
         <div class="cloud-sync-bar">
