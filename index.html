@@ -5,34 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkLog - Student Tracker & Hours Management</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- REMOVED: auth.css - should not be here -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Emergency CSS to ensure tabs work */
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            margin-top: 10px;
+            min-height: 400px;
+        }
+        
+        .tab-content.active {
+            display: block !important;
+        }
+        
+        .user-menu {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            min-width: 150px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
-    <!-- SECURITY OVERLAY REMOVAL -->
-    <script>
-        // Remove any fake overlays immediately
-        window.addEventListener('DOMContentLoaded', function() {
-            const suspiciousElements = document.querySelectorAll([
-                '[style*="position: fixed"]',
-                '[style*="z-index: 9999"]',
-                '[style*="z-index: 99999"]',
-                '.auth-container',
-                '.auth-card'
-            ].join(','));
-            
-            suspiciousElements.forEach(el => {
-                if (el.offsetWidth > 300 || el.innerHTML.includes('Sign In') || el.innerHTML.includes('Login')) {
-                    console.log('Removing suspicious overlay:', el);
-                    el.remove();
-                }
-            });
-            
-            // Also remove any iframes
-            document.querySelectorAll('iframe').forEach(iframe => iframe.remove());
-        });
-    </script>
-
     <div class="container">
         <!-- Header Section -->
         <header class="header">
@@ -44,15 +45,15 @@
                 <span class="status" id="syncStatus">☁️ Cloud Sync: Ready</span>
                 <span class="status" id="dataStatus">📊 Data: 0 Students, 0 Sessions</span>
                 
-                <!-- Updated Auth Section -->
+                <!-- Auth Section -->
                 <div class="auth-section" style="display: inline-block; margin-left: 10px;">
                     <button class="btn btn-sm" id="authButton">Sign In</button>
-                    <div id="userMenu" class="user-menu" style="display: none;">
+                    <div id="userMenu" class="user-menu">
                         <div class="user-info">
                             <span id="userName">User</span>
                         </div>
                         <button class="user-menu-item" onclick="window.Auth.showProfileModal()">
-                            👤 Profile & Settings
+                            👤 Profile
                         </button>
                         <button class="user-menu-item" onclick="window.Auth.logoutUser()">
                             🚪 Logout
@@ -69,7 +70,6 @@
                 <span id="syncMessage">All changes saved locally</span>
             </div>
             <div class="sync-controls">
-                <button class="btn btn-sm" id="syncBtn" style="display: none;">🔄</button>
                 <button class="btn btn-sm" onclick="exportData()">📤 Export Data</button>
                 <button class="btn btn-sm btn-secondary" onclick="importData()">📥 Import Data</button>
                 <button class="btn btn-sm btn-danger" onclick="clearAllData()">🗑️ Clear All</button>
@@ -79,24 +79,12 @@
         <!-- Tab Navigation -->
         <div class="tabs-container">
             <div class="tabs">
-                <button class="tab active" data-tab="students">
-                    👥 Students
-                </button>
-                <button class="tab" data-tab="hours">
-                    ⏱️ Hours
-                </button>
-                <button class="tab" data-tab="marks">
-                    📊 Marks
-                </button>
-                <button class="tab" data-tab="attendance">
-                    ✅ Attendance
-                </button>
-                <button class="tab" data-tab="payments">
-                    💰 Payments
-                </button>
-                <button class="tab" data-tab="reports">
-                    📈 Reports
-                </button>
+                <button class="tab active" data-tab="students">👥 Students</button>
+                <button class="tab" data-tab="hours">⏱️ Hours</button>
+                <button class="tab" data-tab="marks">📊 Marks</button>
+                <button class="tab" data-tab="attendance">✅ Attendance</button>
+                <button class="tab" data-tab="payments">💰 Payments</button>
+                <button class="tab" data-tab="reports">📈 Reports</button>
             </div>
         </div>
 
@@ -104,218 +92,87 @@
         <div class="content">
             <!-- Students Tab -->
             <div id="students" class="tab-content active">
-                <div class="section-header">
-                    <h2>📚 Student Management</h2>
-                    <div class="student-stats">
-                        <span class="stat-badge" id="studentCount">0</span>
-                        <span class="stat-divider">|</span>
-                        <span class="stat-text">Avg Rate: $<span id="averageRate">0.00</span>/session</span>
-                    </div>
-                </div>
-
-                <!-- Default Rate Settings Panel -->
-                <div class="default-rate-panel">
-                    <h4>💰 Default Rate Settings</h4>
-                    <div class="form-group">
-                        <label for="defaultBaseRate">Default Base Rate ($/session)</label>
-                        <input type="number" id="defaultBaseRate" step="0.01" min="0" placeholder="e.g., 25.00">
-                        <div class="help-text">This rate will be automatically filled for new students.</div>
-                        <div class="current-rate-display">
-                            Current: $<span id="currentDefaultRate">0.00</span>
-                        </div>
-                    </div>
-                    <div class="rate-actions">
-                        <button type="button" class="btn btn-success" onclick="saveDefaultRate()">
-                            💾 Save Default Rate
-                        </button>
-                        <button type="button" class="btn btn-warning" onclick="applyDefaultRateToAll()">
-                            🔄 Apply to All Students
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="useDefaultRate()">
-                            📝 Use in Form
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Student Registration Form -->
+                <h2>📚 Student Management</h2>
+                <p>Student management content will appear here.</p>
                 <div class="section-card">
-                    <h3>👤 Student Registration</h3>
-                    <form id="studentForm">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="studentName">Full Name *</label>
-                                <input type="text" id="studentName" placeholder="Enter student's full name" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="studentId">Student ID *</label>
-                                <input type="text" id="studentId" placeholder="Enter unique student ID" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="studentGender">Gender *</label>
-                                <select id="studentGender" required>
-                                    <option value="">Select gender</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="studentEmail">Email Address</label>
-                                <input type="email" id="studentEmail" placeholder="student@email.com">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="studentPhone">Phone Number</label>
-                                <input type="tel" id="studentPhone" placeholder="+1 (555) 123-4567">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="studentBaseRate">
-                                    Base Rate ($/session) 
-                                    <span class="auto-fill-hint">Auto-fills from default</span>
-                                </label>
-                                <input type="number" id="studentBaseRate" step="0.01" min="0" placeholder="e.g., 25.00">
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-primary" id="addStudentBtn" onclick="addStudent()">
-                                ➕ Add Student
-                            </button>
-                            <button type="button" class="btn btn-success" id="updateStudentBtn" onclick="updateStudent()" style="display: none;">
-                                ✏️ Update Student
-                            </button>
-                            <button type="button" class="btn btn-secondary" id="cancelEditBtn" onclick="cancelEdit()" style="display: none;">
-                                ❌ Cancel Edit
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="clearStudentForm()">
-                                🗑️ Clear Form
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Student List -->
-                <div class="section-card">
-                    <div class="section-header">
-                        <h3>📋 Registered Students</h3>
-                        <div class="list-controls">
-                            <div class="search-box">
-                                <input type="text" id="studentSearch" placeholder="🔍 Search students...">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="students-container" id="studentsContainer">
-                        <p style="color: #666; text-align: center; padding: 40px;">
-                            No students registered yet. Add your first student above!
-                        </p>
-                    </div>
+                    <h3>Student Registration Form</h3>
+                    <p>Form to add new students will be here.</p>
                 </div>
             </div>
 
-            <!-- Rest of your content remains exactly the same -->
             <!-- Hours Tab -->
             <div id="hours" class="tab-content">
-                <!-- ... keep all your existing hours tab content ... -->
+                <h2>⏱️ Hours Tracking</h2>
+                <p>Hours tracking content will appear here.</p>
+                <div class="section-card">
+                    <h3>Log New Hours</h3>
+                    <p>Form to log hours will be here.</p>
+                </div>
             </div>
 
             <!-- Marks Tab -->
             <div id="marks" class="tab-content">
-                <!-- ... keep all your existing marks tab content ... -->
+                <h2>📊 Marks & Assessments</h2>
+                <p>Marks and assessments content will appear here.</p>
+                <div class="section-card">
+                    <h3>Add New Mark</h3>
+                    <p>Form to add marks will be here.</p>
+                </div>
             </div>
 
             <!-- Attendance Tab -->
             <div id="attendance" class="tab-content">
-                <!-- ... keep all your existing attendance tab content ... -->
+                <h2>✅ Attendance Tracking</h2>
+                <p>Attendance tracking content will appear here.</p>
+                <div class="section-card">
+                    <h3>Quick Attendance</h3>
+                    <p>Attendance form will be here.</p>
+                </div>
             </div>
 
             <!-- Payments Tab -->
             <div id="payments" class="tab-content">
-                <!-- ... keep all your existing payments tab content ... -->
+                <h2>💰 Payment Management</h2>
+                <p>Payment management content will appear here.</p>
+                <div class="section-card">
+                    <h3>Record Payment</h3>
+                    <p>Payment form will be here.</p>
+                </div>
             </div>
 
             <!-- Reports Tab -->
             <div id="reports" class="tab-content">
-                <!-- ... keep all your existing reports tab content ... -->
+                <h2>📈 Reports & Analytics</h2>
+                <p>Reports and analytics content will appear here.</p>
+                <div class="section-card">
+                    <h3>Analytics Dashboard</h3>
+                    <p>Charts and reports will be here.</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Payment Modal -->
-    <div id="paymentModal" class="modal">
-        <!-- ... keep your modal content ... -->
-    </div>
+    <!-- JavaScript Files -->
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
 
-    <!-- Session Attendance Modal -->
-    <div id="attendanceSessionModal" class="modal">
-        <!-- ... keep your modal content ... -->
-    </div>
-
-    <!-- Hidden file input for import -->
-    <input type="file" id="importFile" accept=".json" style="display: none;">
-
-    <!-- ==================== -->
-    <!-- CORRECT SCRIPT ORDER -->
-    <!-- ==================== -->
-    
-       <script src="auth.js"></script>
-        <script src="cloud-sync.js"></script>
-        <script src="app.js"></script>
-
-<script>
-    // SIMPLE initialization
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 Starting app initialization...');
-        
-        // Auth is automatically initialized by auth.js
-        // Main app will initialize if user is authenticated
-        
-        // Just wait a bit and check if we should initialize main app
-        setTimeout(() => {
-            if (window.Auth && window.Auth.isAuthenticated()) {
-                console.log('✅ User is authenticated, starting main app...');
-                if (typeof init === 'function') {
-                    init();
+    <script>
+        // Simple initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Starting app...');
+            
+            // Auth will auto-initialize
+            // Main app will initialize after auth check
+            
+            setTimeout(() => {
+                if (window.Auth && window.Auth.isAuthenticated()) {
+                    console.log('✅ User authenticated');
+                    if (typeof init === 'function') {
+                        init();
+                    }
                 }
-            } else {
-                console.log('⚠️ User not authenticated, main app will not start');
-            }
-        }, 100);
-    });
-</script>
-    <!-- DEBUG SCRIPT - Add this right before </body> -->
-<script>
-    // Debug authentication status
-    console.log('=== AUTH DEBUG INFO ===');
-    console.log('Window.Auth exists:', !!window.Auth);
-    console.log('isAuthenticated function exists:', !!(window.Auth && window.Auth.isAuthenticated));
-    console.log('Auth state:', window.Auth ? window.Auth.isAuthenticated() : 'No Auth object');
-    console.log('Current user:', window.Auth ? window.Auth.getCurrentUser() : 'No user');
-    console.log('Session in localStorage:', localStorage.getItem('worklog_session'));
-    
-    // Check if user menu elements exist
-    const authButton = document.getElementById('authButton');
-    const userMenu = document.getElementById('userMenu');
-    console.log('Auth button exists:', !!authButton);
-    console.log('User menu exists:', !!userMenu);
-    
-    // Force show user menu for testing
-    if (authButton && userMenu) {
-        console.log('Setting up auth button click handler...');
-        authButton.onclick = function() {
-            console.log('Auth button clicked!');
-            if (userMenu.style.display === 'block') {
-                userMenu.style.display = 'none';
-            } else {
-                userMenu.style.display = 'block';
-            }
-        };
-    }
-</script>
-    
+            }, 100);
+        });
+    </script>
 </body>
 </html>
