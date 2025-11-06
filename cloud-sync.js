@@ -530,3 +530,59 @@ window.closeSyncStats = function() {
 };
 
 console.log('✅ Cloud sync functions registered globally');
+
+    async testConnection() {
+        try {
+            console.log('🧪 Testing Supabase connection...');
+            
+            // Test 1: Basic connection
+            const { data, error } = await this.supabase
+                .from('worklog_data')
+                .select('count')
+                .limit(1);
+
+            if (error) {
+                console.log('❌ Connection test failed:', error);
+                return false;
+            }
+
+            console.log('✅ Basic connection test passed');
+            
+            // Test 2: Try to insert test data
+            const testData = {
+                user_id: 'test_user',
+                data: { test: true },
+                last_updated: new Date().toISOString()
+            };
+
+            const { error: insertError } = await this.supabase
+                .from('worklog_data')
+                .upsert(testData, { onConflict: 'user_id' });
+
+            if (insertError) {
+                console.log('❌ Insert test failed:', insertError);
+                return false;
+            }
+
+            console.log('✅ Insert test passed');
+            
+            // Test 3: Clean up test data
+            const { error: deleteError } = await this.supabase
+                .from('worklog_data')
+                .delete()
+                .eq('user_id', 'test_user');
+
+            if (deleteError) {
+                console.log('⚠️ Cleanup failed (not critical):', deleteError);
+            } else {
+                console.log('✅ Cleanup test passed');
+            }
+
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Connection test failed:', error);
+            return false;
+        }
+    }
+
