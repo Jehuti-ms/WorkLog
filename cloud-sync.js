@@ -27,7 +27,7 @@ class CloudSync {
             // Initialize Supabase
             this.supabase = supabase.createClient(
                 'https://kfdhizqcjavikjwlefvk.supabase.co',
-                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZGhpenFjamF2aWtqd2xlZnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjgxNzU2NDQsImV4cCI6MjA0Mzc1MTY0NH0.3q2Z_1kY2Q5g8k0HtOxWdcwOwgWfwcQJXvDFuZ5y1pI'
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZGhpenFjamF2aWtqd2xlZnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTE3NDMsImV4cCI6MjA3NzkyNzc0M30.w-2Tkg1-ogfeIVI8-5NRKGm4eJk5Z7cvqu5MLt1a2c4'
             );
 
             // Test connection
