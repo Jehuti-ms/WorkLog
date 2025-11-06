@@ -428,7 +428,7 @@
                 </div>
             </div>
 
-            <!-- Attendance Tab -->
+          <!-- Attendance Tab -->
             <div id="attendance" class="tab-content">
                 <div class="section-header">
                     <h2>✅ Attendance Tracking</h2>
@@ -438,7 +438,7 @@
                         <span class="stat-text">Last Session: <span id="lastSessionDate">Never</span></span>
                     </div>
                 </div>
-
+            
                 <div class="form-grid">
                     <div class="section-card">
                         <h3>📅 Quick Attendance</h3>
@@ -459,7 +459,18 @@
                         </div>
                         
                         <div class="attendance-container">
-                            <h4 style="margin-bottom: 15px;">Select Present Students:</h4>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h4 style="margin: 0;">Select Present Students:</h4>
+                                <div class="attendance-quick-actions">
+                                    <button type="button" class="select-all-btn" onclick="selectAllStudents()">
+                                        ✅ Select All
+                                    </button>
+                                    <button type="button" class="deselect-all-btn" onclick="deselectAllStudents()">
+                                        ❌ Deselect All
+                                    </button>
+                                </div>
+                            </div>
+                            
                             <div id="attendanceList">
                                 <p style="color: #666; text-align: center; padding: 20px;">
                                     No students registered. Add students first.
@@ -471,12 +482,15 @@
                             <button type="button" class="btn btn-primary" onclick="saveAttendance()">
                                 💾 Save Attendance
                             </button>
+                            <button type="button" class="btn btn-secondary" onclick="clearAttendanceForm()">
+                                🗑️ Clear Form
+                            </button>
                         </div>
                     </div>
-
+            
                     <div class="section-card">
                         <h3>📋 Recent Attendance</h3>
-                        <div class="mobile-entries" id="attendanceContainer">
+                        <div class="attendance-history" id="attendanceContainer">
                             <p style="color: #666; text-align: center; padding: 40px;">
                                 No attendance records yet. Track your first session!
                             </p>
@@ -484,17 +498,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Add this after the attendance list in your index.html -->
-            <div class="attendance-quick-actions">
-                <button type="button" class="select-all-btn" onclick="selectAllStudents()">
-                    ✅ Select All Students
-                </button>
-                <button type="button" class="deselect-all-btn" onclick="deselectAllStudents()">
-                    ❌ Deselect All
-                </button>
-            </div>
-            
             <!-- Payments Tab -->
             <div id="payments" class="tab-content">
                 <div class="section-header">
