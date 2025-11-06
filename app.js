@@ -31,57 +31,79 @@ let cloudSyncTimeout = null;
 function init() {
     console.log('🎯 App: Starting main application...');
     
-    // Safer authentication check
+    // Enhanced authentication check
     if (!window.Auth || !window.Auth.isAuthenticated || !window.Auth.isAuthenticated()) {
         console.log('❌ App: User not authenticated, skipping initialization');
         return;
     }
     
     try {
-        // Safer user ID access
-        const userId = window.Auth.getCurrentUserId ? window.Auth.getCurrentUserId() : 'unknown';
-        console.log('👤 Current user ID:', userId);
+        console.log('✅ User authenticated, initializing app components...');
         
-        // Your existing init code here...
-        loadStudents();
-        loadHours();
-        loadMarks();
-        loadAttendance();
-        loadPayments();
-        updateStats();
-        setupEventListeners();
+        // Test if basic functions exist
+        console.log('Checking functions:');
+        console.log('- loadStudents:', typeof loadStudents);
+        console.log('- loadHours:', typeof loadHours);
+        console.log('- loadMarks:', typeof loadMarks);
+        console.log('- loadAttendance:', typeof loadAttendance);
+        console.log('- loadPayments:', typeof loadPayments);
+        console.log('- updateStats:', typeof updateStats);
+        console.log('- setupEventListeners:', typeof setupEventListeners);
         
-        console.log('✅ WorkLog app initialized successfully');
+        // Initialize components one by one with error handling
+        if (typeof loadStudents === 'function') {
+            console.log('📚 Loading students...');
+            loadStudents();
+        } else {
+            console.error('❌ loadStudents function not found');
+        }
+        
+        if (typeof loadHours === 'function') {
+            console.log('⏱️ Loading hours...');
+            loadHours();
+        } else {
+            console.error('❌ loadHours function not found');
+        }
+        
+        if (typeof loadMarks === 'function') {
+            console.log('📊 Loading marks...');
+            loadMarks();
+        } else {
+            console.error('❌ loadMarks function not found');
+        }
+        
+        if (typeof loadAttendance === 'function') {
+            console.log('✅ Loading attendance...');
+            loadAttendance();
+        } else {
+            console.error('❌ loadAttendance function not found');
+        }
+        
+        if (typeof loadPayments === 'function') {
+            console.log('💰 Loading payments...');
+            loadPayments();
+        } else {
+            console.error('❌ loadPayments function not found');
+        }
+        
+        if (typeof updateStats === 'function') {
+            console.log('📈 Updating stats...');
+            updateStats();
+        } else {
+            console.error('❌ updateStats function not found');
+        }
+        
+        if (typeof setupEventListeners === 'function') {
+            console.log('🔗 Setting up event listeners...');
+            setupEventListeners();
+        } else {
+            console.error('❌ setupEventListeners function not found');
+        }
+        
+        console.log('✅ WorkLog app initialization complete');
         
     } catch (error) {
         console.error('❌ Error during app initialization:', error);
-    }
-}
-
-// Add login/logout button to your header
-function setupAuthUI() {
-    const header = document.querySelector('.header');
-    if (header && typeof Auth !== 'undefined') {
-        // Add auth button to header
-        const authButton = document.createElement('button');
-        authButton.className = 'btn btn-sm';
-        authButton.id = 'authButton';
-        authButton.style.marginLeft = '10px';
-        
-        if (Auth.isAuthenticated()) {
-            const user = Auth.getCurrentUser();
-            authButton.textContent = `👤 ${user.name.split(' ')[0]}`;
-            authButton.onclick = Auth.showProfileModal;
-        } else {
-            authButton.textContent = 'Sign In';
-            authButton.onclick = Auth.showAuthModal;
-        }
-        
-        // Add to header (you might need to adjust based on your header structure)
-        const storageStatus = document.querySelector('.storage-status');
-        if (storageStatus) {
-            storageStatus.appendChild(authButton);
-        }
     }
 }
 
