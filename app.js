@@ -117,15 +117,21 @@ function saveAllData() {
             }
         }
         
-        // Auto-sync to Supabase if enabled (debounced)
-        if (window.cloudSync && window.cloudSync.enabled && !window.cloudSync.syncing) {
-            clearTimeout(cloudSyncTimeout);
-            cloudSyncTimeout = setTimeout(() => {
-                if (window.manualSyncToSupabase) {
-                    window.manualSyncToSupabase();
-                }
-            }, 5000);
+        // Mark that we have local changes for cloud sync
+        if (window.cloudSync) {
+            window.cloudSync.lastLocalChange = new Date().toISOString();
+            
+            // Auto-sync to Supabase if enabled (debounced)
+            if (window.cloudSync.enabled && !window.cloudSync.syncing) {
+                clearTimeout(window.cloudSyncTimeout);
+                window.cloudSyncTimeout = setTimeout(() => {
+                    if (window.manualSyncToSupabase) {
+                        window.manualSyncToSupabase();
+                    }
+                }, 5000);
+            }
         }
+        
     } catch (error) {
         console.error('Error saving data:', error);
         showNotification('Error saving data. Please check browser storage.', 'error');
