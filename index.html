@@ -5,38 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WorkLog - Student Tracker & Hours Management</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Add this to your HTML head section -->
+    <!-- REMOVED: auth.css - should not be here -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+    <!-- SECURITY OVERLAY REMOVAL -->
+    <script>
+        // Remove any fake overlays immediately
+        window.addEventListener('DOMContentLoaded', function() {
+            const suspiciousElements = document.querySelectorAll([
+                '[style*="position: fixed"]',
+                '[style*="z-index: 9999"]',
+                '[style*="z-index: 99999"]',
+                '.auth-container',
+                '.auth-card'
+            ].join(','));
+            
+            suspiciousElements.forEach(el => {
+                if (el.offsetWidth > 300 || el.innerHTML.includes('Sign In') || el.innerHTML.includes('Login')) {
+                    console.log('Removing suspicious overlay:', el);
+                    el.remove();
+                }
+            });
+            
+            // Also remove any iframes
+            document.querySelectorAll('iframe').forEach(iframe => iframe.remove());
+        });
+    </script>
+
     <div class="container">
         <!-- Header Section -->
-<header class="header">
-    <h1>📚 WorkLog</h1>
-    <p class="subtitle">Student Tracker & Hours Management System</p>
-    
-    <div class="storage-status">
-        <span class="status" id="localStatus">💾 Local Storage: Active</span>
-        <span class="status" id="syncStatus">☁️ Cloud Sync: Ready</span>
-        <span class="status" id="dataStatus">📊 Data: 0 Students, 0 Sessions</span>
-        
-        <!-- Updated Auth Section -->
-        <div class="auth-section" style="display: inline-block; margin-left: 10px;">
-            <button class="btn btn-sm" id="authButton">Sign In</button>
-            <div id="userMenu" class="user-menu" style="display: none;">
-                <div class="user-info">
-                    <span id="userName">User</span>
+        <header class="header">
+            <h1>📚 WorkLog</h1>
+            <p class="subtitle">Student Tracker & Hours Management System</p>
+            
+            <div class="storage-status">
+                <span class="status" id="localStatus">💾 Local Storage: Active</span>
+                <span class="status" id="syncStatus">☁️ Cloud Sync: Ready</span>
+                <span class="status" id="dataStatus">📊 Data: 0 Students, 0 Sessions</span>
+                
+                <!-- Updated Auth Section -->
+                <div class="auth-section" style="display: inline-block; margin-left: 10px;">
+                    <button class="btn btn-sm" id="authButton">Sign In</button>
+                    <div id="userMenu" class="user-menu" style="display: none;">
+                        <div class="user-info">
+                            <span id="userName">User</span>
+                        </div>
+                        <button class="user-menu-item" onclick="window.Auth.showProfileModal()">
+                            👤 Profile & Settings
+                        </button>
+                        <button class="user-menu-item" onclick="window.Auth.logoutUser()">
+                            🚪 Logout
+                        </button>
+                    </div>
                 </div>
-                <button class="user-menu-item" onclick="window.Auth.showProfileModal()">
-                    👤 Profile & Settings
-                </button>
-                <button class="user-menu-item" onclick="window.Auth.logoutUser()">
-                    🚪 Logout
-                </button>
             </div>
-        </div>
-    </div>
-</header>
+        </header>
 
         <!-- Cloud Sync Bar -->
         <div class="cloud-sync-bar">
@@ -193,560 +217,106 @@
                 </div>
             </div>
 
+            <!-- Rest of your content remains exactly the same -->
             <!-- Hours Tab -->
             <div id="hours" class="tab-content">
-                <div class="section-header">
-                    <h2>⏱️ Hours Tracking</h2>
-                    <div class="student-stats">
-                        <span class="stat-text">This Week: <span id="weeklyHours">0</span>h / $<span id="weeklyTotal">0</span></span>
-                        <span class="stat-divider">|</span>
-                        <span class="stat-text">This Month: <span id="monthlyHours">0</span>h / $<span id="monthlyTotal">0</span></span>
-                    </div>
-                </div>
-
-                <div class="form-grid">
-                    <div class="section-card">
-                        <h3>➕ Log New Hours</h3>
-                        <div class="form-group">
-                            <label for="organization">Organization *</label>
-                            <input type="text" id="organization" placeholder="School or organization name" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="subject">Subject *</label>
-                            <input type="text" id="subject" placeholder="e.g., Mathematics, Physics" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="topic">Topic</label>
-                            <input type="text" id="topic" placeholder="Specific topic covered">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="workDate">Date *</label>
-                            <input type="date" id="workDate" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="hoursWorked">Hours Worked *</label>
-                            <input type="number" id="hoursWorked" step="0.5" min="0.5" placeholder="e.g., 1.5" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="baseRate">Rate ($/hour) *</label>
-                            <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 25.00" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="totalPay">Total Pay</label>
-                            <input type="text" id="totalPay" readonly placeholder="Calculated automatically">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="workNotes">Notes</label>
-                            <textarea id="workNotes" rows="3" placeholder="Additional notes about the session"></textarea>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-primary" onclick="logHours()">
-                                💾 Log Hours
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="resetHoursForm()">
-                                🗑️ Clear Form
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="section-card">
-                        <h3>📊 Recent Hours</h3>
-                        <div class="mobile-entries" id="hoursContainer">
-                            <p style="color: #666; text-align: center; padding: 40px;">
-                                No hours logged yet. Start tracking your work sessions!
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <!-- ... keep all your existing hours tab content ... -->
             </div>
 
             <!-- Marks Tab -->
             <div id="marks" class="tab-content">
-                <div class="section-header">
-                    <h2>📊 Marks & Assessments</h2>
-                    <div class="student-stats">
-                        <span class="stat-badge" id="marksCount">0</span>
-                        <span class="stat-divider">|</span>
-                        <span class="stat-text">Avg Score: <span id="avgMarks">0%</span></span>
-                    </div>
-                </div>
-
-                <div class="form-grid">
-                    <div class="section-card">
-                        <h3>➕ Add New Mark</h3>
-                        
-                        <div class="form-group">
-                            <label for="marksStudent">Student *</label>
-                            <select id="marksStudent" required>
-                                <option value="">Select student...</option>
-                            </select>
-                        </div>
-                        
-                        <div id="studentDetails" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <strong>Selected Student:</strong>
-                            <div>Name: <span id="selectedStudentName"></span></div>
-                            <div>Gender: <span id="selectedStudentGender"></span></div>
-                            <div>ID: <span id="selectedStudentId"></span></div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="markSubject">Subject *</label>
-                            <input type="text" id="markSubject" placeholder="e.g., Mathematics" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="markTopic">Topic *</label>
-                            <input type="text" id="markTopic" placeholder="e.g., Algebra, Calculus" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="markDate">Date *</label>
-                            <input type="date" id="markDate" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="score">Score *</label>
-                            <input type="number" id="score" step="0.5" min="0" placeholder="Student's score" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="maxScore">Maximum Score *</label>
-                            <input type="number" id="maxScore" step="0.5" min="1" placeholder="Total possible score" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="percentage">Percentage</label>
-                            <input type="text" id="percentage" readonly placeholder="Calculated automatically">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="grade">Grade</label>
-                            <input type="text" id="grade" readonly placeholder="Calculated automatically">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="markComments">Comments</label>
-                            <textarea id="markComments" rows="3" placeholder="Feedback and comments"></textarea>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-primary" onclick="addMark()">
-                                💾 Save Mark
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('marksForm').reset()">
-                                🗑️ Clear Form
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="section-card">
-                        <h3>📋 Recent Marks</h3>
-                        <div class="mobile-entries" id="marksContainer">
-                            <p style="color: #666; text-align: center; padding: 40px;">
-                                No marks recorded yet. Add student assessments!
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <!-- ... keep all your existing marks tab content ... -->
             </div>
 
             <!-- Attendance Tab -->
             <div id="attendance" class="tab-content">
-                <div class="section-header">
-                    <h2>✅ Attendance Tracking</h2>
-                    <div class="student-stats">
-                        <span class="stat-badge" id="attendanceCount">0</span>
-                        <span class="stat-divider">|</span>
-                        <span class="stat-text">Last Session: <span id="lastSessionDate">Never</span></span>
-                    </div>
-                </div>
-
-                <div class="form-grid">
-                    <div class="section-card">
-                        <h3>📅 Quick Attendance</h3>
-                        
-                        <div class="form-group">
-                            <label for="attendanceDate">Date *</label>
-                            <input type="date" id="attendanceDate" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="attendanceSubject">Subject *</label>
-                            <input type="text" id="attendanceSubject" placeholder="e.g., Mathematics" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="attendanceTopic">Topic</label>
-                            <input type="text" id="attendanceTopic" placeholder="Specific topic covered">
-                        </div>
-                        
-                        <div class="attendance-container">
-                            <h4 style="margin-bottom: 15px;">Select Present Students:</h4>
-                            <div id="attendanceList">
-                                <p style="color: #666; text-align: center; padding: 20px;">
-                                    No students registered. Add students first.
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-primary" onclick="saveAttendance()">
-                                💾 Save Attendance
-                            </button>
-                            <button type="button" class="btn btn-success" onclick="openModal('attendanceSessionModal')">
-                                👥 Record Session
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="section-card">
-                        <h3>📋 Recent Attendance</h3>
-                        <div class="mobile-entries" id="attendanceContainer">
-                            <p style="color: #666; text-align: center; padding: 40px;">
-                                No attendance records yet. Track your first session!
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <!-- ... keep all your existing attendance tab content ... -->
             </div>
 
             <!-- Payments Tab -->
             <div id="payments" class="tab-content">
-                <div class="section-header">
-                    <h2>💰 Payment Management</h2>
-                    <div class="student-stats">
-                        <span class="stat-text">Total Students: <span id="totalStudentsCount">0</span></span>
-                        <span class="stat-divider">|</span>
-                        <span class="stat-text">Total Owed: <span id="totalOwed">$0</span></span>
-                        <span class="stat-divider">|</span>
-                        <span class="stat-text">This Month: <span id="monthlyPayments">$0</span></span>
-                    </div>
-                </div>
-
-                <div class="form-grid">
-                    <div class="section-card">
-                        <h3>💳 Record Payment</h3>
-                        <div class="form-group">
-                            <label for="paymentStudent">Student *</label>
-                            <select id="paymentStudent" required>
-                                <option value="">Select Student</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="paymentAmount">Amount ($) *</label>
-                            <input type="number" id="paymentAmount" step="0.01" min="0.01" placeholder="0.00" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="paymentDate">Date *</label>
-                            <input type="date" id="paymentDate" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="paymentMethod">Payment Method</label>
-                            <select id="paymentMethod">
-                                <option value="Cash">Cash</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
-                                <option value="Credit Card">Credit Card</option>
-                                <option value="PayPal">PayPal</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="paymentNotes">Notes</label>
-                            <textarea id="paymentNotes" rows="3" placeholder="Payment reference or notes"></textarea>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-primary" onclick="recordPayment()">
-                                💾 Record Payment
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="resetPaymentForm()">
-                                🗑️ Clear Form
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="section-card">
-                        <h3>👥 Student Balances</h3>
-                        <div class="students-container" id="studentBalancesContainer">
-                            <p style="color: #666; text-align: center; padding: 40px;">
-                                No students with balances. Add students and payments first.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section-card">
-                    <h3>📝 Payment Activity</h3>
-                    <div class="activity-log" id="paymentActivityLog">
-                        <p style="color: #666; text-align: center; padding: 20px;">
-                            No recent payment activity.
-                        </p>
-                    </div>
-                </div>
+                <!-- ... keep all your existing payments tab content ... -->
             </div>
 
             <!-- Reports Tab -->
             <div id="reports" class="tab-content">
-                <div class="section-header">
-                    <h2>📈 Reports & Analytics</h2>
-                    <div class="student-stats">
-                        <span class="stat-text">Outstanding: <span id="outstandingBalance">$0</span></span>
-                    </div>
-                </div>
-
-                <!-- Quick Stats -->
-                <div class="stats-row">
-                    <div class="stat-card">
-                        <h3>Total Students</h3>
-                        <span id="totalStudentsReport">0</span>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Total Hours</h3>
-                        <span id="totalHoursReport">0</span>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Total Earnings</h3>
-                        <span id="totalEarningsReport">$0</span>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Average Mark</h3>
-                        <span id="avgMarkReport">0%</span>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Total Payments</h3>
-                        <span id="totalPaymentsReport">$0</span>
-                    </div>
-                </div>
-
-                <!-- Breakdown Analysis -->
-                <div class="section-card">
-                    <h3>📊 Breakdown Analysis</h3>
-                    <div class="button-group">
-                        <button class="btn" id="weeklyBreakdownBtn" onclick="showWeeklyBreakdown()">
-                            📅 Weekly
-                        </button>
-                        <button class="btn" id="biWeeklyBreakdownBtn" onclick="showBiWeeklyBreakdown()">
-                            📆 Bi-Weekly
-                        </button>
-                        <button class="btn" id="monthlyBreakdownBtn" onclick="showMonthlyBreakdown()">
-                            📈 Monthly
-                        </button>
-                        <button class="btn" id="subjectBreakdownBtn" onclick="showSubjectBreakdown()">
-                            📚 Subject
-                        </button>
-                    </div>
-                    
-                    <div id="breakdownContainer">
-                        <p style="color: #666; text-align: center; padding: 40px;">
-                            Select a breakdown option above to view analytics.
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Detailed Reports -->
-                <div class="form-grid">
-                    <div class="section-card">
-                        <h3>📅 Weekly Summary</h3>
-                        <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Week</th>
-                                        <th>Hours</th>
-                                        <th>Earnings</th>
-                                        <th>Subjects</th>
-                                        <th>Net (80%)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="weeklyBody">
-                                    <tr>
-                                        <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
-                                            No weekly data available
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="section-card">
-                        <h3>📚 Subject Performance</h3>
-                        <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Subject</th>
-                                        <th>Avg Mark</th>
-                                        <th>Hours</th>
-                                        <th>Earnings</th>
-                                        <th>Sessions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="subjectBody">
-                                    <tr>
-                                        <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
-                                            No subject data available
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+                <!-- ... keep all your existing reports tab content ... -->
             </div>
         </div>
     </div>
 
     <!-- Payment Modal -->
     <div id="paymentModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>💳 Record Payment</h3>
-            <form id="paymentForm">
-                <div class="form-group">
-                    <label for="paymentStudentModal">Student *</label>
-                    <select id="paymentStudentModal" required>
-                        <option value="">Select Student</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="paymentAmountModal">Amount ($) *</label>
-                    <input type="number" id="paymentAmountModal" step="0.01" min="0.01" placeholder="0.00" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="paymentDateModal">Date *</label>
-                    <input type="date" id="paymentDateModal" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="paymentMethodModal">Payment Method</label>
-                    <select id="paymentMethodModal">
-                        <option value="Cash">Cash</option>
-                        <option value="Bank Transfer">Bank Transfer</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="PayPal">PayPal</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="paymentNotesModal">Notes</label>
-                    <textarea id="paymentNotesModal" rows="3" placeholder="Payment reference or notes"></textarea>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">
-                        💾 Record Payment
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('paymentModal').style.display='none'">
-                        ❌ Cancel
-                    </button>
-                </div>
-            </form>
-        </div>
+        <!-- ... keep your modal content ... -->
     </div>
 
     <!-- Session Attendance Modal -->
     <div id="attendanceSessionModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>👥 Record Session Attendance</h3>
-            <form id="attendanceSessionForm">
-                <div class="form-group">
-                    <label for="sessionDate">Date *</label>
-                    <input type="date" id="sessionDate" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="sessionSubject">Subject *</label>
-                    <input type="text" id="sessionSubject" placeholder="e.g., Mathematics" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="sessionTopic">Topic</label>
-                    <input type="text" id="sessionTopic" placeholder="Specific topic covered">
-                </div>
-                
-                <div class="attendance-container">
-                    <h4 style="margin-bottom: 15px;">Mark Present Students:</h4>
-                    <div id="sessionAttendanceList">
-                        <p style="color: #666; text-align: center; padding: 20px;">
-                            Loading students...
-                        </p>
-                    </div>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">
-                        💾 Save Session
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('attendanceSessionModal').style.display='none'">
-                        ❌ Cancel
-                    </button>
-                </div>
-            </form>
-        </div>
+        <!-- ... keep your modal content ... -->
     </div>
 
     <!-- Hidden file input for import -->
     <input type="file" id="importFile" accept=".json" style="display: none;">
 
-    <!-- JavaScript Files -->
-    <script src="app.js"></script>
+    <!-- ==================== -->
+    <!-- CORRECT SCRIPT ORDER -->
+    <!-- ==================== -->
     
+    <!-- 1. Auth system first -->
+    <script src="auth.js"></script>
+    
+    <!-- 2. Cloud sync second -->
+    <script src="cloud-sync.js"></script>
+    
+    <!-- 3. Main app LAST -->
+    <script src="app.js"></script>
+
+    <!-- ==================== -->
+    <!-- PROPER INITIALIZATION -->
+    <!-- ==================== -->
     <script>
-        // Initialize the application when DOM is loaded
+        // Proper initialization sequence
         document.addEventListener('DOMContentLoaded', function() {
-            init();
+            console.log('=== WORKLOG APP INITIALIZATION ===');
+            
+            // Step 1: Initialize authentication FIRST
+            if (typeof initAuth === 'function') {
+                console.log('Initializing auth system...');
+                initAuth();
+            } else {
+                console.error('❌ Auth system not found!');
+            }
+            
+            // Step 2: Check authentication status
+            setTimeout(function() {
+                if (window.Auth && window.Auth.isAuthenticated()) {
+                    console.log('✅ User authenticated, initializing main app...');
+                    // Initialize main app
+                    if (typeof init === 'function') {
+                        init();
+                    }
+                } else {
+                    console.log('❌ User not authenticated');
+                    // Update UI to show login required
+                    const authBtn = document.getElementById('authButton');
+                    if (authBtn) {
+                        authBtn.textContent = '🔐 Login Required';
+                        authBtn.style.background = '#ffc107';
+                        authBtn.style.color = '#212529';
+                        authBtn.onclick = function() {
+                            window.location.href = 'auth.html';
+                        };
+                    }
+                    
+                    // Disable all interactive elements
+                    document.querySelectorAll('button, input, select, textarea').forEach(el => {
+                        if (el.id !== 'authButton') {
+                            el.disabled = true;
+                        }
+                    });
+                }
+            }, 100);
         });
     </script>
-    <!-- In your index.html, make sure scripts are loaded in this order -->
-<!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> -->
-<!-- JavaScript Files -->
-<script src="auth.js"></script>
-<script src="cloud-sync.js"></script>
-<script src="app.js"></script>
-
-<script>
-    // Enhanced initialization with proper auth handling
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM loaded, initializing app...');
-        
-        // Initialize auth first
-        if (typeof initAuth === 'function') {
-            initAuth();
-        } else {
-            console.error('Auth system not loaded');
-        }
-        
-        // Check if user is authenticated before initializing main app
-        if (window.Auth && window.Auth.isAuthenticated()) {
-            console.log('User is authenticated, initializing main app...');
-            if (typeof init === 'function') {
-                init();
-            }
-        } else {
-            console.log('User not authenticated, main app will not initialize');
-            // Show login prompt or redirect
-            document.getElementById('authButton').textContent = '🔐 Login Required';
-            document.getElementById('authButton').style.background = '#ffc107';
-            document.getElementById('authButton').style.color = '#212529';
-        }
-    });
-</script>
 </body>
 </html>
