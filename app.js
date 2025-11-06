@@ -1036,6 +1036,9 @@ window.showSubjectBreakdown = showSubjectBreakdown;
 window.exportData = exportData;
 window.importData = importData;
 window.clearAllData = clearAllData;
+window.saveDefaultRate = saveDefaultRate;
+window.applyDefaultRateToAll = applyDefaultRateToAll;
+window.useDefaultRate = useDefaultRate;
 
 // Sync helper functions
 function showSyncStats() {
