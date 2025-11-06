@@ -633,48 +633,58 @@
     <!-- Hidden file input for import -->
     <input type="file" id="importFile" accept=".json" style="display: none;">
 
-    <!-- JavaScript Files -->
-    <script src="auth.js"></script>
-    <script src="app.js"></script>
+     <!-- JavaScript Files - CORRECT ORDER -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+<script src="cloud-sync.js"></script>
+<script src="app.js"></script>
 
-    <script>
-        // Simple initialization
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Starting app...');
-            
-            // Auth will auto-initialize
-            // Main app will initialize after auth check
-            
-            setTimeout(() => {
-                if (window.Auth && window.Auth.isAuthenticated()) {
-                    console.log('✅ User authenticated');
-                    if (typeof init === 'function') {
-                        init();
-                    }
-                } else {
-                    console.log('❌ User not authenticated');
-                    const authBtn = document.getElementById('authButton');
-                    if (authBtn) {
-                        authBtn.textContent = '🔐 Login Required';
-                        authBtn.style.background = '#ffc107';
-                        authBtn.style.color = '#212529';
-                    }
-                }
-            }, 100);
-
-            // Close user menu when clicking outside
-            document.addEventListener('click', function(event) {
-                const userMenu = document.getElementById('userMenu');
-                const authButton = document.getElementById('authButton');
+<script>
+    // Simple initialization with proper error handling
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Starting app...');
+        
+        // Auth will auto-initialize
+        // Cloud sync will auto-initialize after auth
+        // Main app will initialize after auth check
+        
+        setTimeout(() => {
+            if (window.Auth && window.Auth.isAuthenticated()) {
+                console.log('✅ User authenticated');
                 
-                if (userMenu && authButton && 
-                    !authButton.contains(event.target) && 
-                    !userMenu.contains(event.target)) {
-                    userMenu.style.display = 'none';
+                // Initialize cloud sync if not already done
+                if (window.cloudSync && typeof window.cloudSync.init === 'function') {
+                    window.cloudSync.init();
                 }
-            });
+                
+                // Initialize main app
+                if (typeof init === 'function') {
+                    init();
+                }
+            } else {
+                console.log('❌ User not authenticated');
+                const authBtn = document.getElementById('authButton');
+                if (authBtn) {
+                    authBtn.textContent = '🔐 Login Required';
+                    authBtn.style.background = '#ffc107';
+                    authBtn.style.color = '#212529';
+                }
+            }
+        }, 100);
+
+        // Close user menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const userMenu = document.getElementById('userMenu');
+            const authButton = document.getElementById('authButton');
+            
+            if (userMenu && authButton && 
+                !authButton.contains(event.target) && 
+                !userMenu.contains(event.target)) {
+                userMenu.style.display = 'none';
+            }
         });
-    </script>
+    });
+</script>
     <!-- Sync Stats Modal -->
     <div id="syncStatsModal" class="sync-stats-modal">
         <div class="sync-stats-content">
