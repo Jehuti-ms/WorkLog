@@ -2293,3 +2293,66 @@ document.addEventListener('DOMContentLoaded', function() {
     // The main init function will be called from the HTML file
     console.log('WorkLog app loaded and ready');
 });
+
+// Add this function to your app.js
+function setupAuthUI() {
+    const authButton = document.getElementById('authButton');
+    if (authButton) {
+        // Check if user is authenticated
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+            const user = Auth.getCurrentUser();
+            authButton.textContent = `👤 ${user.name.split(' ')[0]}`;
+            authButton.onclick = function() {
+                // Show profile modal or redirect to profile
+                alert(`Welcome ${user.name}! Profile features coming soon.`);
+            };
+        } else {
+            authButton.textContent = 'Sign In';
+            authButton.onclick = function() {
+                // Redirect to auth page
+                window.location.href = 'auth.html';
+            };
+        }
+    }
+}
+
+// Call this in your init function
+function init() {
+    console.log("WorkLog app initialized");
+    
+    // Check if user is authenticated
+    if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+        const userId = Auth.getCurrentUserId();
+        console.log("Loading data for authenticated user:", userId);
+        loadUserData(userId);
+    } else {
+        console.log("No authenticated user, loading legacy data");
+        loadAllData();
+    }
+    
+    loadFieldMemory();
+    setupAllEventListeners();
+    setDefaultDate();
+    
+    // Setup auth UI
+    setupAuthUI();
+    
+    // Load default rate into display
+    const currentRateEl = document.getElementById('currentDefaultRate');
+    if (currentRateEl && fieldMemory.defaultBaseRate) {
+        currentRateEl.textContent = fieldMemory.defaultBaseRate;
+    }
+    
+    // Initialize cloud sync if authenticated
+    if (typeof Auth !== 'undefined' && Auth.isAuthenticated() && window.initCloudSync) {
+        window.initCloudSync();
+    }
+    
+    // Ensure first tab is visible on startup
+    setTimeout(() => {
+        switchTab('students');
+        updateUI();
+    }, 100);
+    
+    console.log('App initialized successfully');
+}
