@@ -27,10 +27,11 @@ let cloudSyncTimeout = null;
 // ============================================================================
 
 // Initialize app
+// In your init() function, add authentication check:
 function init() {
     console.log("WorkLog app initialized");
     
-    // Check if user is authenticated
+    // Check authentication
     if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
         const userId = Auth.getCurrentUserId();
         console.log("Loading data for authenticated user:", userId);
@@ -50,6 +51,11 @@ function init() {
         currentRateEl.textContent = fieldMemory.defaultBaseRate;
     }
     
+    // Initialize cloud sync if authenticated
+    if (typeof Auth !== 'undefined' && Auth.isAuthenticated() && window.initCloudSync) {
+        window.initCloudSync();
+    }
+    
     // Ensure first tab is visible on startup
     setTimeout(() => {
         switchTab('students');
@@ -57,6 +63,33 @@ function init() {
     }, 100);
     
     console.log('App initialized successfully');
+}
+
+// Add login/logout button to your header
+function setupAuthUI() {
+    const header = document.querySelector('.header');
+    if (header && typeof Auth !== 'undefined') {
+        // Add auth button to header
+        const authButton = document.createElement('button');
+        authButton.className = 'btn btn-sm';
+        authButton.id = 'authButton';
+        authButton.style.marginLeft = '10px';
+        
+        if (Auth.isAuthenticated()) {
+            const user = Auth.getCurrentUser();
+            authButton.textContent = `👤 ${user.name.split(' ')[0]}`;
+            authButton.onclick = Auth.showProfileModal;
+        } else {
+            authButton.textContent = 'Sign In';
+            authButton.onclick = Auth.showAuthModal;
+        }
+        
+        // Add to header (you might need to adjust based on your header structure)
+        const storageStatus = document.querySelector('.storage-status');
+        if (storageStatus) {
+            storageStatus.appendChild(authButton);
+        }
+    }
 }
 
 // Load data from localStorage
