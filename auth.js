@@ -380,3 +380,13 @@ if (document.readyState === 'loading') {
 } else {
     initAuth();
 }
+
+window.Auth = {
+    isAuthenticated: () => authState.isAuthenticated,
+    getCurrentUser: () => authState.currentUser,
+    getCurrentUserId: () => authState.currentUser ? authState.currentUser.id : null, // ADD THIS LINE
+    logoutUser: logoutUser,
+    showAuthModal: () => window.location.href = 'auth.html',
+    resetAuthData: resetAuthData,
+    debugAuth: debugAuth
+};
