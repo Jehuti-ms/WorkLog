@@ -262,62 +262,31 @@
     <!-- CORRECT SCRIPT ORDER -->
     <!-- ==================== -->
     
-    <!-- 1. Auth system first -->
-    <script src="auth.js"></script>
-    
-    <!-- 2. Cloud sync second -->
-    <script src="cloud-sync.js"></script>
-    
-    <!-- 3. Main app LAST -->
-    <script src="app.js"></script>
+       <script src="auth.js"></script>
+        <script src="cloud-sync.js"></script>
+        <script src="app.js"></script>
 
-    <!-- ==================== -->
-    <!-- PROPER INITIALIZATION -->
-    <!-- ==================== -->
-    <script>
-        // Proper initialization sequence
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('=== WORKLOG APP INITIALIZATION ===');
-            
-            // Step 1: Initialize authentication FIRST
-            if (typeof initAuth === 'function') {
-                console.log('Initializing auth system...');
-                initAuth();
-            } else {
-                console.error('❌ Auth system not found!');
-            }
-            
-            // Step 2: Check authentication status
-            setTimeout(function() {
-                if (window.Auth && window.Auth.isAuthenticated()) {
-                    console.log('✅ User authenticated, initializing main app...');
-                    // Initialize main app
-                    if (typeof init === 'function') {
-                        init();
-                    }
-                } else {
-                    console.log('❌ User not authenticated');
-                    // Update UI to show login required
-                    const authBtn = document.getElementById('authButton');
-                    if (authBtn) {
-                        authBtn.textContent = '🔐 Login Required';
-                        authBtn.style.background = '#ffc107';
-                        authBtn.style.color = '#212529';
-                        authBtn.onclick = function() {
-                            window.location.href = 'auth.html';
-                        };
-                    }
-                    
-                    // Disable all interactive elements
-                    document.querySelectorAll('button, input, select, textarea').forEach(el => {
-                        if (el.id !== 'authButton') {
-                            el.disabled = true;
-                        }
-                    });
+<script>
+    // SIMPLE initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Starting app initialization...');
+        
+        // Auth is automatically initialized by auth.js
+        // Main app will initialize if user is authenticated
+        
+        // Just wait a bit and check if we should initialize main app
+        setTimeout(() => {
+            if (window.Auth && window.Auth.isAuthenticated()) {
+                console.log('✅ User is authenticated, starting main app...');
+                if (typeof init === 'function') {
+                    init();
                 }
-            }, 100);
-        });
-    </script>
+            } else {
+                console.log('⚠️ User not authenticated, main app will not start');
+            }
+        }, 100);
+    });
+</script>
     <!-- DEBUG SCRIPT - Add this right before </body> -->
 <script>
     // Debug authentication status
@@ -347,5 +316,6 @@
         };
     }
 </script>
+    
 </body>
 </html>
