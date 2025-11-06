@@ -318,5 +318,34 @@
             }, 100);
         });
     </script>
+    <!-- DEBUG SCRIPT - Add this right before </body> -->
+<script>
+    // Debug authentication status
+    console.log('=== AUTH DEBUG INFO ===');
+    console.log('Window.Auth exists:', !!window.Auth);
+    console.log('isAuthenticated function exists:', !!(window.Auth && window.Auth.isAuthenticated));
+    console.log('Auth state:', window.Auth ? window.Auth.isAuthenticated() : 'No Auth object');
+    console.log('Current user:', window.Auth ? window.Auth.getCurrentUser() : 'No user');
+    console.log('Session in localStorage:', localStorage.getItem('worklog_session'));
+    
+    // Check if user menu elements exist
+    const authButton = document.getElementById('authButton');
+    const userMenu = document.getElementById('userMenu');
+    console.log('Auth button exists:', !!authButton);
+    console.log('User menu exists:', !!userMenu);
+    
+    // Force show user menu for testing
+    if (authButton && userMenu) {
+        console.log('Setting up auth button click handler...');
+        authButton.onclick = function() {
+            console.log('Auth button clicked!');
+            if (userMenu.style.display === 'block') {
+                userMenu.style.display = 'none';
+            } else {
+                userMenu.style.display = 'block';
+            }
+        };
+    }
+</script>
 </body>
 </html>
