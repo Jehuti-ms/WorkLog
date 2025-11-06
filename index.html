@@ -31,6 +31,20 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             z-index: 1000;
         }
+        
+        .user-menu-item {
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .user-menu-item:hover {
+            background: #f5f5f5;
+        }
     </style>
 </head>
 <body>
@@ -46,16 +60,16 @@
                 <span class="status" id="dataStatus">📊 Data: 0 Students, 0 Sessions</span>
                 
                 <!-- Auth Section -->
-                <div class="auth-section" style="display: inline-block; margin-left: 10px;">
+                <div class="auth-section" style="display: inline-block; margin-left: 10px; position: relative;">
                     <button class="btn btn-sm" id="authButton">Sign In</button>
                     <div id="userMenu" class="user-menu">
-                        <div class="user-info">
-                            <span id="userName">User</span>
+                        <div class="user-info" style="padding: 8px 12px; border-bottom: 1px solid #eee; margin-bottom: 5px;">
+                            <strong id="userName">User</strong>
                         </div>
                         <button class="user-menu-item" onclick="window.Auth.showProfileModal()">
-                            👤 Profile
+                            👤 Profile & Settings
                         </button>
-                        <button class="user-menu-item" onclick="window.Auth.logoutUser()">
+                        <button class="user-menu-item" onclick="window.Auth.logoutUser()" style="color: #dc3545;">
                             🚪 Logout
                         </button>
                     </div>
@@ -92,65 +106,503 @@
         <div class="content">
             <!-- Students Tab -->
             <div id="students" class="tab-content active">
-                <h2>📚 Student Management</h2>
-                <p>Student management content will appear here.</p>
+                <div class="section-header">
+                    <h2>📚 Student Management</h2>
+                    <div class="student-stats">
+                        <span class="stat-badge" id="studentCount">0</span>
+                        <span class="stat-divider">|</span>
+                        <span class="stat-text">Avg Rate: $<span id="averageRate">0.00</span>/session</span>
+                    </div>
+                </div>
+
+                <!-- Default Rate Settings -->
                 <div class="section-card">
-                    <h3>Student Registration Form</h3>
-                    <p>Form to add new students will be here.</p>
+                    <h3>💰 Default Rate Settings</h3>
+                    <div class="form-group">
+                        <label for="defaultBaseRate">Default Base Rate ($/session)</label>
+                        <input type="number" id="defaultBaseRate" step="0.01" min="0" placeholder="e.g., 25.00" value="25.00">
+                    </div>
+                </div>
+
+                <!-- Student Registration Form -->
+                <div class="section-card">
+                    <h3>👤 Student Registration</h3>
+                    <form id="studentForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="studentName">Full Name *</label>
+                                <input type="text" id="studentName" placeholder="Enter student's full name" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="studentId">Student ID *</label>
+                                <input type="text" id="studentId" placeholder="Enter unique student ID" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="studentGender">Gender *</label>
+                                <select id="studentGender" required>
+                                    <option value="">Select gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="studentEmail">Email Address</label>
+                                <input type="email" id="studentEmail" placeholder="student@email.com">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="studentPhone">Phone Number</label>
+                                <input type="tel" id="studentPhone" placeholder="+1 (555) 123-4567">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="studentBaseRate">Base Rate ($/session)</label>
+                                <input type="number" id="studentBaseRate" step="0.01" min="0" placeholder="e.g., 25.00">
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-primary" onclick="addStudent()">
+                                ➕ Add Student
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="clearStudentForm()">
+                                🗑️ Clear Form
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Student List -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3>📋 Registered Students</h3>
+                        <div class="list-controls">
+                            <div class="search-box">
+                                <input type="text" id="studentSearch" placeholder="🔍 Search students...">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="students-container" id="studentsContainer">
+                        <p style="color: #666; text-align: center; padding: 40px;">
+                            No students registered yet. Add your first student above!
+                        </p>
+                    </div>
                 </div>
             </div>
 
             <!-- Hours Tab -->
             <div id="hours" class="tab-content">
-                <h2>⏱️ Hours Tracking</h2>
-                <p>Hours tracking content will appear here.</p>
-                <div class="section-card">
-                    <h3>Log New Hours</h3>
-                    <p>Form to log hours will be here.</p>
+                <div class="section-header">
+                    <h2>⏱️ Hours Tracking</h2>
+                    <div class="student-stats">
+                        <span class="stat-text">This Week: <span id="weeklyHours">0</span>h / $<span id="weeklyTotal">0</span></span>
+                        <span class="stat-divider">|</span>
+                        <span class="stat-text">This Month: <span id="monthlyHours">0</span>h / $<span id="monthlyTotal">0</span></span>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="section-card">
+                        <h3>➕ Log New Hours</h3>
+                        <div class="form-group">
+                            <label for="organization">Organization *</label>
+                            <input type="text" id="organization" placeholder="School or organization name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="subject">Subject *</label>
+                            <input type="text" id="subject" placeholder="e.g., Mathematics, Physics" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="topic">Topic</label>
+                            <input type="text" id="topic" placeholder="Specific topic covered">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="workDate">Date *</label>
+                            <input type="date" id="workDate" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="hoursWorked">Hours Worked *</label>
+                            <input type="number" id="hoursWorked" step="0.5" min="0.5" placeholder="e.g., 1.5" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="baseRate">Rate ($/hour) *</label>
+                            <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 25.00" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="totalPay">Total Pay</label>
+                            <input type="text" id="totalPay" readonly placeholder="Calculated automatically">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="workNotes">Notes</label>
+                            <textarea id="workNotes" rows="3" placeholder="Additional notes about the session"></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-primary" onclick="logHours()">
+                                💾 Log Hours
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetHoursForm()">
+                                🗑️ Clear Form
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="section-card">
+                        <h3>📊 Recent Hours</h3>
+                        <div class="mobile-entries" id="hoursContainer">
+                            <p style="color: #666; text-align: center; padding: 40px;">
+                                No hours logged yet. Start tracking your work sessions!
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Marks Tab -->
             <div id="marks" class="tab-content">
-                <h2>📊 Marks & Assessments</h2>
-                <p>Marks and assessments content will appear here.</p>
-                <div class="section-card">
-                    <h3>Add New Mark</h3>
-                    <p>Form to add marks will be here.</p>
+                <div class="section-header">
+                    <h2>📊 Marks & Assessments</h2>
+                    <div class="student-stats">
+                        <span class="stat-badge" id="marksCount">0</span>
+                        <span class="stat-divider">|</span>
+                        <span class="stat-text">Avg Score: <span id="avgMarks">0%</span></span>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="section-card">
+                        <h3>➕ Add New Mark</h3>
+                        <form id="marksForm">
+                            <div class="form-group">
+                                <label for="marksStudent">Student *</label>
+                                <select id="marksStudent" required>
+                                    <option value="">Select student...</option>
+                                </select>
+                            </div>
+                            
+                            <div id="studentDetails" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <strong>Selected Student:</strong>
+                                <div>Name: <span id="selectedStudentName"></span></div>
+                                <div>Gender: <span id="selectedStudentGender"></span></div>
+                                <div>ID: <span id="selectedStudentId"></span></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="markSubject">Subject *</label>
+                                <input type="text" id="markSubject" placeholder="e.g., Mathematics" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="markTopic">Topic *</label>
+                                <input type="text" id="markTopic" placeholder="e.g., Algebra, Calculus" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="markDate">Date *</label>
+                                <input type="date" id="markDate" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="score">Score *</label>
+                                <input type="number" id="score" step="0.5" min="0" placeholder="Student's score" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="maxScore">Maximum Score *</label>
+                                <input type="number" id="maxScore" step="0.5" min="1" placeholder="Total possible score" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="percentage">Percentage</label>
+                                <input type="text" id="percentage" readonly placeholder="Calculated automatically">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="grade">Grade</label>
+                                <input type="text" id="grade" readonly placeholder="Calculated automatically">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="markComments">Comments</label>
+                                <textarea id="markComments" rows="3" placeholder="Feedback and comments"></textarea>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-primary" onclick="addMark()">
+                                    💾 Save Mark
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('marksForm').reset()">
+                                    🗑️ Clear Form
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="section-card">
+                        <h3>📋 Recent Marks</h3>
+                        <div class="mobile-entries" id="marksContainer">
+                            <p style="color: #666; text-align: center; padding: 40px;">
+                                No marks recorded yet. Add student assessments!
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Attendance Tab -->
             <div id="attendance" class="tab-content">
-                <h2>✅ Attendance Tracking</h2>
-                <p>Attendance tracking content will appear here.</p>
-                <div class="section-card">
-                    <h3>Quick Attendance</h3>
-                    <p>Attendance form will be here.</p>
+                <div class="section-header">
+                    <h2>✅ Attendance Tracking</h2>
+                    <div class="student-stats">
+                        <span class="stat-badge" id="attendanceCount">0</span>
+                        <span class="stat-divider">|</span>
+                        <span class="stat-text">Last Session: <span id="lastSessionDate">Never</span></span>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="section-card">
+                        <h3>📅 Quick Attendance</h3>
+                        
+                        <div class="form-group">
+                            <label for="attendanceDate">Date *</label>
+                            <input type="date" id="attendanceDate" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="attendanceSubject">Subject *</label>
+                            <input type="text" id="attendanceSubject" placeholder="e.g., Mathematics" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="attendanceTopic">Topic</label>
+                            <input type="text" id="attendanceTopic" placeholder="Specific topic covered">
+                        </div>
+                        
+                        <div class="attendance-container">
+                            <h4 style="margin-bottom: 15px;">Select Present Students:</h4>
+                            <div id="attendanceList">
+                                <p style="color: #666; text-align: center; padding: 20px;">
+                                    No students registered. Add students first.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-primary" onclick="saveAttendance()">
+                                💾 Save Attendance
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="section-card">
+                        <h3>📋 Recent Attendance</h3>
+                        <div class="mobile-entries" id="attendanceContainer">
+                            <p style="color: #666; text-align: center; padding: 40px;">
+                                No attendance records yet. Track your first session!
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Payments Tab -->
             <div id="payments" class="tab-content">
-                <h2>💰 Payment Management</h2>
-                <p>Payment management content will appear here.</p>
+                <div class="section-header">
+                    <h2>💰 Payment Management</h2>
+                    <div class="student-stats">
+                        <span class="stat-text">Total Students: <span id="totalStudentsCount">0</span></span>
+                        <span class="stat-divider">|</span>
+                        <span class="stat-text">Total Owed: <span id="totalOwed">$0</span></span>
+                        <span class="stat-divider">|</span>
+                        <span class="stat-text">This Month: <span id="monthlyPayments">$0</span></span>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="section-card">
+                        <h3>💳 Record Payment</h3>
+                        <div class="form-group">
+                            <label for="paymentStudent">Student *</label>
+                            <select id="paymentStudent" required>
+                                <option value="">Select Student</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="paymentAmount">Amount ($) *</label>
+                            <input type="number" id="paymentAmount" step="0.01" min="0.01" placeholder="0.00" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="paymentDate">Date *</label>
+                            <input type="date" id="paymentDate" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="paymentMethod">Payment Method</label>
+                            <select id="paymentMethod">
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Credit Card">Credit Card</option>
+                                <option value="PayPal">PayPal</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="paymentNotes">Notes</label>
+                            <textarea id="paymentNotes" rows="3" placeholder="Payment reference or notes"></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-primary" onclick="recordPayment()">
+                                💾 Record Payment
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetPaymentForm()">
+                                🗑️ Clear Form
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="section-card">
+                        <h3>👥 Student Balances</h3>
+                        <div class="students-container" id="studentBalancesContainer">
+                            <p style="color: #666; text-align: center; padding: 40px;">
+                                No students with balances. Add students and payments first.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="section-card">
-                    <h3>Record Payment</h3>
-                    <p>Payment form will be here.</p>
+                    <h3>📝 Payment Activity</h3>
+                    <div class="activity-log" id="paymentActivityLog">
+                        <p style="color: #666; text-align: center; padding: 20px;">
+                            No recent payment activity.
+                        </p>
+                    </div>
                 </div>
             </div>
 
             <!-- Reports Tab -->
             <div id="reports" class="tab-content">
-                <h2>📈 Reports & Analytics</h2>
-                <p>Reports and analytics content will appear here.</p>
+                <div class="section-header">
+                    <h2>📈 Reports & Analytics</h2>
+                    <div class="student-stats">
+                        <span class="stat-text">Outstanding: <span id="outstandingBalance">$0</span></span>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <h3>Total Students</h3>
+                        <span id="totalStudentsReport">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Hours</h3>
+                        <span id="totalHoursReport">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Earnings</h3>
+                        <span id="totalEarningsReport">$0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Average Mark</h3>
+                        <span id="avgMarkReport">0%</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Payments</h3>
+                        <span id="totalPaymentsReport">$0</span>
+                    </div>
+                </div>
+
+                <!-- Breakdown Analysis -->
                 <div class="section-card">
-                    <h3>Analytics Dashboard</h3>
-                    <p>Charts and reports will be here.</p>
+                    <h3>📊 Breakdown Analysis</h3>
+                    <div class="button-group">
+                        <button class="btn" onclick="showWeeklyBreakdown()">📅 Weekly</button>
+                        <button class="btn" onclick="showBiWeeklyBreakdown()">📆 Bi-Weekly</button>
+                        <button class="btn" onclick="showMonthlyBreakdown()">📈 Monthly</button>
+                        <button class="btn" onclick="showSubjectBreakdown()">📚 Subject</button>
+                    </div>
+                    
+                    <div id="breakdownContainer">
+                        <p style="color: #666; text-align: center; padding: 40px;">
+                            Select a breakdown option above to view analytics.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Detailed Reports -->
+                <div class="form-grid">
+                    <div class="section-card">
+                        <h3>📅 Weekly Summary</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Week</th>
+                                        <th>Hours</th>
+                                        <th>Earnings</th>
+                                        <th>Subjects</th>
+                                        <th>Net (80%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="weeklyBody">
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
+                                            No weekly data available
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="section-card">
+                        <h3>📚 Subject Performance</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>Avg Mark</th>
+                                        <th>Hours</th>
+                                        <th>Earnings</th>
+                                        <th>Sessions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="subjectBody">
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
+                                            No subject data available
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Hidden file input for import -->
+    <input type="file" id="importFile" accept=".json" style="display: none;">
 
     <!-- JavaScript Files -->
     <script src="auth.js"></script>
@@ -170,8 +622,28 @@
                     if (typeof init === 'function') {
                         init();
                     }
+                } else {
+                    console.log('❌ User not authenticated');
+                    const authBtn = document.getElementById('authButton');
+                    if (authBtn) {
+                        authBtn.textContent = '🔐 Login Required';
+                        authBtn.style.background = '#ffc107';
+                        authBtn.style.color = '#212529';
+                    }
                 }
             }, 100);
+
+            // Close user menu when clicking outside
+            document.addEventListener('click', function(event) {
+                const userMenu = document.getElementById('userMenu');
+                const authButton = document.getElementById('authButton');
+                
+                if (userMenu && authButton && 
+                    !authButton.contains(event.target) && 
+                    !userMenu.contains(event.target)) {
+                    userMenu.style.display = 'none';
+                }
+            });
         });
     </script>
 </body>
