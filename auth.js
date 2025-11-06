@@ -322,6 +322,21 @@ function showNotification(message, type = 'info') {
     alert(`${type.toUpperCase()}: ${message}`);
 }
 
+// Add this to your auth.js in the UTILITY FUNCTIONS section
+function signInWithGoogle() {
+    showNotification('🔐 Google authentication would be implemented here', 'info');
+    // In real app, integrate with Google OAuth
+}
+
+function signInWithGitHub() {
+    showNotification('💻 GitHub authentication would be implemented here', 'info'); 
+    // In real app, integrate with GitHub OAuth
+}
+
+// Make them available globally
+window.signInWithGoogle = signInWithGoogle;
+window.signInWithGitHub = signInWithGitHub;
+
 // ============================================================================
 // DEBUG AND RESET FUNCTIONS
 // ============================================================================
