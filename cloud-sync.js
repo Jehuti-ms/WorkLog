@@ -5,8 +5,8 @@
 // ============================================================================
 
 const SUPABASE_CONFIG = {
-    url: 'https://kfdhizqcjavikjwlefvk.supabase.co', // Replace with your Supabase URL
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZGhpenFjamF2aWtqd2xlZnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTE3NDMsImV4cCI6MjA3NzkyNzc0M30.w-2Tkg1-ogfeIVI8-5NRKGm4eJk5Z7cvqu5MLt1a2c4' // Replace with your Supabase anon key
+    url: 'https://kfdhizqcjavikjwlefvk.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZGhpenFjamF2aWtqd2xlZnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTE3NDMsImV4cCI6MjA3NzkyNzc0M30.w-2Tkg1-ogfeIVI8-5NRKGm4eJk5Z7cvqu5MLt1a2c4'
 };
 
 // Cloud sync state
@@ -55,7 +55,7 @@ function initializeCloudSync() {
         if (cloudSync.enabled && !cloudSync.syncing && hasLocalChanges()) {
             manualSyncToSupabase();
         }
-    }, 300000);
+    }, 300000); // 5 minutes
 }
 
 // Check if there are local changes that need syncing
