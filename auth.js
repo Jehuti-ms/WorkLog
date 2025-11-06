@@ -27,42 +27,65 @@ function initAuth() {
     console.log('Initializing auth system...');
     loadAuthData();
     checkExistingSession();
-    setupAuthEventListeners();
     
-    // Update auth button if we're on the main app
-    if (typeof setupAuthUI === 'function') {
-        setupAuthUI();
+    // Setup UI based on current page
+    if (window.location.pathname.includes('auth.html')) {
+        setupAuthEventListeners();
+        // If user is already logged in but on auth page, redirect to main app
+        if (authState.isAuthenticated && authState.currentUser) {
+            console.log('User already logged in, redirecting to main app...');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+        }
+    } else {
+        // We're on main app, setup auth UI
+        setupMainAppAuthUI();
     }
     
-    console.log('Auth system initialized');
+    console.log('Auth system initialized - User:', authState.currentUser ? authState.currentUser.name : 'Not logged in');
 }
 
-// Remove the DOMContentLoaded event listener from auth.js and replace with:
-// Make functions available globally
-window.Auth = {
-    isAuthenticated: function() {
-        return authState.isAuthenticated;
-    },
-    getCurrentUser: function() {
-        return authState.currentUser;
-    },
-    getCurrentUserId: function() {
-        return authState.currentUser ? authState.currentUser.id : null;
-    },
-    showAuthModal: function() {
-        window.location.href = 'auth.html';
-    },
-    showProfileModal: function() {
-        alert('👤 User Profile\n\nThis would show user profile and settings in the main app.');
-    },
-    logoutUser: logoutUser
-};
-
-// For auth.html page
-if (window.location.pathname.includes('auth.html')) {
-    document.addEventListener('DOMContentLoaded', function() {
-        initAuth();
-    });
+// Setup auth UI for main app
+function setupMainAppAuthUI() {
+    const authButton = document.getElementById('authButton');
+    const userMenu = document.getElementById('userMenu');
+    
+    if (!authButton) return;
+    
+    if (authState.isAuthenticated && authState.currentUser) {
+        // User is logged in - show user menu
+        authButton.innerHTML = `👤 ${authState.currentUser.name}`;
+        authButton.onclick = function() {
+            if (userMenu) {
+                userMenu.style.display = userMenu.style.display === 'block' ? 'none' : 'block';
+            }
+        };
+        
+        if (userMenu) {
+            const userNameElement = userMenu.querySelector('#userName');
+            if (userNameElement) {
+                userNameElement.textContent = authState.currentUser.name;
+            }
+        }
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            if (userMenu && !authButton.contains(event.target) && !userMenu.contains(event.target)) {
+                userMenu.style.display = 'none';
+            }
+        });
+        
+    } else {
+        // User is not logged in - show login button
+        authButton.innerHTML = '🔐 Sign In';
+        authButton.onclick = function() {
+            window.location.href = 'auth.html';
+        };
+        if (userMenu) {
+            userMenu.style.display = 'none';
+        }
+    }
 }
 
 // ============================================================================
