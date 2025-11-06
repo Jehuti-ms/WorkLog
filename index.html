@@ -77,18 +77,47 @@
             </div>
         </header>
 
-        <!-- Cloud Sync Bar -->
+       <!-- Cloud Sync Bar -->
         <div class="cloud-sync-bar">
             <div class="sync-status">
-                <span class="sync-indicator sync-connected"></span>
-                <span id="syncMessage">All changes saved locally</span>
+                <span class="sync-indicator sync-connected" id="syncIndicator"></span>
+                <span id="syncMessage">Connecting to cloud...</span>
+                <span id="syncStatus" style="margin-left: 10px; font-size: 12px; color: #666;"></span>
             </div>
             <div class="sync-controls">
-                <button class="btn btn-sm" onclick="exportData()">📤 Export Data</button>
-                <button class="btn btn-sm btn-secondary" onclick="importData()">📥 Import Data</button>
-                <button class="btn btn-sm btn-danger" onclick="clearAllData()">🗑️ Clear All</button>
-            </div>
+                <!-- Sync Controls -->
+                <div class="sync-options" style="display: inline-flex; align-items: center; gap: 10px;">
+                    <label class="checkbox" style="display: flex; align-items: center; font-size: 12px;">
+                        <input type="checkbox" id="autoSyncCheckbox" onchange="toggleAutoSync()">
+                        <span class="checkmark" style="margin-right: 5px;"></span>
+                        Auto-sync
+                    </label>
+                    
+                    <button class="btn btn-sm" id="syncBtn" onclick="manualSync()" style="display: none;">
+                        🔄 Sync Now
+                    </button>
+                    
+                    <button class="btn btn-sm" onclick="exportCloudData()" title="Export cloud data">
+                        ☁️ Export Cloud
+                    </button>
+                    
+                    <button class="btn btn-sm btn-secondary" onclick="importToCloud()" title="Import to cloud">
+                        📥 Import to Cloud
+                    </button>
+                    
+                    <button class="btn btn-sm" onclick="showSyncStats()" title="Sync statistics">
+                        📊 Sync Stats
+                    </button>
+                </div>
+                
+        <!-- App Controls -->
+        <div style="display: inline-flex; gap: 5px; margin-left: 15px; border-left: 1px solid #ddd; padding-left: 15px;">
+            <button class="btn btn-sm" onclick="exportData()">📤 Export Data</button>
+            <button class="btn btn-sm btn-secondary" onclick="importData()">📥 Import Data</button>
+            <button class="btn btn-sm btn-danger" onclick="clearAllData()">🗑️ Clear All</button>
         </div>
+    </div>
+</div>
 
         <!-- Tab Navigation -->
         <div class="tabs-container">
