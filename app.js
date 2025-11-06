@@ -2356,3 +2356,31 @@ function init() {
     
     console.log('App initialized successfully');
 }
+
+// Add this function to app.js
+function setupAuthUI() {
+    const authButton = document.getElementById('authButton');
+    if (!authButton) return;
+    
+    console.log('Setting up auth UI...');
+    
+    if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
+        const user = Auth.getCurrentUser();
+        if (user) {
+            authButton.textContent = `👤 ${user.name.split(' ')[0]}`;
+            authButton.onclick = function() {
+                if (typeof Auth.showProfileModal === 'function') {
+                    Auth.showProfileModal();
+                }
+            };
+            console.log('User is authenticated:', user.email);
+        }
+    } else {
+        authButton.textContent = 'Sign In';
+        authButton.onclick = function() {
+            window.location.href = 'auth.html';
+        };
+        console.log('User is not authenticated');
+    }
+}
+
