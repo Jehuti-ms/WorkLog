@@ -553,18 +553,25 @@ function debugAuth() {
 }
 
 // ============================================================================
-// GLOBAL ACCESS
+// GLOBAL ACCESS - COMPLETE VERSION
 // ============================================================================
 
+// Make sure all functions are defined before adding to window.Auth
 window.Auth = {
     isAuthenticated: () => authState.isAuthenticated,
     getCurrentUser: () => authState.currentUser,
+    getCurrentUserId: () => authState.currentUser ? authState.currentUser.id : null,
     logoutUser: logoutUser,
     showAuthModal: () => window.location.href = 'auth.html',
     showProfileModal: showProfileModal,
     resetAuthData: resetAuthData,
     debugAuth: debugAuth
 };
+
+// Also make the functions available directly on window for backup
+window.showProfileModal = showProfileModal;
+window.closeProfileModal = closeProfileModal;
+window.exportUserData = exportUserData;
 
 // Initialize auth when DOM is loaded
 if (document.readyState === 'loading') {
@@ -597,4 +604,44 @@ document.addEventListener('keydown', function(event) {
         closeProfileModal();
     }
 });
+
+// ============================================================================
+// DEBUG AND UTILITY FUNCTIONS
+// ============================================================================
+
+function resetAuthData() {
+    if (confirm('Are you sure you want to reset all authentication data? This will log you out and clear all user accounts.')) {
+        localStorage.removeItem(AUTH_CONFIG.storageKey);
+        localStorage.removeItem('worklog_session');
+        authState = {
+            isAuthenticated: false,
+            currentUser: null,
+            users: []
+        };
+        showNotification('Auth data reset successfully', 'success');
+        setTimeout(() => {
+            window.location.href = 'auth.html';
+        }, 1000);
+    }
+}
+
+function debugAuth() {
+    console.log('=== AUTH DEBUG INFO ===');
+    console.log('Auth state:', authState);
+    console.log('Session in localStorage:', localStorage.getItem('worklog_session'));
+    console.log('All users:', authState.users);
+    console.log('Current user:', authState.currentUser);
+    
+    // Show in alert for easy viewing
+    const debugInfo = `
+Auth State:
+- Authenticated: ${authState.isAuthenticated}
+- Current User: ${authState.currentUser ? authState.currentUser.name : 'None'}
+- Total Users: ${authState.users.length}
+- Session: ${localStorage.getItem('worklog_session') ? 'Exists' : 'None'}
+    `.trim();
+    
+    alert(debugInfo);
+}
+
 
