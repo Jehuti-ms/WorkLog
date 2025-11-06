@@ -622,14 +622,76 @@ function updateMarksStats() {
 function loadAttendance() {
     try {
         const container = document.getElementById('attendanceContainer');
-        if (!container) return;
+        const attendanceList = document.getElementById('attendanceList');
         
-        if (!appData.attendance || appData.attendance.length === 0) {
-            container.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">No attendance records yet.</p>';
+        if (!container || !attendanceList) return;
+        
+        // Clear existing content
+        attendanceList.innerHTML = '';
+        
+        if (!appData.students || appData.students.length === 0) {
+            attendanceList.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No students registered. Add students first.</p>';
+            
+            if (container) {
+                container.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">No attendance records yet. Add students first.</p>';
+            }
             return;
         }
         
-        container.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">Attendance data loaded. Use the form to add new records.</p>';
+        // Build student checklist with proper styling
+        appData.students.forEach(student => {
+            const div = document.createElement('div');
+            div.className = 'attendance-item';
+            div.innerHTML = `
+                <label class="attendance-label">
+                    <input type="checkbox" id="attend_${student.id}" value="${student.id}" class="attendance-checkbox">
+                    <span class="checkmark"></span>
+                    <span class="student-info">
+                        <strong>${student.name}</strong>
+                        <span class="student-id">(${student.id})</span>
+                    </span>
+                </label>
+            `;
+            attendanceList.appendChild(div);
+        });
+        
+        // Load attendance records if any exist
+        if (!appData.attendance || appData.attendance.length === 0) {
+            if (container) {
+                container.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">No attendance records yet. Track your first session!</p>';
+            }
+            return;
+        }
+        
+        let html = '<div class="attendance-list">';
+        
+        // Show last 10 attendance records
+        appData.attendance.slice(-10).reverse().forEach((session, index) => {
+            const presentStudents = session.presentStudents.map(id => {
+                const student = appData.students.find(s => s.id === id);
+                return student ? student.name : 'Unknown';
+            });
+            
+            html += `
+                <div class="attendance-entry">
+                    <div class="attendance-header">
+                        <h4>${session.subject} - ${new Date(session.date).toLocaleDateString()}</h4>
+                        <span class="attendance-count">${session.presentStudents.length} students</span>
+                    </div>
+                    <div class="attendance-details">
+                        <p><strong>Topic:</strong> ${session.topic || 'N/A'}</p>
+                        <p><strong>Present:</strong> ${presentStudents.join(', ')}</p>
+                    </div>
+                    <div class="attendance-actions">
+                        <button class="btn btn-sm" onclick="deleteAttendance(${appData.attendance.length - 1 - index})">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
         updateAttendanceStats();
         
     } catch (error) {
@@ -649,14 +711,14 @@ function saveAttendance() {
         }
         
         const presentStudents = [];
-        if (appData.students) {
-            appData.students.forEach(student => {
-                const checkbox = document.getElementById(`attend_${student.id}`);
-                if (checkbox && checkbox.checked) {
-                    presentStudents.push(student.id);
-                }
-            });
-        }
+        
+        // Get all checked students
+        appData.students.forEach(student => {
+            const checkbox = document.getElementById(`attend_${student.id}`);
+            if (checkbox && checkbox.checked) {
+                presentStudents.push(student.id);
+            }
+        });
         
         if (presentStudents.length === 0) {
             alert('Please select at least one student');
@@ -683,7 +745,13 @@ function saveAttendance() {
         document.getElementById('attendanceSubject').value = '';
         document.getElementById('attendanceTopic').value = '';
         
-        alert('✅ Attendance saved successfully!');
+        // Uncheck all checkboxes
+        appData.students.forEach(student => {
+            const checkbox = document.getElementById(`attend_${student.id}`);
+            if (checkbox) checkbox.checked = false;
+        });
+        
+        alert(`✅ Attendance saved for ${presentStudents.length} students!`);
         
     } catch (error) {
         console.error('❌ Error saving attendance:', error);
@@ -705,6 +773,15 @@ function updateAttendanceStats() {
         
     } catch (error) {
         console.error('❌ Error updating attendance stats:', error);
+    }
+}
+
+function deleteAttendance(index) {
+    if (confirm('Are you sure you want to delete this attendance record?')) {
+        appData.attendance.splice(index, 1);
+        saveAllData();
+        loadAttendance();
+        alert('✅ Attendance record deleted successfully!');
     }
 }
 
