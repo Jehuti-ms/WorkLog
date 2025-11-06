@@ -648,6 +648,69 @@ function openModal(modalId) {
     }
 }
 
+// FIX FOR HIDDEN TABS - Add this to your app.js
+function fixTabVisibility() {
+    console.log('👀 Fixing tab visibility...');
+    
+    const tabs = ['students', 'hours', 'marks', 'attendance', 'payments', 'reports'];
+    
+    tabs.forEach(tab => {
+        const content = document.getElementById(tab);
+        const button = document.querySelector(`[data-tab="${tab}"]`);
+        
+        if (content && button) {
+            // Remove any inline display styles that might be hiding content
+            content.style.display = '';
+            
+            // Show active tab, hide others
+            if (button.classList.contains('active')) {
+                content.classList.add('active');
+                content.style.display = 'block';
+            } else {
+                content.classList.remove('active');
+                content.style.display = 'none';
+            }
+        }
+    });
+    
+    console.log('✅ Tab visibility fixed');
+}
+
+// Also update your tab switching function to use CSS classes instead of inline styles
+function setupTabSystem() {
+    console.log('🔧 Setting up tab system...');
+    
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            console.log('Switching to tab:', tabName);
+            
+            // Hide all tab contents using CSS classes
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                content.style.display = 'none'; // Ensure hidden
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(t => {
+                t.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const targetTab = document.getElementById(tabName);
+            if (targetTab) {
+                targetTab.classList.add('active');
+                targetTab.style.display = 'block'; // Ensure visible
+                
+                // Load data for this tab
+                loadTabData(tabName);
+            }
+            
+            // Add active class to clicked tab
+            this.classList.add('active');
+        });
+    });
+}
 // ============================================================================
 // STUDENT MANAGEMENT FUNCTIONS
 // ============================================================================
