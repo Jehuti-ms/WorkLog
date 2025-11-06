@@ -1090,33 +1090,6 @@ function clearAllData() {
     }
 }
 
-// Make functions globally available
-window.loadStudents = loadStudents;
-window.loadHours = loadHours;
-window.loadMarks = loadMarks;
-window.loadAttendance = loadAttendance;
-window.loadPayments = loadPayments;
-window.loadReports = loadReports;
-window.addStudent = addStudent;
-window.clearStudentForm = clearStudentForm;
-window.deleteStudent = deleteStudent;
-window.logHours = logHours;
-window.resetHoursForm = resetHoursForm;
-window.addMark = addMark;
-window.saveAttendance = saveAttendance;
-window.recordPayment = recordPayment;
-window.resetPaymentForm = resetPaymentForm;
-window.showWeeklyBreakdown = showWeeklyBreakdown;
-window.showMonthlyBreakdown = showMonthlyBreakdown;
-window.showBiWeeklyBreakdown = showBiWeeklyBreakdown;
-window.showSubjectBreakdown = showSubjectBreakdown;
-window.exportData = exportData;
-window.importData = importData;
-window.clearAllData = clearAllData;
-window.saveDefaultRate = saveDefaultRate;
-window.applyDefaultRateToAll = applyDefaultRateToAll;
-window.useDefaultRate = useDefaultRate;
-
 // Sync helper functions
 function showSyncStats() {
     if (!window.cloudSync) {
@@ -1204,4 +1177,48 @@ function checkSyncStatus() {
 
 // Call this after app initialization
 setTimeout(checkSyncStatus, 2000);
+
+function selectAllStudents() {
+    appData.students.forEach(student => {
+        const checkbox = document.getElementById(`attend_${student.id}`);
+        if (checkbox) checkbox.checked = true;
+    });
+}
+
+function deselectAllStudents() {
+    appData.students.forEach(student => {
+        const checkbox = document.getElementById(`attend_${student.id}`);
+        if (checkbox) checkbox.checked = false;
+    });
+}
+
+// Make functions globally available
+window.loadStudents = loadStudents;
+window.loadHours = loadHours;
+window.loadMarks = loadMarks;
+window.loadAttendance = loadAttendance;
+window.loadPayments = loadPayments;
+window.loadReports = loadReports;
+window.addStudent = addStudent;
+window.clearStudentForm = clearStudentForm;
+window.deleteStudent = deleteStudent;
+window.logHours = logHours;
+window.resetHoursForm = resetHoursForm;
+window.addMark = addMark;
+window.saveAttendance = saveAttendance;
+window.recordPayment = recordPayment;
+window.resetPaymentForm = resetPaymentForm;
+window.showWeeklyBreakdown = showWeeklyBreakdown;
+window.showMonthlyBreakdown = showMonthlyBreakdown;
+window.showBiWeeklyBreakdown = showBiWeeklyBreakdown;
+window.showSubjectBreakdown = showSubjectBreakdown;
+window.exportData = exportData;
+window.importData = importData;
+window.clearAllData = clearAllData;
+window.saveDefaultRate = saveDefaultRate;
+window.applyDefaultRateToAll = applyDefaultRateToAll;
+window.useDefaultRate = useDefaultRate;
+window.selectAllStudents = selectAllStudents;
+window.deselectAllStudents = deselectAllStudents;
+window.deleteAttendance = deleteAttendance;
 
