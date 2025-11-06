@@ -1131,3 +1131,54 @@ body.modal-open {
 .stat-text {
     color: #5a6c7d;
 }
+/* User Menu Styles */
+.auth-section {
+    position: relative;
+    display: inline-block;
+}
+
+.user-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    min-width: 180px;
+    z-index: 1000;
+    margin-top: 5px;
+}
+
+.user-info {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    font-weight: 600;
+    color: #333;
+    background: #f8f9fa;
+}
+
+.user-menu-item {
+    width: 100%;
+    padding: 10px 15px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.user-menu-item:hover {
+    background: #f8f9fa;
+}
+
+.user-menu-item:last-child {
+    border-bottom: none;
+    color: #dc3545;
+}
+
+.user-menu-item:last-child:hover {
+    background: #fff5f5;
+}
