@@ -24,7 +24,12 @@ function init() {
     
     console.log('✅ User authenticated, setting up app...');
     
-    // Load data from localStorage with error handling
+    // Initialize cloud sync
+    if (window.cloudSync && !window.cloudSync.initialized) {
+        window.cloudSync.init();
+    }
+    
+    // Load data from localStorage
     loadAllData();
     
     // Setup tabs
@@ -963,3 +968,70 @@ window.showSubjectBreakdown = showSubjectBreakdown;
 window.exportData = exportData;
 window.importData = importData;
 window.clearAllData = clearAllData;
+
+// Sync helper functions
+function showSyncStats() {
+    if (!window.cloudSync) {
+        alert('Cloud sync not initialized');
+        return;
+    }
+    
+    window.cloudSync.getSyncStats().then(stats => {
+        const modal = document.getElementById('syncStatsModal');
+        const content = document.getElementById('syncStatsContent');
+        
+        if (!stats) {
+            content.innerHTML = '<p>Error loading sync statistics</p>';
+            modal.style.display = 'block';
+            return;
+        }
+        
+        let html = `
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">${stats.local.students}</div>
+                    <div class="stat-label">Local Students</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${stats.cloud ? stats.cloud.students : 'N/A'}</div>
+                    <div class="stat-label">Cloud Students</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${stats.local.hours}</div>
+                    <div class="stat-label">Local Hours</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${stats.cloud ? stats.cloud.hours : 'N/A'}</div>
+                    <div class="stat-label">Cloud Hours</div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                <p><strong>Sync Status:</strong> 
+                    <span class="sync-status-badge ${stats.isConnected ? 'status-connected' : 'status-disconnected'}">
+                        ${stats.isConnected ? 'Connected' : 'Disconnected'}
+                    </span>
+                </p>
+                <p><strong>Auto-sync:</strong> ${stats.autoSync ? 'Enabled' : 'Disabled'}</p>
+                <p><strong>Last Local Update:</strong> ${stats.local.lastUpdated ? new Date(stats.local.lastUpdated).toLocaleString() : 'Never'}</p>
+                <p><strong>Last Cloud Update:</strong> ${stats.cloud && stats.cloud.lastUpdated ? new Date(stats.cloud.lastUpdated).toLocaleString() : 'Never'}</p>
+            </div>
+        `;
+        
+        content.innerHTML = html;
+        modal.style.display = 'block';
+    });
+}
+
+function closeSyncStats() {
+    document.getElementById('syncStatsModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('syncStatsModal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
+});
+
