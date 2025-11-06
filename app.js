@@ -29,52 +29,32 @@ let cloudSyncTimeout = null;
 // Initialize app
 // In your init() function, add authentication check:
 function init() {
-    console.log("WorkLog app initialized");
+    console.log('🎯 App: Starting main application...');
+    
+    // Safer authentication check
+    if (!window.Auth || !window.Auth.isAuthenticated || !window.Auth.isAuthenticated()) {
+        console.log('❌ App: User not authenticated, skipping initialization');
+        return;
+    }
     
     try {
-        // Check if user is authenticated
-        if (typeof Auth !== 'undefined' && Auth.isAuthenticated && Auth.isAuthenticated()) {
-            const userId = Auth.getCurrentUserId();
-            console.log("Loading data for authenticated user:", userId);
-            loadUserData(userId);
-        } else {
-            console.log("No authenticated user, loading legacy data");
-            loadAllData();
-        }
+        // Safer user ID access
+        const userId = window.Auth.getCurrentUserId ? window.Auth.getCurrentUserId() : 'unknown';
+        console.log('👤 Current user ID:', userId);
         
-        loadFieldMemory();
-        setupAllEventListeners();
-        setDefaultDate();
+        // Your existing init code here...
+        loadStudents();
+        loadHours();
+        loadMarks();
+        loadAttendance();
+        loadPayments();
+        updateStats();
+        setupEventListeners();
         
-        // Setup auth UI
-        setupAuthUI();
-        
-        // Load default rate into display
-        const currentRateEl = document.getElementById('currentDefaultRate');
-        if (currentRateEl && fieldMemory.defaultBaseRate) {
-            currentRateEl.textContent = fieldMemory.defaultBaseRate;
-        }
-        
-        // Initialize cloud sync if authenticated and available
-        if (typeof Auth !== 'undefined' && Auth.isAuthenticated && Auth.isAuthenticated() && 
-            typeof initCloudSync === 'function') {
-            console.log('Initializing cloud sync...');
-            initCloudSync();
-        }
-        
-        // Ensure first tab is visible on startup
-        setTimeout(() => {
-            switchTab('students');
-            updateUI();
-        }, 100);
-        
-        console.log('App initialized successfully');
+        console.log('✅ WorkLog app initialized successfully');
         
     } catch (error) {
-        console.error('Error during app initialization:', error);
-        // Fallback: load data anyway
-        loadAllData();
-        updateUI();
+        console.error('❌ Error during app initialization:', error);
     }
 }
 
