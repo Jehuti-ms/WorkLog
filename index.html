@@ -675,5 +675,19 @@
             });
         });
     </script>
+    <!-- Sync Stats Modal -->
+    <div id="syncStatsModal" class="sync-stats-modal">
+        <div class="sync-stats-content">
+            <span class="close" onclick="closeSyncStats()" style="float: right; cursor: pointer; font-size: 20px;">&times;</span>
+            <h3>📊 Sync Statistics</h3>
+            <div id="syncStatsContent">
+                <p>Loading sync statistics...</p>
+            </div>
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="btn btn-primary" onclick="manualSync()">🔄 Sync Now</button>
+                <button class="btn btn-secondary" onclick="closeSyncStats()">Close</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
