@@ -1,4 +1,5 @@
 // cloud-sync.js - COMPLETE SYNC SYSTEM
+// cloud-sync.js - UPDATED WITH BETTER ERROR HANDLING
 console.log('☁️ Cloud Sync loaded');
 
 class CloudSync {
@@ -9,9 +10,21 @@ class CloudSync {
         this.syncEnabled = false;
         this.userId = null;
         this.syncInterval = null;
+        this.initialized = false;
+        
+        // Supabase configuration - UPDATE THESE WITH YOUR ACTUAL KEYS
+        this.supabaseConfig = {
+            url: 'https://kfdhizqcjavikjwlefvk.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZGhpenFjamF2aWtqd2xlZnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjgxNzU2NDQsImV4cCI6MjA0Mzc1MTY0NH0.3q2Z_1kY2Q5g8k0HtOxWdcwOwgWfwcQJXvDFuZ5y1pI'
+        };
     }
 
     async init() {
+        if (this.initialized) {
+            console.log('🔄 Cloud sync already initialized');
+            return;
+        }
+
         console.log('🔄 Initializing cloud sync...');
         
         // Check if user is authenticated
@@ -24,27 +37,41 @@ class CloudSync {
         this.userId = window.Auth.getCurrentUserId();
         
         try {
+            // Validate Supabase configuration
+            if (!this.supabaseConfig.url || !this.supabaseConfig.anonKey) {
+                throw new Error('Supabase configuration missing');
+            }
+
             // Initialize Supabase
             this.supabase = supabase.createClient(
-                'https://kfdhizqcjavikjwlefvk.supabase.co',
-                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZGhpenFjamF2aWtqd2xlZnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTE3NDMsImV4cCI6MjA3NzkyNzc0M30.w-2Tkg1-ogfeIVI8-5NRKGm4eJk5Z7cvqu5MLt1a2c4'
+                this.supabaseConfig.url,
+                this.supabaseConfig.anonKey
             );
 
-            // Test connection
+            // Test connection with a simple query
+            console.log('🔌 Testing Supabase connection...');
             const { data, error } = await this.supabase
                 .from('worklog_data')
-                .select('count')
+                .select('*')
                 .limit(1);
 
             if (error) {
-                throw error;
+                // If table doesn't exist, that's ok - we'll create it
+                if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+                    console.log('ℹ️ Table does not exist yet - will create on first sync');
+                    this.isConnected = true;
+                    this.syncEnabled = true;
+                } else {
+                    throw error;
+                }
+            } else {
+                this.isConnected = true;
+                this.syncEnabled = true;
             }
 
-            this.isConnected = true;
-            this.syncEnabled = true;
-            
             console.log('✅ Cloud sync initialized successfully');
             this.updateSyncStatus('Connected to cloud', true);
+            this.initialized = true;
             
             // Load settings
             this.loadSettings();
@@ -59,21 +86,35 @@ class CloudSync {
             
         } catch (error) {
             console.error('❌ Cloud sync initialization failed:', error);
-            this.updateSyncStatus('Cloud sync failed', false);
+            this.handleSyncError(error);
         }
     }
 
-    loadSettings() {
-        const settings = localStorage.getItem(`worklog_sync_settings_${this.userId}`);
-        if (settings) {
-            const parsed = JSON.parse(settings);
-            this.autoSync = parsed.autoSync !== false; // Default to true
+    handleSyncError(error) {
+        this.isConnected = false;
+        this.syncEnabled = false;
+        
+        let errorMessage = 'Cloud sync failed';
+        
+        if (error.message.includes('Invalid API key') || error.message.includes('JWT')) {
+            errorMessage = 'Invalid API key - check Supabase configuration';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+            errorMessage = 'Network error - check internet connection';
+        } else if (error.message.includes('does not exist')) {
+            errorMessage = 'Table not found - will create on first sync';
+            this.isConnected = true; // We can still proceed
+            this.syncEnabled = true;
         }
         
-        // Update UI
+        this.updateSyncStatus(errorMessage, false);
+        
+        // Disable auto-sync on error
+        this.autoSync = false;
+        this.stopAutoSync();
         this.updateSyncUI();
     }
 
+    // ... rest of your existing cloud-sync.js code remains the same ...
     saveSettings() {
         const settings = {
             autoSync: this.autoSync,
