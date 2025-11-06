@@ -31,38 +31,51 @@ let cloudSyncTimeout = null;
 function init() {
     console.log("WorkLog app initialized");
     
-    // Check authentication
-    if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
-        const userId = Auth.getCurrentUserId();
-        console.log("Loading data for authenticated user:", userId);
-        loadUserData(userId);
-    } else {
-        console.log("No authenticated user, loading legacy data");
+    try {
+        // Check if user is authenticated
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated && Auth.isAuthenticated()) {
+            const userId = Auth.getCurrentUserId();
+            console.log("Loading data for authenticated user:", userId);
+            loadUserData(userId);
+        } else {
+            console.log("No authenticated user, loading legacy data");
+            loadAllData();
+        }
+        
+        loadFieldMemory();
+        setupAllEventListeners();
+        setDefaultDate();
+        
+        // Setup auth UI
+        setupAuthUI();
+        
+        // Load default rate into display
+        const currentRateEl = document.getElementById('currentDefaultRate');
+        if (currentRateEl && fieldMemory.defaultBaseRate) {
+            currentRateEl.textContent = fieldMemory.defaultBaseRate;
+        }
+        
+        // Initialize cloud sync if authenticated and available
+        if (typeof Auth !== 'undefined' && Auth.isAuthenticated && Auth.isAuthenticated() && 
+            typeof initCloudSync === 'function') {
+            console.log('Initializing cloud sync...');
+            initCloudSync();
+        }
+        
+        // Ensure first tab is visible on startup
+        setTimeout(() => {
+            switchTab('students');
+            updateUI();
+        }, 100);
+        
+        console.log('App initialized successfully');
+        
+    } catch (error) {
+        console.error('Error during app initialization:', error);
+        // Fallback: load data anyway
         loadAllData();
-    }
-    
-    loadFieldMemory();
-    setupAllEventListeners();
-    setDefaultDate();
-    
-    // Load default rate into display
-    const currentRateEl = document.getElementById('currentDefaultRate');
-    if (currentRateEl && fieldMemory.defaultBaseRate) {
-        currentRateEl.textContent = fieldMemory.defaultBaseRate;
-    }
-    
-    // Initialize cloud sync if authenticated
-    if (typeof Auth !== 'undefined' && Auth.isAuthenticated() && window.initCloudSync) {
-        window.initCloudSync();
-    }
-    
-    // Ensure first tab is visible on startup
-    setTimeout(() => {
-        switchTab('students');
         updateUI();
-    }, 100);
-    
-    console.log('App initialized successfully');
+    }
 }
 
 // Add login/logout button to your header
