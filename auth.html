@@ -1,156 +1,195 @@
-<!-- Auth Modal -->
-<div id="authModal" class="modal">
-    <div class="modal-content" style="max-width: 400px;">
-        <div class="modal-header">
-            <h2>Welcome to WorkLog</h2>
-            <span class="close" onclick="Auth.closeAuthModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div id="authTabs" class="auth-tabs">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkLog - Sign In</title>
+    <link rel="stylesheet" href="auth.css">
+    <style>
+        /* Additional styles for auth page */
+        .auth-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .auth-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .auth-logo {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .auth-subtitle {
+            color: #6c757d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .back-to-app {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .back-to-app a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .back-to-app a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Logo and Title -->
+            <div class="auth-logo">📚</div>
+            <h1>WorkLog</h1>
+            <p class="auth-subtitle">Student Tracker & Hours Management</p>
+            
+            <!-- Auth Tabs -->
+            <div class="auth-tabs">
                 <button class="auth-tab active" data-tab="login">Sign In</button>
-                <button class="auth-tab" data-tab="signup">Sign Up</button>
+                <button class="auth-tab" data-tab="register">Register</button>
             </div>
             
             <!-- Login Form -->
             <div id="login" class="auth-tab-content active">
                 <form id="loginForm">
                     <div class="form-group">
-                        <label for="loginEmail">Email:</label>
+                        <label for="loginEmail">Email Address</label>
                         <input type="email" id="loginEmail" required placeholder="your@email.com">
                     </div>
+                    
                     <div class="form-group">
-                        <label for="loginPassword">Password:</label>
-                        <input type="password" id="loginPassword" required placeholder="Enter your password">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••">
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
-                        Sign In
+                    
+                    <div class="form-options">
+                        <label class="checkbox">
+                            <input type="checkbox" id="rememberMe">
+                            <span class="checkmark"></span>
+                            Remember me
+                        </label>
+                        <a href="#" class="forgot-password" onclick="showForgotPassword()">Forgot password?</a>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span class="btn-text">Sign In</span>
+                        <span class="btn-loading" style="display: none;">Signing in...</span>
                     </button>
-                    <div style="text-align: center;">
-                        <a href="javascript:void(0)" onclick="Auth.showForgotPassword()" style="color: #007bff; text-decoration: none;">
-                            Forgot Password?
-                        </a>
-                    </div>
                 </form>
+                
+                <div class="auth-divider">
+                    <span>or continue with</span>
+                </div>
+                
+                <div class="social-auth">
+                    <button class="btn btn-social btn-google" onclick="signInWithGoogle()">
+                        <span class="social-icon">🔍</span>
+                        Google
+                    </button>
+                    <button class="btn btn-social btn-github" onclick="signInWithGitHub()">
+                        <span class="social-icon">💻</span>
+                        GitHub
+                    </button>
+                </div>
             </div>
             
-            <!-- Sign Up Form -->
-            <div id="signup" class="auth-tab-content">
-                <form id="signupForm">
+            <!-- Register Form -->
+            <div id="register" class="auth-tab-content">
+                <form id="registerForm">
                     <div class="form-group">
-                        <label for="signupName">Full Name:</label>
-                        <input type="text" id="signupName" required placeholder="Enter your full name">
+                        <label for="registerName">Full Name</label>
+                        <input type="text" id="registerName" required placeholder="John Doe">
                     </div>
+                    
                     <div class="form-group">
-                        <label for="signupEmail">Email:</label>
-                        <input type="email" id="signupEmail" required placeholder="your@email.com">
+                        <label for="registerEmail">Email Address</label>
+                        <input type="email" id="registerEmail" required placeholder="your@email.com">
                     </div>
+                    
                     <div class="form-group">
-                        <label for="signupPassword">Password:</label>
-                        <input type="password" id="signupPassword" required minlength="6" placeholder="At least 6 characters">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" required placeholder="••••••••">
+                        <div class="password-strength">
+                            <div class="strength-bar">
+                                <div class="strength-fill" id="passwordStrength"></div>
+                            </div>
+                            <small>Use 8+ characters with letters and numbers</small>
+                        </div>
                     </div>
+                    
                     <div class="form-group">
-                        <label for="confirmPassword">Confirm Password:</label>
-                        <input type="password" id="confirmPassword" required placeholder="Confirm your password">
+                        <label for="registerConfirmPassword">Confirm Password</label>
+                        <input type="password" id="registerConfirmPassword" required placeholder="••••••••">
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width: 100%;">
-                        Create Account
+                    
+                    <div class="form-options">
+                        <label class="checkbox">
+                            <input type="checkbox" id="acceptTerms" required>
+                            <span class="checkmark"></span>
+                            I agree to the <a href="#" onclick="showTerms()">Terms of Service</a> and <a href="#" onclick="showPrivacy()">Privacy Policy</a>
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span class="btn-text">Create Account</span>
+                        <span class="btn-loading" style="display: none;">Creating account...</span>
                     </button>
                 </form>
             </div>
             
             <!-- Forgot Password Form -->
-            <div id="forgotPassword" class="auth-tab-content">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <h3>Reset Password</h3>
-                    <p style="color: #666; font-size: 14px;">Enter your email to receive a password reset link</p>
-                </div>
+            <div id="forgotPassword" class="auth-tab-content" style="display: none;">
+                <h3>Reset Your Password</h3>
+                <p style="color: #6c757d; margin-bottom: 20px;">Enter your email address and we'll send you a link to reset your password.</p>
+                
                 <form id="forgotPasswordForm">
                     <div class="form-group">
-                        <label for="resetEmail">Email:</label>
-                        <input type="email" id="resetEmail" required placeholder="your@email.com">
+                        <label for="forgotEmail">Email Address</label>
+                        <input type="email" id="forgotEmail" required placeholder="your@email.com">
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">
-                        Send Reset Link
+                    
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span class="btn-text">Send Reset Link</span>
+                        <span class="btn-loading" style="display: none;">Sending...</span>
                     </button>
-                    <div style="text-align: center;">
-                        <a href="javascript:void(0)" onclick="Auth.showLogin()" style="color: #007bff; text-decoration: none;">
-                            Back to Sign In
-                        </a>
-                    </div>
                 </form>
+                
+                <div class="back-to-login">
+                    <a href="#" onclick="showLogin()">← Back to Sign In</a>
+                </div>
             </div>
             
-            <div id="authStatus" style="margin-top: 15px; text-align: center;"></div>
+            <!-- Back to App -->
+            <div class="back-to-app">
+                <a href="index.html">← Back to WorkLog App</a>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Password Reset Modal -->
-<div id="resetPasswordModal" class="modal">
-    <div class="modal-content" style="max-width: 400px;">
-        <div class="modal-header">
-            <h2>Set New Password</h2>
-            <span class="close" onclick="Auth.closeResetPasswordModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <form id="resetPasswordForm">
-                <div class="form-group">
-                    <label for="newPassword">New Password:</label>
-                    <input type="password" id="newPassword" required minlength="6" placeholder="At least 6 characters">
-                </div>
-                <div class="form-group">
-                    <label for="confirmNewPassword">Confirm New Password:</label>
-                    <input type="password" id="confirmNewPassword" required placeholder="Confirm your new password">
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">
-                    Update Password
-                </button>
-            </form>
-            <div id="resetPasswordStatus" style="margin-top: 15px; text-align: center;"></div>
-        </div>
+    <!-- Loading Spinner -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>Please wait...</p>
     </div>
-</div>
 
-<!-- User Profile Modal -->
-<div id="profileModal" class="modal">
-    <div class="modal-content" style="max-width: 400px;">
-        <div class="modal-header">
-            <h2>Your Profile</h2>
-            <span class="close" onclick="Auth.closeProfileModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div class="profile-info" style="text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 48px; color: #007bff; margin-bottom: 10px;">👤</div>
-                <h3 id="profileUserName">User Name</h3>
-                <p id="profileUserEmail" style="color: #666; margin: 5px 0;"></p>
-                <p id="profileMemberSince" style="color: #666; font-size: 12px;"></p>
-            </div>
-            
-            <div class="profile-stats" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <h4>Your Data</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div style="text-align: center;">
-                        <div style="font-size: 24px; font-weight: bold; color: #007bff;" id="profileStudentsCount">0</div>
-                        <div style="font-size: 12px; color: #666;">Students</div>
-                    </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 24px; font-weight: bold; color: #28a745;" id="profileSessionsCount">0</div>
-                        <div style="font-size: 12px; color: #666;">Sessions</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="profile-actions">
-                <button onclick="Auth.showChangePassword()" class="btn" style="width: 100%; margin-bottom: 10px;">
-                    🔒 Change Password
-                </button>
-                <button onclick="Auth.exportUserData()" class="btn" style="width: 100%; margin-bottom: 10px;">
-                    📤 Export Data
-                </button>
-                <button onclick="Auth.logout()" class="btn btn-secondary" style="width: 100%;">
-                    🚪 Sign Out
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+    <script src="auth.js"></script>
+</body>
+</html>
