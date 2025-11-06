@@ -1035,3 +1035,25 @@ window.addEventListener('click', function(event) {
     }
 });
 
+// Sync status checker
+function checkSyncStatus() {
+    if (window.cloudSync) {
+        console.log('🔍 Cloud Sync Status:', {
+            initialized: !!window.cloudSync.supabase,
+            connected: window.cloudSync.isConnected,
+            autoSync: window.cloudSync.autoSync,
+            syncEnabled: window.cloudSync.syncEnabled
+        });
+        
+        // Update UI if sync is ready
+        if (window.cloudSync.syncEnabled) {
+            window.cloudSync.updateSyncUI();
+        }
+    } else {
+        console.log('🔍 Cloud Sync: Not initialized yet');
+    }
+}
+
+// Call this after app initialization
+setTimeout(checkSyncStatus, 2000);
+
