@@ -1,534 +1,420 @@
-// cloud-sync.js - Supabase Cloud Sync for WorkLog App
+// cloud-sync.js - COMPLETE SYNC SYSTEM
+console.log('☁️ Cloud Sync loaded');
 
-// ============================================================================
-// SUPABASE CONFIGURATION
-// ============================================================================
-
-const SUPABASE_CONFIG = {
-    url: 'https://kfdhizqcjavikjwlefvk.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZGhpenFjamF2aWtqd2xlZnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTE3NDMsImV4cCI6MjA3NzkyNzc0M30.w-2Tkg1-ogfeIVI8-5NRKGm4eJk5Z7cvqu5MLt1a2c4'
-};
-
-// Cloud sync state
-let cloudSync = {
-    enabled: false,
-    lastSync: null,
-    syncing: false,
-    lastLocalChange: null
-};
-
-// ============================================================================
-// CORE SUPABASE FUNCTIONS
-// ============================================================================
-
-// Get Supabase client
-function getSupabaseClient() {
-    if (typeof supabase === 'undefined') {
-        console.warn('Supabase client not loaded. Add to HTML: <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>');
-        return null;
+class CloudSync {
+    constructor() {
+        this.supabase = null;
+        this.isConnected = false;
+        this.autoSync = true;
+        this.syncEnabled = false;
+        this.userId = null;
+        this.syncInterval = null;
     }
-    
-    return supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-}
 
-// Initialize cloud sync
-function initializeCloudSync() {
-    // Check if user is authenticated and Supabase is configured
-    if (typeof Auth !== 'undefined' && Auth.isAuthenticated() && 
-        SUPABASE_CONFIG.url && SUPABASE_CONFIG.url !== 'YOUR_SUPABASE_URL') {
-        const userId = Auth.getCurrentUserId();
+    async init() {
+        console.log('🔄 Initializing cloud sync...');
         
-        console.log('Supabase sync enabled for user:', userId);
-        cloudSync.enabled = true;
-        
-        // Load data from Supabase on startup
-        setTimeout(() => loadFromSupabase(), 2000);
-    } else {
-        console.log('Supabase sync disabled - missing configuration or authentication');
-        cloudSync.enabled = false;
-    }
-    
-    updateSyncUI();
-    
-    // Auto-sync every 5 minutes if enabled
-    setInterval(() => {
-        if (cloudSync.enabled && !cloudSync.syncing && hasLocalChanges()) {
-            manualSyncToSupabase();
+        // Check if user is authenticated
+        if (!window.Auth || !window.Auth.isAuthenticated()) {
+            console.log('❌ User not authenticated, sync disabled');
+            this.updateSyncStatus('Not authenticated', false);
+            return;
         }
-    }, 300000); // 5 minutes
-}
 
-// Check if there are local changes that need syncing
-function hasLocalChanges() {
-    if (!cloudSync.lastLocalChange || !cloudSync.lastSync) return true;
-    return new Date(cloudSync.lastLocalChange) > new Date(cloudSync.lastSync);
-}
+        this.userId = window.Auth.getCurrentUserId();
+        
+        try {
+            // Initialize Supabase
+            this.supabase = supabase.createClient(
+                'https://kfdhizqcjavikjwlefvk.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZGhpenFjamF2aWtqd2xlZnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjgxNzU2NDQsImV4cCI6MjA0Mzc1MTY0NH0.3q2Z_1kY2Q5g8k0HtOxWdcwOwgWfwcQJXvDFuZ5y1pI'
+            );
 
-// Create or update user data in Supabase
-async function manualSyncToSupabase() {
-    if (!cloudSync.enabled || cloudSync.syncing) return;
-    
-    cloudSync.syncing = true;
-    updateSyncUI();
-    
-    try {
-        const userId = Auth.getCurrentUserId();
-        const userData = Auth.getCurrentUser();
-        const supabase = getSupabaseClient();
-        
-        if (!supabase) {
-            throw new Error('Supabase client not available');
-        }
-        
-        const data = {
-            students: window.students || [],
-            hoursLog: window.hoursLog || [],
-            marks: window.marks || [],
-            attendance: window.attendance || [],
-            payments: window.payments || [],
-            paymentActivity: window.paymentActivity || [],
-            fieldMemory: window.fieldMemory || {},
-            metadata: {
-                userId: userId,
-                userName: userData.name,
-                userEmail: userData.email,
-                lastUpdated: new Date().toISOString(),
-                version: '2.0',
-                device: getDeviceId(),
-                recordCounts: {
-                    students: (window.students || []).length,
-                    hours: (window.hoursLog || []).length,
-                    marks: (window.marks || []).length,
-                    attendance: (window.attendance || []).length,
-                    payments: (window.payments || []).length
-                }
+            // Test connection
+            const { data, error } = await this.supabase
+                .from('worklog_data')
+                .select('count')
+                .limit(1);
+
+            if (error) {
+                throw error;
             }
-        };
+
+            this.isConnected = true;
+            this.syncEnabled = true;
+            
+            console.log('✅ Cloud sync initialized successfully');
+            this.updateSyncStatus('Connected to cloud', true);
+            
+            // Load settings
+            this.loadSettings();
+            
+            // Setup auto-sync if enabled
+            if (this.autoSync) {
+                this.startAutoSync();
+            }
+            
+            // Initial sync
+            this.syncData();
+            
+        } catch (error) {
+            console.error('❌ Cloud sync initialization failed:', error);
+            this.updateSyncStatus('Cloud sync failed', false);
+        }
+    }
+
+    loadSettings() {
+        const settings = localStorage.getItem(`worklog_sync_settings_${this.userId}`);
+        if (settings) {
+            const parsed = JSON.parse(settings);
+            this.autoSync = parsed.autoSync !== false; // Default to true
+        }
         
-        // Upsert data to Supabase
-        const { error } = await supabase
+        // Update UI
+        this.updateSyncUI();
+    }
+
+    saveSettings() {
+        const settings = {
+            autoSync: this.autoSync,
+            lastSync: new Date().toISOString()
+        };
+        localStorage.setItem(`worklog_sync_settings_${this.userId}`, JSON.stringify(settings));
+    }
+
+    updateSyncUI() {
+        const syncBtn = document.getElementById('syncBtn');
+        const autoSyncCheckbox = document.getElementById('autoSyncCheckbox');
+        const syncStatus = document.getElementById('syncStatus');
+        
+        if (syncBtn) {
+            syncBtn.style.display = this.syncEnabled ? 'inline-block' : 'none';
+            syncBtn.innerHTML = this.autoSync ? '🔄 Auto' : '🔄 Sync Now';
+        }
+        
+        if (autoSyncCheckbox) {
+            autoSyncCheckbox.checked = this.autoSync;
+        }
+        
+        if (syncStatus) {
+            syncStatus.textContent = this.autoSync ? 'Auto-sync enabled' : 'Manual sync';
+        }
+    }
+
+    updateSyncStatus(message, isConnected) {
+        const syncMessage = document.getElementById('syncMessage');
+        const syncIndicator = document.querySelector('.sync-indicator');
+        
+        if (syncMessage) {
+            syncMessage.textContent = message;
+        }
+        
+        if (syncIndicator) {
+            syncIndicator.className = 'sync-indicator ' + (isConnected ? 'sync-connected' : 'sync-disconnected');
+        }
+        
+        this.isConnected = isConnected;
+    }
+
+    async syncData() {
+        if (!this.syncEnabled || !this.isConnected) {
+            console.log('❌ Sync disabled or not connected');
+            return;
+        }
+
+        console.log('🔄 Starting data sync...');
+        this.updateSyncStatus('Syncing data...', true);
+
+        try {
+            // Load local data
+            const localData = this.getLocalData();
+            
+            // Upload to Supabase
+            await this.uploadToSupabase(localData);
+            
+            // Download from Supabase (merge with local)
+            const cloudData = await this.downloadFromSupabase();
+            this.mergeData(cloudData);
+            
+            console.log('✅ Sync completed successfully');
+            this.updateSyncStatus('All changes synced to cloud', true);
+            
+            this.saveSettings();
+            
+        } catch (error) {
+            console.error('❌ Sync failed:', error);
+            this.updateSyncStatus('Sync failed - check connection', false);
+        }
+    }
+
+    getLocalData() {
+        const userId = this.userId;
+        const savedData = localStorage.getItem(`worklog_data_${userId}`);
+        
+        if (savedData) {
+            return JSON.parse(savedData);
+        }
+        
+        return {
+            students: [],
+            hours: [],
+            marks: [],
+            attendance: [],
+            payments: [],
+            settings: { defaultRate: 25.00 },
+            lastUpdated: new Date().toISOString()
+        };
+    }
+
+    async uploadToSupabase(data) {
+        if (!this.supabase) throw new Error('Supabase not initialized');
+
+        const { error } = await this.supabase
             .from('worklog_data')
             .upsert({
-                user_id: userId,
+                user_id: this.userId,
                 data: data,
                 last_updated: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             }, {
                 onConflict: 'user_id'
             });
-        
-        if (error) {
-            throw new Error(`Supabase error: ${error.message}`);
-        }
-        
-        cloudSync.lastSync = new Date();
-        cloudSync.lastLocalChange = null;
-        localStorage.setItem('worklog_last_sync', cloudSync.lastSync.toISOString());
-        
-        console.log('Data synced to Supabase successfully');
-        if (window.showNotification) {
-            window.showNotification('✅ Data synced to cloud', 'success');
-        }
-        
-    } catch (error) {
-        console.error('Supabase sync error:', error);
-        if (window.showNotification) {
-            window.showNotification('❌ Sync failed: ' + error.message, 'error');
-        }
-    } finally {
-        cloudSync.syncing = false;
-        updateSyncUI();
-    }
-}
 
-// Load data from Supabase
-async function loadFromSupabase() {
-    if (!cloudSync.enabled || cloudSync.syncing) return;
-    
-    cloudSync.syncing = true;
-    updateSyncUI();
-    
-    try {
-        const userId = Auth.getCurrentUserId();
-        const supabase = getSupabaseClient();
+        if (error) throw error;
         
-        if (!supabase) {
-            throw new Error('Supabase client not available');
-        }
-        
-        const { data, error } = await supabase
+        console.log('📤 Data uploaded to cloud');
+    }
+
+    async downloadFromSupabase() {
+        if (!this.supabase) throw new Error('Supabase not initialized');
+
+        const { data, error } = await this.supabase
             .from('worklog_data')
-            .select('*')
-            .eq('user_id', userId)
+            .select('data, last_updated')
+            .eq('user_id', this.userId)
             .single();
-        
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-            throw new Error(`Supabase error: ${error.message}`);
-        }
-        
-        if (data) {
-            const cloudData = data.data;
-            const cloudLastUpdated = new Date(data.last_updated || 0);
-            const localLastUpdated = new Date(localStorage.getItem('worklog_last_sync') || 0);
-            
-            if (cloudLastUpdated > localLastUpdated) {
-                console.log('Newer data found in Supabase, merging...');
-                
-                if (confirm('Newer data found in cloud. Would you like to load it? Your local changes will be merged.')) {
-                    await mergeCloudData(cloudData);
-                    cloudSync.lastSync = new Date();
-                    localStorage.setItem('worklog_last_sync', cloudSync.lastSync.toISOString());
-                    if (window.showNotification) {
-                        window.showNotification('✅ Data loaded from cloud', 'success');
-                    }
-                }
-            }
-        }
-        
-    } catch (error) {
-        console.error('Error loading from Supabase:', error);
-        // Silently continue with local data
-    } finally {
-        cloudSync.syncing = false;
-        updateSyncUI();
-    }
-}
 
-// Smart merge cloud data with local data
-async function mergeCloudData(cloudData) {
-    let changesMade = false;
-    
-    function mergeArrays(localArray, cloudArray, idField = 'id') {
-        const merged = [...localArray];
-        const localMap = new Map(localArray.map(item => [item[idField], item]));
-        
-        cloudArray.forEach(cloudItem => {
-            const localItem = localMap.get(cloudItem[idField]);
-            if (!localItem) {
-                merged.push(cloudItem);
-                changesMade = true;
-            } else {
-                const localUpdated = new Date(localItem._lastUpdated || 0);
-                const cloudUpdated = new Date(cloudItem._lastUpdated || cloudData.metadata.lastUpdated || 0);
-                
-                if (cloudUpdated > localUpdated) {
-                    const index = merged.findIndex(item => item[idField] === cloudItem[idField]);
-                    if (index !== -1) {
-                        merged[index] = cloudItem;
-                        changesMade = true;
-                    }
-                }
+        if (error) {
+            if (error.code === 'PGRST116') {
+                // No data found - that's ok for first sync
+                console.log('ℹ️ No cloud data found (first sync)');
+                return null;
             }
+            throw error;
+        }
+
+        console.log('📥 Data downloaded from cloud');
+        return data.data;
+    }
+
+    mergeData(cloudData) {
+        if (!cloudData) {
+            console.log('ℹ️ No cloud data to merge');
+            return;
+        }
+
+        const localData = this.getLocalData();
+        
+        // Simple merge strategy: use whichever data is newer
+        const cloudUpdated = new Date(cloudData.lastUpdated || 0);
+        const localUpdated = new Date(localData.lastUpdated || 0);
+        
+        let mergedData;
+        if (cloudUpdated > localUpdated) {
+            console.log('🔄 Using cloud data (newer)');
+            mergedData = cloudData;
+        } else {
+            console.log('🔄 Using local data (newer or equal)');
+            mergedData = localData;
+        }
+        
+        // Ensure all arrays exist
+        mergedData.students = mergedData.students || [];
+        mergedData.hours = mergedData.hours || [];
+        mergedData.marks = mergedData.marks || [];
+        mergedData.attendance = mergedData.attendance || [];
+        mergedData.payments = mergedData.payments || [];
+        mergedData.settings = mergedData.settings || { defaultRate: 25.00 };
+        mergedData.lastUpdated = new Date().toISOString();
+        
+        // Save merged data
+        this.saveLocalData(mergedData);
+        
+        // Update app data if app is running
+        if (window.appData) {
+            Object.assign(window.appData, mergedData);
+        }
+        
+        console.log('✅ Data merged successfully');
+    }
+
+    saveLocalData(data) {
+        localStorage.setItem(`worklog_data_${this.userId}`, JSON.stringify(data));
+    }
+
+    startAutoSync() {
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+        }
+        
+        this.syncInterval = setInterval(() => {
+            if (this.autoSync && this.syncEnabled) {
+                this.syncData();
+            }
+        }, 30000); // Sync every 30 seconds
+        
+        console.log('⏰ Auto-sync started (30s intervals)');
+    }
+
+    stopAutoSync() {
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+            this.syncInterval = null;
+        }
+        console.log('⏹️ Auto-sync stopped');
+    }
+
+    toggleAutoSync() {
+        this.autoSync = !this.autoSync;
+        
+        if (this.autoSync) {
+            this.startAutoSync();
+            this.syncData(); // Immediate sync when enabling
+        } else {
+            this.stopAutoSync();
+        }
+        
+        this.saveSettings();
+        this.updateSyncUI();
+        
+        console.log('🔧 Auto-sync:', this.autoSync ? 'enabled' : 'disabled');
+    }
+
+    manualSync() {
+        console.log('👆 Manual sync triggered');
+        this.syncData();
+    }
+
+    // Export data for backup
+    async exportCloudData() {
+        try {
+            const data = await this.downloadFromSupabase();
+            if (!data) {
+                alert('No data found in cloud');
+                return;
+            }
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `worklog_cloud_backup_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            alert('✅ Cloud data exported successfully!');
+            
+        } catch (error) {
+            console.error('❌ Error exporting cloud data:', error);
+            alert('Error exporting cloud data: ' + error.message);
+        }
+    }
+
+    // Import data to cloud
+    async importToCloud() {
+        return new Promise((resolve) => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    try {
+                        const importedData = JSON.parse(event.target.result);
+                        
+                        // Add metadata
+                        importedData.lastUpdated = new Date().toISOString();
+                        importedData.importedAt = new Date().toISOString();
+                        
+                        await this.uploadToSupabase(importedData);
+                        alert('✅ Data imported to cloud successfully!');
+                        resolve(true);
+                        
+                    } catch (error) {
+                        console.error('❌ Error importing to cloud:', error);
+                        alert('Error importing to cloud: Invalid file format');
+                        resolve(false);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
         });
-        
-        return merged;
     }
-    
-    // Use window object to access global variables
-    if (window.students !== undefined) {
-        window.students = mergeArrays(window.students, cloudData.students || []);
-    }
-    if (window.hoursLog !== undefined) {
-        window.hoursLog = mergeArrays(window.hoursLog, cloudData.hoursLog || []);
-    }
-    if (window.marks !== undefined) {
-        window.marks = mergeArrays(window.marks, cloudData.marks || []);
-    }
-    if (window.attendance !== undefined) {
-        window.attendance = mergeArrays(window.attendance, cloudData.attendance || []);
-    }
-    if (window.payments !== undefined) {
-        window.payments = mergeArrays(window.payments, cloudData.payments || []);
-    }
-    if (window.paymentActivity !== undefined) {
-        window.paymentActivity = mergeArrays(window.paymentActivity, cloudData.paymentActivity || []);
-    }
-    
-    if (cloudData.fieldMemory && window.fieldMemory !== undefined) {
-        window.fieldMemory = { ...window.fieldMemory, ...cloudData.fieldMemory };
-        changesMade = true;
-    }
-    
-    if (changesMade && window.saveAllData && window.updateUI) {
-        window.saveAllData();
-        window.updateUI();
-    }
-}
 
-// ============================================================================
-// UI MANAGEMENT
-// ============================================================================
-
-// Update sync UI with real status
-function updateSyncUI() {
-    const syncStatus = document.getElementById('syncStatus');
-    const loginBtn = document.getElementById('loginBtn');
-    const syncBtn = document.getElementById('syncBtn');
-    
-    if (!syncStatus) return;
-    
-    let statusText = '';
-    let statusClass = '';
-    let buttonText = '';
-    
-    if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
-        const user = Auth.getCurrentUser();
-        if (user) {
-            if (cloudSync.syncing) {
-                statusText = 'Syncing to cloud...';
-                statusClass = 'sync-syncing';
-                buttonText = 'Syncing...';
-            } else if (cloudSync.enabled && cloudSync.lastSync) {
-                const lastSyncText = formatRelativeTime(cloudSync.lastSync);
-                statusText = `Synced ${lastSyncText}`;
-                statusClass = 'sync-connected';
-                buttonText = `☁️ ${user.name.split(' ')[0]}`;
-                
-                if (hasLocalChanges()) {
-                    statusText += ' • Pending changes';
-                    statusClass = 'sync-pending';
-                }
-            } else if (cloudSync.enabled) {
-                statusText = 'Cloud ready';
-                statusClass = 'sync-connected';
-                buttonText = `☁️ ${user.name.split(' ')[0]}`;
-            } else {
-                statusText = 'Supabase configured';
-                statusClass = 'sync-offline';
-                buttonText = `👤 ${user.name.split(' ')[0]}`;
-            }
+    // Get sync statistics
+    async getSyncStats() {
+        try {
+            const localData = this.getLocalData();
+            const cloudData = await this.downloadFromSupabase();
             
-            if (syncBtn) {
-                syncBtn.style.display = 'inline-block';
-                syncBtn.disabled = cloudSync.syncing;
-                syncBtn.textContent = cloudSync.syncing ? '🔄' : '🔄';
-                syncBtn.title = 'Sync to cloud';
-                syncBtn.onclick = manualSyncToSupabase;
-            }
+            return {
+                local: {
+                    students: localData.students?.length || 0,
+                    hours: localData.hours?.length || 0,
+                    marks: localData.marks?.length || 0,
+                    attendance: localData.attendance?.length || 0,
+                    payments: localData.payments?.length || 0,
+                    lastUpdated: localData.lastUpdated
+                },
+                cloud: cloudData ? {
+                    students: cloudData.students?.length || 0,
+                    hours: cloudData.hours?.length || 0,
+                    marks: cloudData.marks?.length || 0,
+                    attendance: cloudData.attendance?.length || 0,
+                    payments: cloudData.payments?.length || 0,
+                    lastUpdated: cloudData.lastUpdated
+                } : null,
+                syncEnabled: this.syncEnabled,
+                autoSync: this.autoSync,
+                isConnected: this.isConnected
+            };
+            
+        } catch (error) {
+            console.error('❌ Error getting sync stats:', error);
+            return null;
         }
-    } else {
-        statusText = 'Not signed in';
-        statusClass = 'sync-offline';
-        buttonText = 'Sign In';
-        
-        if (syncBtn) {
-            syncBtn.style.display = 'none';
-        }
-    }
-    
-    syncStatus.innerHTML = `
-        <span class="sync-indicator ${statusClass}"></span>
-        ${statusText}
-    `;
-    
-    if (loginBtn) {
-        loginBtn.textContent = buttonText;
-        loginBtn.onclick = function() {
-            if (typeof Auth !== 'undefined' && Auth.isAuthenticated()) {
-                Auth.showProfileModal();
-            } else {
-                Auth.showAuthModal();
-            }
-        };
     }
 }
 
-// Cloud sync management functions
-function showCloudSyncMenu() {
-    const menu = document.getElementById('cloudSyncMenu') || createCloudSyncMenu();
-    updateCloudSyncMenu();
-    menu.style.display = 'block';
-}
+// Create global instance
+window.cloudSync = new CloudSync();
 
-function createCloudSyncMenu() {
-    const menu = document.createElement('div');
-    menu.id = 'cloudSyncMenu';
-    menu.className = 'modal';
-    menu.innerHTML = `
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h2>☁️ Supabase Cloud Sync</h2>
-                <span class="close" onclick="closeCloudSyncMenu()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="sync-status-info">
-                    <p><strong>Status:</strong> <span id="menuSyncStatus">Checking...</span></p>
-                    <p><strong>Last Sync:</strong> <span id="menuLastSync">Never</span></p>
-                    <p><strong>Service:</strong> <span id="menuBinId">Supabase</span></p>
-                    <p><strong>Data Size:</strong> <span id="menuDataSize">Calculating...</span></p>
-                </div>
-                
-                <div class="sync-actions" style="margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button onclick="manualSyncToSupabase()" class="btn" id="menuSyncBtn">
-                        🔄 Sync to Cloud Now
-                    </button>
-                    <button onclick="loadFromSupabase()" class="btn">
-                        📥 Load from Cloud
-                    </button>
-                    <button onclick="showCloudSyncInfo()" class="btn btn-secondary">
-                        ℹ️ How It Works
-                    </button>
-                </div>
-                
-                <div class="sync-stats" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                    <h4>📊 Data Statistics</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
-                        <div>Students: <span id="menuStudentsCount">0</span></div>
-                        <div>Hours Logged: <span id="menuHoursCount">0</span></div>
-                        <div>Marks: <span id="menuMarksCount">0</span></div>
-                        <div>Payments: <span id="menuPaymentsCount">0</span></div>
-                    </div>
-                </div>
-                
-                <div class="sync-info" style="padding: 10px; background: #e7f3ff; border-radius: 4px; font-size: 12px; color: #0066cc;">
-                    <strong>🔒 Secure & Private:</strong> Your data is encrypted and protected by Supabase's enterprise-grade security with Row Level Security.
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(menu);
-    
-    menu.addEventListener('click', function(e) {
-        if (e.target === menu) {
-            closeCloudSyncMenu();
-        }
-    });
-    
-    return menu;
-}
-
-function updateCloudSyncMenu() {
-    const menuSyncStatus = document.getElementById('menuSyncStatus');
-    const menuLastSync = document.getElementById('menuLastSync');
-    const menuBinId = document.getElementById('menuBinId');
-    const menuDataSize = document.getElementById('menuDataSize');
-    const menuSyncBtn = document.getElementById('menuSyncBtn');
-    const menuStudentsCount = document.getElementById('menuStudentsCount');
-    const menuHoursCount = document.getElementById('menuHoursCount');
-    const menuMarksCount = document.getElementById('menuMarksCount');
-    const menuPaymentsCount = document.getElementById('menuPaymentsCount');
-    
-    if (!menuSyncStatus) return;
-    
-    if (cloudSync.syncing) {
-        menuSyncStatus.textContent = 'Syncing...';
-        menuSyncStatus.style.color = '#ffc107';
-        if (menuSyncBtn) menuSyncBtn.disabled = true;
-    } else if (cloudSync.enabled) {
-        menuSyncStatus.textContent = 'Connected to Supabase';
-        menuSyncStatus.style.color = '#28a745';
-        if (menuSyncBtn) menuSyncBtn.disabled = false;
-    } else {
-        menuSyncStatus.textContent = 'Configure Supabase';
-        menuSyncStatus.style.color = '#6c757d';
-        if (menuSyncBtn) menuSyncBtn.disabled = true;
-    }
-    
-    if (menuLastSync) {
-        menuLastSync.textContent = cloudSync.lastSync 
-            ? formatRelativeTime(cloudSync.lastSync)
-            : 'Never';
-    }
-    
-    if (menuBinId) {
-        menuBinId.textContent = SUPABASE_CONFIG.url && SUPABASE_CONFIG.url !== 'YOUR_SUPABASE_URL' 
-            ? 'Supabase Connected'
-            : 'Not configured';
-    }
-    
-    if (menuDataSize) {
-        const dataSize = JSON.stringify({
-            students: window.students || [],
-            hoursLog: window.hoursLog || [],
-            marks: window.marks || [],
-            attendance: window.attendance || [],
-            payments: window.payments || [],
-            paymentActivity: window.paymentActivity || [],
-            fieldMemory: window.fieldMemory || {}
-        }).length;
-        menuDataSize.textContent = (dataSize / 1024).toFixed(1) + ' KB';
-    }
-    
-    if (menuStudentsCount) menuStudentsCount.textContent = (window.students || []).length;
-    if (menuHoursCount) menuHoursCount.textContent = (window.hoursLog || []).length;
-    if (menuMarksCount) menuMarksCount.textContent = (window.marks || []).length;
-    if (menuPaymentsCount) menuPaymentsCount.textContent = (window.payments || []).length;
-}
-
-function closeCloudSyncMenu() {
-    const menu = document.getElementById('cloudSyncMenu');
-    if (menu) {
-        menu.style.display = 'none';
-    }
-}
-
-function showCloudSyncInfo() {
-    alert(`🌐 Supabase Cloud Sync:
-
-✅ Automatic: Your data syncs automatically every 5 minutes
-✅ Secure: Enterprise-grade security with Row Level Security
-✅ Cross-Device: Access your data from any device
-✅ Offline: Works without internet, syncs when connected
-✅ Free: Generous free tier (up to 500MB database)
-
-Your data is stored securely in Supabase and automatically synchronized across all your devices.`);
-}
-
-// Update the sync button in main UI
-function setupCloudSyncEventListeners() {
-    const syncBtn = document.getElementById('syncBtn');
-    if (syncBtn) {
-        syncBtn.onclick = manualSyncToSupabase;
-    }
-}
-
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-function getDeviceId() {
-    let deviceId = localStorage.getItem('worklog_device_id');
-    if (!deviceId) {
-        deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-        localStorage.setItem('worklog_device_id', deviceId);
-    }
-    return deviceId;
-}
-
-function formatRelativeTime(date) {
-    const now = new Date();
-    const diffMs = now - new Date(date);
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-    
-    if (diffMins < 1) return 'just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return new Date(date).toLocaleDateString();
-}
-
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-
-// Initialize cloud sync when auth is ready
+// Initialize when auth is ready
 function initCloudSync() {
-    if (typeof Auth !== 'undefined') {
-        setTimeout(() => {
-            initializeCloudSync();
-            setupCloudSyncEventListeners();
-        }, 2000);
-    }
+    setTimeout(() => {
+        window.cloudSync.init();
+    }, 1000);
 }
 
-// Make functions available globally
-window.manualSyncToSupabase = manualSyncToSupabase;
-window.loadFromSupabase = loadFromSupabase;
-window.showCloudSyncMenu = showCloudSyncMenu;
-window.closeCloudSyncMenu = closeCloudSyncMenu;
-window.showCloudSyncInfo = showCloudSyncInfo;
-window.updateCloudSyncMenu = updateCloudSyncMenu;
-window.initCloudSync = initCloudSync;
+// Auto-initialize when auth is ready
+if (window.Auth && window.Auth.isAuthenticated()) {
+    initCloudSync();
+} else {
+    // Wait for auth to initialize
+    const checkAuth = setInterval(() => {
+        if (window.Auth && window.Auth.isAuthenticated()) {
+            clearInterval(checkAuth);
+            initCloudSync();
+        }
+    }, 500);
+}
+
+// Make functions globally available
+window.toggleAutoSync = () => window.cloudSync.toggleAutoSync();
+window.manualSync = () => window.cloudSync.manualSync();
+window.exportCloudData = () => window.cloudSync.exportCloudData();
+window.importToCloud = () => window.cloudSync.importToCloud();
+window.getSyncStats = () => window.cloudSync.getSyncStats();
