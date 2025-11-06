@@ -234,9 +234,11 @@ class CloudSync {
         };
     }
 
-    async uploadToSupabase(data) {
+        async uploadToSupabase(data) {
         if (!this.supabase) throw new Error('Supabase not initialized');
 
+        console.log('📤 Uploading data to Supabase...');
+        
         const uploadData = {
             user_id: this.userId,
             data: data,
@@ -244,22 +246,82 @@ class CloudSync {
             updated_at: new Date().toISOString()
         };
 
-        const { error } = await this.supabase
-            .from('worklog_data')
-            .upsert(uploadData, {
-                onConflict: 'user_id'
-            });
+        console.log('Upload data structure:', {
+            user_id: typeof uploadData.user_id,
+            data: typeof uploadData.data,
+            has_students: Array.isArray(uploadData.data.students),
+            students_count: uploadData.data.students?.length || 0
+        });
 
-        if (error) {
-            // If upsert fails due to RLS, try insert and then update
-            if (error.code === '42501') {
-                console.log('🛠️ RLS blocking upsert, trying alternative approach...');
-                await this.alternativeUpload(data);
-            } else {
-                throw error;
+        try {
+            // First, try to check if the record exists
+            const { data: existingData, error: checkError } = await this.supabase
+                .from('worklog_data')
+                .select('user_id')
+                .eq('user_id', this.userId)
+                .maybeSingle();
+
+            if (checkError && checkError.code !== 'PGRST116') {
+                console.log('Check error:', checkError);
+                // Continue anyway - might be first time
             }
-        } else {
-            console.log('📤 Data uploaded to cloud');
+
+            let result;
+            if (existingData) {
+                // Update existing record
+                console.log('🔄 Updating existing record...');
+                result = await this.supabase
+                    .from('worklog_data')
+                    .update({
+                        data: uploadData.data,
+                        last_updated: uploadData.last_updated,
+                        updated_at: uploadData.updated_at
+                    })
+                    .eq('user_id', this.userId);
+            } else {
+                // Insert new record
+                console.log('🆕 Inserting new record...');
+                uploadData.created_at = new Date().toISOString();
+                result = await this.supabase
+                    .from('worklog_data')
+                    .insert([uploadData]);
+            }
+
+            const { error } = result;
+
+            if (error) {
+                console.error('❌ Upload error details:', {
+                    code: error.code,
+                    message: error.message,
+                    details: error.details,
+                    hint: error.hint
+                });
+                
+                // Try one more approach - direct insert with conflict handling
+                if (error.code === '23505' || error.message.includes('duplicate')) {
+                    console.log('🛠️ Trying conflict resolution...');
+                    const { error: updateError } = await this.supabase
+                        .from('worklog_data')
+                        .update({
+                            data: uploadData.data,
+                            last_updated: uploadData.last_updated,
+                            updated_at: uploadData.updated_at
+                        })
+                        .eq('user_id', this.userId);
+                    
+                    if (updateError) {
+                        throw updateError;
+                    }
+                } else {
+                    throw error;
+                }
+            }
+
+            console.log('✅ Data uploaded to cloud successfully');
+            
+        } catch (error) {
+            console.error('❌ Final upload error:', error);
+            throw error;
         }
     }
 
