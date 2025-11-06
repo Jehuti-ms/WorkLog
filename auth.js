@@ -370,6 +370,7 @@ window.Auth = {
     getCurrentUser: () => authState.currentUser,
     logoutUser: logoutUser,
     showAuthModal: () => window.location.href = 'auth.html',
+    showProfileModal: showProfileModal,
     resetAuthData: resetAuthData,
     debugAuth: debugAuth
 };
