@@ -1192,6 +1192,20 @@ function deselectAllStudents() {
     });
 }
 
+function clearAttendanceForm() {
+    document.getElementById('attendanceDate').value = '';
+    document.getElementById('attendanceSubject').value = '';
+    document.getElementById('attendanceTopic').value = '';
+    
+    // Deselect all students
+    if (appData.students) {
+        appData.students.forEach(student => {
+            const checkbox = document.getElementById(`attend_${student.id}`);
+            if (checkbox) checkbox.checked = false;
+        });
+    }
+}
+
 // Make functions globally available
 window.loadStudents = loadStudents;
 window.loadHours = loadHours;
@@ -1220,5 +1234,10 @@ window.applyDefaultRateToAll = applyDefaultRateToAll;
 window.useDefaultRate = useDefaultRate;
 window.selectAllStudents = selectAllStudents;
 window.deselectAllStudents = deselectAllStudents;
+window.deleteAttendance = deleteAttendance;
+window.selectAllStudents = selectAllStudents;
+window.deselectAllStudents = deselectAllStudents;
+window.saveAttendance = saveAttendance;
+window.clearAttendanceForm = clearAttendanceForm;
 window.deleteAttendance = deleteAttendance;
 
