@@ -195,9 +195,11 @@ function loadStudents() {
                         <p><strong>Gender:</strong> ${student.gender}</p>
                         ${student.email ? `<p><strong>Email:</strong> ${student.email}</p>` : ''}
                         ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''}
+                        ${student.createdAt ? `<p><small>Added: ${new Date(student.createdAt).toLocaleDateString()}</small></p>` : ''}
+                        ${student.updatedAt ? `<p><small>Updated: ${new Date(student.updatedAt).toLocaleDateString()}</small></p>` : ''}
                     </div>
                     <div class="student-actions">
-                        <button class="btn btn-sm" onclick="editStudent(${index})">✏️ Edit</button>
+                        <button class="btn btn-sm btn-edit" onclick="editStudent(${index})">✏️ Edit</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteStudent(${index})">🗑️ Delete</button>
                     </div>
                 </div>
@@ -271,6 +273,147 @@ function clearStudentForm() {
     document.getElementById('studentEmail').value = '';
     document.getElementById('studentPhone').value = '';
     document.getElementById('studentBaseRate').value = '';
+}
+
+function editStudent(index) {
+    try {
+        const student = appData.students[index];
+        if (!student) {
+            alert('Student not found!');
+            return;
+        }
+
+        // Populate the form with student data
+        document.getElementById('studentName').value = student.name || '';
+        document.getElementById('studentId').value = student.id || '';
+        document.getElementById('studentGender').value = student.gender || '';
+        document.getElementById('studentEmail').value = student.email || '';
+        document.getElementById('studentPhone').value = student.phone || '';
+        document.getElementById('studentBaseRate').value = student.rate || appData.settings.defaultRate || 25.00;
+
+        // Change the add button to an update button
+        const addButton = document.querySelector('.form-actions .btn-primary');
+        if (addButton) {
+            addButton.innerHTML = '💾 Update Student';
+            addButton.onclick = function() { updateStudent(index); };
+        }
+
+        // Add a cancel button if it doesn't exist
+        let cancelButton = document.querySelector('.btn-cancel-edit');
+        if (!cancelButton) {
+            cancelButton = document.createElement('button');
+            cancelButton.type = 'button';
+            cancelButton.className = 'btn btn-warning btn-cancel-edit';
+            cancelButton.innerHTML = '❌ Cancel Edit';
+            cancelButton.onclick = cancelEdit;
+            
+            const formActions = document.querySelector('.form-actions');
+            if (formActions) {
+                formActions.appendChild(cancelButton);
+            }
+        }
+
+        // Highlight the form section
+        const formCard = document.querySelector('.section-card');
+        if (formCard) {
+            formCard.classList.add('form-edit-mode');
+        }
+
+        // Scroll to the form
+        document.getElementById('studentName').focus();
+        
+        console.log('📝 Editing student:', student.name);
+
+    } catch (error) {
+        console.error('❌ Error editing student:', error);
+        alert('Error editing student: ' + error.message);
+    }
+}
+
+function cancelEdit() {
+    // Reset the form
+    clearStudentForm();
+    
+    // Change button back to "Add Student"
+    const addButton = document.querySelector('.form-actions .btn-primary');
+    if (addButton) {
+        addButton.innerHTML = '➕ Add Student';
+        addButton.onclick = addStudent;
+    }
+    
+    // Remove cancel button
+    const cancelButton = document.querySelector('.btn-cancel-edit');
+    if (cancelButton) {
+        cancelButton.remove();
+    }
+    
+    // Remove edit mode styling
+    const formCard = document.querySelector('.section-card');
+    if (formCard) {
+        formCard.classList.remove('form-edit-mode');
+    }
+    
+    console.log('❌ Edit cancelled');
+}
+
+function updateStudent(index) {
+    try {
+        const name = document.getElementById('studentName').value;
+        const id = document.getElementById('studentId').value;
+        const gender = document.getElementById('studentGender').value;
+        const email = document.getElementById('studentEmail').value;
+        const phone = document.getElementById('studentPhone').value;
+        const rateInput = document.getElementById('studentBaseRate').value;
+        
+        const rate = rateInput ? parseFloat(rateInput) : (appData.settings.defaultRate || 25.00);
+        
+        if (!name || !id || !gender) {
+            alert('Please fill in required fields: Name, ID, and Gender');
+            return;
+        }
+
+        // Update the student
+        appData.students[index] = {
+            ...appData.students[index], // Keep existing properties
+            name,
+            id,
+            gender,
+            email,
+            phone,
+            rate: rate,
+            updatedAt: new Date().toISOString()
+        };
+
+        saveAllData();
+        loadStudents();
+        cancelEdit();
+        
+        alert('✅ Student updated successfully!');
+        
+    } catch (error) {
+        console.error('❌ Error updating student:', error);
+        alert('Error updating student: ' + error.message);
+    }
+}
+
+function cancelEdit() {
+    // Reset the form
+    clearStudentForm();
+    
+    // Change button back to "Add Student"
+    const addButton = document.querySelector('.form-actions .btn-primary');
+    if (addButton) {
+        addButton.innerHTML = '➕ Add Student';
+        addButton.onclick = addStudent;
+    }
+    
+    // Remove cancel button
+    const cancelButton = document.querySelector('.btn-cancel-edit');
+    if (cancelButton) {
+        cancelButton.remove();
+    }
+    
+    console.log('❌ Edit cancelled');
 }
 
 function deleteStudent(index) {
