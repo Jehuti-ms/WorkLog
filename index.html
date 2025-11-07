@@ -96,8 +96,8 @@
     <div class="sync-controls">
         <!-- Sync Controls -->
         <div class="sync-options" style="display: inline-flex; align-items: center; gap: 10px;">
-            <label class="checkbox" style="display: flex; align-items: center; font-size: 12px;">
-                <input type="checkbox" id="autoSyncCheckbox" onchange="toggleAutoSync()">
+            <label class="checkbox" style="display: flex; align-items: center; font-size: 12px; cursor: pointer; margin: 0;">
+                <input type="checkbox" id="autoSyncCheckbox" onchange="toggleAutoSync()" style="margin-right: 6px;">
                 Auto-sync
             </label>
             
@@ -106,11 +106,11 @@
             </button>
             
             <button class="btn btn-sm" onclick="exportCloudData()" title="Export cloud data">
-                ☁️ Export to Cloud
+                ☁️ Export Cloud
             </button>
             
             <button class="btn btn-sm btn-secondary" onclick="importToCloud()" title="Import to cloud">
-                📥 Import to Cloud
+                📥 Import Cloud
             </button>
             
             <button class="btn btn-sm" onclick="showSyncStats()" title="Sync statistics">
@@ -126,7 +126,6 @@
         </div>
     </div>
 </div>
-
         <!-- Tab Navigation -->
         <div class="tabs-container">
             <div class="tabs">
