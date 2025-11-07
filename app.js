@@ -288,13 +288,43 @@ function deleteStudent(index) {
 
 function loadDefaultRate() {
     const defaultRate = appData.settings.defaultRate || 25.00;
+    
+    // Update settings display
     document.getElementById('defaultBaseRate').value = defaultRate;
     document.getElementById('currentDefaultRate').textContent = defaultRate.toFixed(2);
     
-    // Auto-fill the student form with default rate
+    // Auto-fill student form with default rate
     const studentRateInput = document.getElementById('studentBaseRate');
     if (studentRateInput && !studentRateInput.value) {
         studentRateInput.value = defaultRate;
+    }
+    
+    // Auto-fill hours form with default rate (YOUR hourly rate)
+    const hoursRateInput = document.getElementById('baseRate');
+    if (hoursRateInput && !hoursRateInput.value) {
+        hoursRateInput.value = defaultRate;
+        // Trigger total calculation
+        const event = new Event('input');
+        hoursRateInput.dispatchEvent(event);
+    }
+    
+    // Update hours tab button display
+    const displaySpan = document.getElementById('currentDefaultRateDisplay');
+    if (displaySpan) {
+        displaySpan.textContent = defaultRate.toFixed(2);
+    }
+}
+
+function useDefaultRateInHours() {
+    const defaultRate = appData.settings.defaultRate || 25.00;
+    const baseRateInput = document.getElementById('baseRate');
+    
+    if (baseRateInput) {
+        baseRateInput.value = defaultRate;
+        // Trigger total calculation
+        const event = new Event('input');
+        baseRateInput.dispatchEvent(event);
+        baseRateInput.focus();
     }
 }
 
@@ -345,7 +375,7 @@ function useDefaultRate() {
 }
 
 // ============================================================================
-// HOURS TRACKING
+// HOURS TRACKING - UNIFIED EARNINGS TRACKER
 // ============================================================================
 
 function loadHours() {
@@ -354,7 +384,7 @@ function loadHours() {
         if (!container) return;
         
         if (!appData.hours || appData.hours.length === 0) {
-            container.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">No hours logged yet.</p>';
+            container.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">No work hours logged yet.</p>';
             return;
         }
         
@@ -364,18 +394,25 @@ function loadHours() {
         const recentHours = appData.hours.slice(-10).reverse();
         recentHours.forEach((entry, index) => {
             const totalPay = ((entry.hours || 0) * (entry.rate || 0)).toFixed(2);
+            const workTypeBadge = getWorkTypeBadge(entry.workType);
+            
             html += `
                 <div class="hours-entry">
                     <div class="hours-header">
-                        <h4>${entry.subject || 'No Subject'} - ${entry.organization || 'No Organization'}</h4>
+                        <h4>${entry.organization || 'No Organization'} 
+                            <span class="work-type-badge ${entry.workType}">${workTypeBadge}</span>
+                        </h4>
                         <span class="hours-amount">$${totalPay}</span>
                     </div>
                     <div class="hours-details">
                         <p><strong>Date:</strong> ${entry.date ? new Date(entry.date).toLocaleDateString() : 'No Date'}</p>
                         <p><strong>Hours:</strong> ${entry.hours || 0}</p>
                         <p><strong>Rate:</strong> $${entry.rate || '0.00'}/hour</p>
-                        ${entry.topic ? `<p><strong>Topic:</strong> ${entry.topic}</p>` : ''}
+                        <p><strong>Effective Rate:</strong> $${(entry.rate || 0).toFixed(2)}/hour</p>
                         ${entry.notes ? `<p><strong>Notes:</strong> ${entry.notes}</p>` : ''}
+                    </div>
+                    <div class="hours-actions">
+                        <small>${getWorkTypeDescription(entry.workType)}</small>
                     </div>
                 </div>
             `;
@@ -384,6 +421,8 @@ function loadHours() {
         html += '</div>';
         container.innerHTML = html;
         
+        // Setup the form with default rate
+        setupHoursForm();
         updateHoursStats();
         
     } catch (error) {
@@ -395,25 +434,43 @@ function loadHours() {
     }
 }
 
+function getWorkTypeBadge(workType) {
+    const badges = {
+        'hourly': '⏱️ Hourly',
+        'session': '👥 Session', 
+        'contract': '📝 Contract',
+        'other': '🔧 Other'
+    };
+    return badges[workType] || '🔧 Work';
+}
+
+function getWorkTypeDescription(workType) {
+    const descriptions = {
+        'hourly': 'Paid by the hour',
+        'session': 'Per-student session rate', 
+        'contract': 'Fixed contract work',
+        'other': 'Other work type'
+    };
+    return descriptions[workType] || 'Work session';
+}
+
 function logHours() {
     try {
         const organization = document.getElementById('organization').value;
-        const subject = document.getElementById('subject').value;
-        const topic = document.getElementById('topic').value;
+        const workType = document.getElementById('workType').value || 'hourly';
         const date = document.getElementById('workDate').value;
         const hours = parseFloat(document.getElementById('hoursWorked').value) || 0;
         const rate = parseFloat(document.getElementById('baseRate').value) || 0;
         const notes = document.getElementById('workNotes').value;
         
-        if (!organization || !subject || !date || !hours || !rate) {
+        if (!organization || !date || !hours || !rate) {
             alert('Please fill in all required fields');
             return;
         }
         
         const newEntry = {
             organization,
-            subject,
-            topic,
+            workType,
             date,
             hours,
             rate,
@@ -430,12 +487,63 @@ function logHours() {
         loadHours();
         resetHoursForm();
         
-        alert('✅ Hours logged successfully!');
+        alert('✅ Work hours logged successfully!');
         
     } catch (error) {
         console.error('❌ Error logging hours:', error);
         alert('Error logging hours: ' + error.message);
     }
+}
+
+function setupHoursForm() {
+    // Auto-fill base rate with YOUR default hourly rate
+    const baseRateInput = document.getElementById('baseRate');
+    if (baseRateInput && !baseRateInput.value) {
+        baseRateInput.value = appData.settings.defaultRate || 25.00;
+    }
+    
+    // Setup work type selector
+    const workTypeSelect = document.getElementById('workType');
+    if (workTypeSelect) {
+        workTypeSelect.innerHTML = `
+            <option value="hourly">⏱️ Hourly Work</option>
+            <option value="session">👥 Per-Session</option>
+            <option value="contract">📝 Contract Work</option>
+            <option value="other">🔧 Other</option>
+        `;
+    }
+    
+    // Auto-calculate total when values change
+    const hoursInput = document.getElementById('hoursWorked');
+    const rateInput = document.getElementById('baseRate');
+    const totalPayInput = document.getElementById('totalPay');
+    
+    if (hoursInput && rateInput && totalPayInput) {
+        const calculateTotal = () => {
+            const hours = parseFloat(hoursInput.value) || 0;
+            const rate = parseFloat(rateInput.value) || 0;
+            totalPayInput.value = (hours * rate).toFixed(2);
+        };
+        
+        hoursInput.addEventListener('input', calculateTotal);
+        rateInput.addEventListener('input', calculateTotal);
+        
+        // Calculate initial total if values exist
+        calculateTotal();
+    }
+}
+
+function resetHoursForm() {
+    document.getElementById('organization').value = '';
+    document.getElementById('workType').value = 'hourly';
+    document.getElementById('workDate').value = '';
+    document.getElementById('hoursWorked').value = '';
+    document.getElementById('baseRate').value = '';
+    document.getElementById('workNotes').value = '';
+    document.getElementById('totalPay').value = '';
+    
+    // Re-setup form to get default rate
+    setupHoursForm();
 }
 
 function resetHoursForm() {
