@@ -248,33 +248,45 @@
                 </div>
             </div>
 
-            <!-- Hours Tab -->
+     <!-- Hours Tab -->
             <div id="hours" class="tab-content">
                 <div class="section-header">
-                    <h2>⏱️ Hours Tracking</h2>
+                    <h2>⏱️ Earnings Tracker</h2>
                     <div class="student-stats">
                         <span class="stat-text">This Week: <span id="weeklyHours">0</span>h / $<span id="weeklyTotal">0</span></span>
                         <span class="stat-divider">|</span>
                         <span class="stat-text">This Month: <span id="monthlyHours">0</span>h / $<span id="monthlyTotal">0</span></span>
                     </div>
                 </div>
-
+            
                 <div class="form-grid">
                     <div class="section-card">
-                        <h3>➕ Log New Hours</h3>
+                        <h3>➕ Log Work & Earnings</h3>
+                        
                         <div class="form-group">
                             <label for="organization">Organization *</label>
-                            <input type="text" id="organization" placeholder="School or organization name" required>
+                            <input type="text" id="organization" placeholder="Company, school, or client name" required>
+                        </div>
+                        
+                        <!-- Work Type Selection -->
+                        <div class="form-group">
+                            <label for="workType">Work Type</label>
+                            <select id="workType" class="form-control">
+                                <option value="hourly">⏱️ Hourly Work</option>
+                                <option value="session">👥 Per-Session</option>
+                                <option value="contract">📝 Contract Work</option>
+                                <option value="other">🔧 Other</option>
+                            </select>
                         </div>
                         
                         <div class="form-group">
-                            <label for="subject">Subject *</label>
-                            <input type="text" id="subject" placeholder="e.g., Mathematics, Physics" required>
+                            <label for="subject">Subject/Department</label>
+                            <input type="text" id="subject" placeholder="e.g., Mathematics, Consulting, Training">
                         </div>
                         
                         <div class="form-group">
-                            <label for="topic">Topic</label>
-                            <input type="text" id="topic" placeholder="Specific topic covered">
+                            <label for="topic">Topic/Project</label>
+                            <input type="text" id="topic" placeholder="Specific topic or project name">
                         </div>
                         
                         <div class="form-group">
@@ -287,42 +299,48 @@
                             <input type="number" id="hoursWorked" step="0.5" min="0.5" placeholder="e.g., 1.5" required>
                         </div>
                         
+                        <!-- Base Rate with Default Rate Button -->
                         <div class="form-group">
-                            <label for="baseRate">Rate ($/hour) *</label>
-                            <input type="number" id="baseRate" step="0.01" min="0" placeholder="e.g., 25.00" required>
+                            <label for="baseRate">Your Hourly Rate ($/hour) *</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="number" id="baseRate" step="0.01" min="0" placeholder="Enter your hourly rate" required style="flex: 1;">
+                                <button type="button" class="btn btn-sm" onclick="useDefaultRateInHours()" style="white-space: nowrap;">
+                                    Use Default ($<span id="currentDefaultRateDisplay">25.00</span>)
+                                </button>
+                            </div>
+                            <small class="text-muted">Your effective hourly rate for this work</small>
                         </div>
                         
                         <div class="form-group">
-                            <label for="totalPay">Total Pay</label>
-                            <input type="text" id="totalPay" readonly placeholder="Calculated automatically">
+                            <label for="totalPay">Total Earnings</label>
+                            <input type="text" id="totalPay" readonly placeholder="Calculated automatically" style="font-weight: bold; color: #28a745;">
                         </div>
                         
                         <div class="form-group">
                             <label for="workNotes">Notes</label>
-                            <textarea id="workNotes" rows="3" placeholder="Additional notes about the session"></textarea>
+                            <textarea id="workNotes" rows="3" placeholder="Additional notes about the work session (e.g., 'Group session with 4 students', 'Project milestone completed')"></textarea>
                         </div>
                         
                         <div class="form-actions">
                             <button type="button" class="btn btn-primary" onclick="logHours()">
-                                💾 Log Hours
+                                💾 Log Work & Earnings
                             </button>
                             <button type="button" class="btn btn-secondary" onclick="resetHoursForm()">
                                 🗑️ Clear Form
                             </button>
                         </div>
                     </div>
-
+            
                     <div class="section-card">
-                        <h3>📊 Recent Hours</h3>
+                        <h3>📊 Recent Earnings</h3>
                         <div class="mobile-entries" id="hoursContainer">
                             <p style="color: #666; text-align: center; padding: 40px;">
-                                No hours logged yet. Start tracking your work sessions!
+                                No work logged yet. Start tracking your earnings!
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
-
             <!-- Marks Tab -->
             <div id="marks" class="tab-content">
                 <div class="section-header">
