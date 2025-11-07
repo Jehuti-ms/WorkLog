@@ -115,47 +115,177 @@ body {
 }
 
 /* ============================================================================
-   CLOUD SYNC BAR - FIXED SINGLE ROW LAYOUT
+   CLOUD SYNC BAR - FIXED OVERFLOW ISSUE
    ============================================================================ */
 .cloud-sync-bar {
     background: #f8f9fa;
     border-bottom: 1px solid #e9ecef;
     padding: 15px 40px;
     display: flex;
-    justify-content: space-between; /* Push status left, controls right */
+    justify-content: space-between;
     align-items: center;
     font-size: 14px;
     gap: 20px;
+    flex-wrap: wrap; /* Allow wrapping if needed */
+    min-height: 60px; /* Ensure consistent height */
 }
 
 .sync-status {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0;
+    min-width: 0; /* Allow text truncation */
 }
 
 .sync-controls {
     display: flex;
-    gap: 10px;
+    gap: 8px; /* Reduced gap */
     align-items: center;
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0;
+    flex-wrap: wrap; /* Allow buttons to wrap */
+    justify-content: flex-end;
 }
 
-/* Equal-sized buttons in sync bar */
+/* Fixed width buttons to prevent overflow */
 .sync-controls .btn,
 .sync-controls .btn-sm {
-    min-width: 120px;
-    flex: 1; /* Make buttons equal width */
+    min-width: 100px; /* Reduced from 120px */
+    max-width: 120px;
+    flex: 1; /* Equal width */
     justify-content: center;
     white-space: nowrap;
+    padding: 10px 12px; /* Slightly reduced padding */
+    font-size: 13px; /* Slightly smaller font */
 }
 
 .sync-options {
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-shrink: 0; /* Prevent shrinking */
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* ============================================================================
+   HEADER BUTTONS - FIXED OVERFLOW
+   ============================================================================ */
+.header .button-group {
+    display: flex;
+    gap: 12px;
+    margin: 25px 0;
+    justify-content: center;
+    width: 100%;
+    flex-wrap: wrap; /* Allow wrapping */
+}
+
+.header .button-group .btn {
+    min-width: 140px; /* Reduced from 160px */
+    max-width: 160px; /* Reduced from 200px */
+    flex: 1;
+    justify-content: center;
+    padding: 12px 16px;
+}
+
+/* ============================================================================
+   RESPONSIVE FIXES - PREVENT OVERFLOW
+   ============================================================================ */
+@media (max-width: 1024px) {
+    .cloud-sync-bar {
+        padding: 15px 30px;
+        gap: 15px;
+    }
+    
+    .sync-controls .btn,
+    .sync-controls .btn-sm {
+        min-width: 90px;
+        max-width: 110px;
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+    
+    .header .button-group .btn {
+        min-width: 120px;
+        max-width: 140px;
+    }
+}
+
+@media (max-width: 768px) {
+    .cloud-sync-bar {
+        padding: 12px 20px;
+        gap: 12px;
+        justify-content: center; /* Center everything on mobile */
+        flex-direction: column;
+    }
+    
+    .sync-status {
+        justify-content: center;
+        text-align: center;
+    }
+    
+    .sync-controls {
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .sync-controls .btn,
+    .sync-controls .btn-sm {
+        min-width: 100px;
+        max-width: 120px;
+        flex: 0 1 auto; /* Don't grow, but can shrink */
+    }
+    
+    .header .button-group .btn {
+        min-width: 120px;
+        max-width: 140px;
+        flex: 0 1 auto; /* Don't grow, but can shrink */
+    }
+}
+
+@media (max-width: 480px) {
+    .cloud-sync-bar {
+        padding: 10px 15px;
+    }
+    
+    .sync-controls {
+        gap: 6px;
+    }
+    
+    .sync-controls .btn,
+    .sync-controls .btn-sm {
+        min-width: 80px;
+        max-width: 100px;
+        font-size: 11px;
+        padding: 6px 8px;
+    }
+    
+    .header .button-group {
+        gap: 8px;
+    }
+    
+    .header .button-group .btn {
+        min-width: 100px;
+        max-width: 120px;
+        font-size: 13px;
+        padding: 10px 12px;
+    }
+}
+
+/* ============================================================================
+   TEXT TRUNCATION FOR LONG STATUS MESSAGES
+   ============================================================================ */
+.sync-status-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px; /* Prevent long text from pushing buttons off screen */
+}
+
+@media (max-width: 768px) {
+    .sync-status-text {
+        max-width: 100%;
+        white-space: normal;
+        text-align: center;
+    }
 }
 
 /* ============================================================================
