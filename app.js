@@ -724,6 +724,16 @@ function getWorkTypeBadge(workType) {
 
 function getWorkTypeDescription(workType) {
     const descriptions = {
+        'hourly': 'Hourly Work',
+        'session': 'Per-Session Work', 
+        'contract': 'Contract Work',
+        'other': 'Other Work'
+    };
+    return descriptions[workType] || 'Work Session';
+}
+
+function getWorkTypeDescription(workType) {
+    const descriptions = {
         'hourly': 'Paid by the hour',
         'session': 'Per-student session rate', 
         'contract': 'Fixed contract work',
