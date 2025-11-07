@@ -1997,3 +1997,145 @@ body.modal-open {
         align-self: flex-start;
     }
 }
+/* Enhanced Default Rate Styling - Minimal Changes */
+.default-rate-section {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    padding: 20px;
+    border-left: 4px solid #28a745;
+    margin: 15px 0;
+}
+
+.default-rate-section h3 {
+    color: #2c5530;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.default-rate-section h3::before {
+    content: "💰";
+}
+
+.current-rate-display {
+    background: white;
+    padding: 12px 15px;
+    border-radius: 8px;
+    border: 2px solid #28a745;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.current-rate-display strong {
+    color: #2c5530;
+    margin-right: 8px;
+}
+
+.current-rate-value {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.rate-input-group {
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.rate-input-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.rate-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.rate-input-wrapper:focus-within {
+    border-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+.rate-input-wrapper::before {
+    content: "$";
+    padding: 10px 12px;
+    background: #f8f9fa;
+    font-weight: bold;
+    color: #495057;
+    border-right: 1px solid #dee2e6;
+}
+
+#defaultBaseRate {
+    border: none;
+    padding: 10px 12px;
+    flex: 1;
+    font-size: 1.1em;
+    font-weight: 500;
+}
+
+#defaultBaseRate:focus {
+    outline: none;
+}
+
+.rate-input-wrapper::after {
+    content: "/hour";
+    padding: 10px 12px;
+    background: #f8f9fa;
+    color: #6c757d;
+    border-left: 1px solid #dee2e6;
+}
+
+.rate-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.rate-actions .btn {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* Make it clear which input is for the default rate */
+#defaultBaseRate {
+    background: #fff;
+    font-weight: 600;
+    color: #2c5530;
+}
+
+#defaultBaseRate::placeholder {
+    color: #adb5bd;
+    font-weight: normal;
+}
+
+/* Hover effects */
+.default-rate-section:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .default-rate-section {
+        padding: 15px;
+        margin: 10px 0;
+    }
+    
+    .rate-actions {
+        flex-direction: column;
+    }
+    
+    .rate-actions .btn {
+        min-width: auto;
+    }
+}
