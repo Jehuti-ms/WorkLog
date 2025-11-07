@@ -532,7 +532,7 @@ function displayHours() {
             <div class="entry-header">
                 <div class="entry-main">
                     <strong>${entry.organization}</strong>
-                    <div class="entry-date">${entry.date} • ${entry.hours}h • $${entry.rate}/h</div>
+                    <div class="entry-date">${formatDisplayDate(entry.date)} • ${entry.hours}h • $${entry.rate}/h</div>
                 </div>
                 <div class="entry-amount">$${(entry.hours * entry.rate).toFixed(2)}</div>
             </div>
@@ -548,6 +548,194 @@ function displayHours() {
             </div>
         </div>
     `).join('');
+}
+
+function startEditHours(index) {
+    console.log('Starting edit for index:', index);
+    
+    const entry = window.hoursEntries[index];
+    if (!entry) {
+        alert('Entry not found');
+        return;
+    }
+    
+    // Fix: Use the exact date string from storage
+    document.getElementById('organization').value = entry.organization || '';
+    document.getElementById('workType').value = entry.workType || 'hourly';
+    document.getElementById('subject').value = entry.subject || '';
+    document.getElementById('topic').value = entry.topic || '';
+    document.getElementById('workDate').value = entry.date || ''; // This should be the exact stored date
+    document.getElementById('hoursWorked').value = entry.hours || '';
+    document.getElementById('baseRate').value = entry.rate || '';
+    document.getElementById('workNotes').value = entry.notes || '';
+    
+    // Update total display
+    updateTotalDisplay();
+    
+    // Set editing mode
+    editingHoursIndex = index;
+    
+    // Change the button to "Update"
+    const saveButton = document.querySelector('#hours .btn-primary');
+    if (saveButton) {
+        saveButton.textContent = '💾 Update Entry';
+        saveButton.onclick = updateHoursEntry;
+    }
+    
+    // Add cancel button
+    if (!document.querySelector('.cancel-edit-btn')) {
+        const cancelButton = document.createElement('button');
+        cancelButton.type = 'button';
+        cancelButton.className = 'btn btn-secondary cancel-edit-btn';
+        cancelButton.textContent = '❌ Cancel';
+        cancelButton.onclick = cancelEdit;
+        document.querySelector('.form-actions').appendChild(cancelButton);
+    }
+    
+    console.log('Form ready for editing. Date value:', entry.date);
+}
+
+// Fix date display to show exactly what was entered
+function formatDisplayDate(dateString) {
+    if (!dateString) return 'No Date';
+    
+    // If it's already in YYYY-MM-DD format (from input), just return it
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        // Convert to MM/DD/YYYY for display
+        const [year, month, day] = dateString.split('-');
+        return `${month}/${day}/${year}`;
+    }
+    
+    // If it's any other format, try to parse it
+    try {
+        const date = new Date(dateString);
+        if (!isNaN(date)) {
+            return date.toLocaleDateString();
+        }
+    } catch (e) {
+        // If parsing fails, return the original string
+    }
+    
+    return dateString;
+}
+
+// Fix date storage to preserve exact input
+function logHours() {
+    // If editing, update instead
+    if (editingHoursIndex !== null) {
+        updateHoursEntry();
+        return;
+    }
+    
+    // Get form values - get the exact date string from input
+    const organization = document.getElementById('organization').value;
+    const workType = document.getElementById('workType').value;
+    const subject = document.getElementById('subject').value;
+    const topic = document.getElementById('topic').value;
+    const dateInput = document.getElementById('workDate');
+    const date = dateInput.value; // Get the exact value from the input
+    const hours = parseFloat(document.getElementById('hoursWorked').value);
+    const rate = parseFloat(document.getElementById('baseRate').value);
+    const notes = document.getElementById('workNotes').value;
+    
+    // Validation
+    if (!organization || !date || isNaN(hours) || isNaN(rate)) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    // Create new entry - store the exact date string
+    const newEntry = {
+        organization,
+        workType,
+        subject,
+        topic,
+        date: date, // Store the exact input value
+        hours,
+        rate,
+        notes,
+        total: hours * rate,
+        timestamp: new Date().toISOString()
+    };
+    
+    // Add to array
+    if (!window.hoursEntries) window.hoursEntries = [];
+    window.hoursEntries.push(newEntry);
+    
+    // Save to storage
+    saveHoursToStorage();
+    
+    // Refresh display
+    displayHours();
+    
+    // Reset form
+    cancelEdit();
+    
+    alert('✅ Entry added successfully!');
+    console.log('New entry added. Date stored as:', newEntry.date);
+}
+
+function updateHoursEntry() {
+    if (editingHoursIndex === null) {
+        alert('No entry selected for editing');
+        return;
+    }
+    
+    // Get form values - get exact date string
+    const organization = document.getElementById('organization').value;
+    const workType = document.getElementById('workType').value;
+    const subject = document.getElementById('subject').value;
+    const topic = document.getElementById('topic').value;
+    const dateInput = document.getElementById('workDate');
+    const date = dateInput.value; // Exact value from input
+    const hours = parseFloat(document.getElementById('hoursWorked').value);
+    const rate = parseFloat(document.getElementById('baseRate').value);
+    const notes = document.getElementById('workNotes').value;
+    
+    // Validation
+    if (!organization || !date || isNaN(hours) || isNaN(rate)) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    // Update the entry - store exact date
+    window.hoursEntries[editingHoursIndex] = {
+        organization,
+        workType,
+        subject,
+        topic,
+        date: date, // Store exact input value
+        hours,
+        rate,
+        notes,
+        total: hours * rate
+    };
+    
+    // Save to storage
+    saveHoursToStorage();
+    
+    // Refresh display
+    displayHours();
+    
+    // Reset form
+    cancelEdit();
+    
+    alert('✅ Entry updated successfully!');
+    console.log('Entry updated. Date stored as:', window.hoursEntries[editingHoursIndex].date);
+}
+
+// Add this to see what's actually being stored
+function debugDates() {
+    console.log('=== DATE DEBUG ===');
+    const entries = window.hoursEntries || [];
+    entries.forEach((entry, index) => {
+        console.log(`Entry ${index}:`, {
+            storedDate: entry.date,
+            displayDate: formatDisplayDate(entry.date),
+            inputType: typeof entry.date
+        });
+    });
+    console.log('==================');
 }
 
 function startEditHours(index) {
