@@ -115,17 +115,17 @@ body {
 }
 
 /* ============================================================================
-   CLOUD SYNC BAR - CENTERED AND CLEANED
+   CLOUD SYNC BAR - REMOVE ONLY THE AUTO-SYNC CHECKBOX
    ============================================================================ */
 .cloud-sync-bar {
     background: #f8f9fa;
     border-bottom: 1px solid #e9ecef;
     padding: 15px 40px;
     display: flex;
-    justify-content: center; /* Center everything */
+    justify-content: center;
     align-items: center;
     font-size: 14px;
-    gap: 30px; /* Increased gap for better spacing */
+    gap: 40px;
     flex-wrap: wrap;
     min-height: 60px;
 }
@@ -140,30 +140,128 @@ body {
 
 .sync-controls {
     display: flex;
-    gap: 12px; /* Balanced gap */
+    gap: 12px;
     align-items: center;
     flex-shrink: 0;
     flex-wrap: wrap;
-    justify-content: center; /* Center the buttons */
+    justify-content: center;
+}
+
+/* Remove ONLY the auto-sync checkbox and its label */
+#autoSyncCheckbox {
+    display: none !important;
+}
+
+/* Hide the label that contains the checkbox */
+.sync-options label.checkbox {
+    display: none !important;
+}
+
+/* But keep all the other buttons in sync-options visible */
+.sync-options {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Ensure all other buttons in sync-options remain visible */
+.sync-options .btn,
+.sync-options .btn-sm {
+    display: inline-flex !important;
+}
+
+/* Keep the app controls section visible */
+.sync-controls > div:last-child {
+    display: inline-flex !important;
+    gap: 5px;
+    margin-left: 15px;
+    border-left: 1px solid #ddd;
+    padding-left: 15px;
 }
 
 /* Equal width buttons */
 .sync-controls .btn,
 .sync-controls .btn-sm {
     min-width: 110px;
-    max-width: 110px; /* Fixed equal width */
-    flex: 0 0 auto; /* Don't grow or shrink */
+    max-width: 110px;
+    flex: 0 0 auto;
     justify-content: center;
     white-space: nowrap;
     padding: 10px 16px;
     font-size: 13px;
 }
 
-/* Remove the sync options/checkbox section entirely */
-.sync-options {
-    display: none; /* Hide auto-sync checkbox */
+/* ============================================================================
+   RESPONSIVE FIXES
+   ============================================================================ */
+@media (max-width: 1024px) {
+    .cloud-sync-bar {
+        padding: 15px 30px;
+        gap: 30px;
+    }
 }
 
+@media (max-width: 768px) {
+    .cloud-sync-bar {
+        padding: 12px 20px;
+        gap: 20px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .sync-status {
+        order: 1;
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+    
+    .sync-controls {
+        order: 2;
+        width: 100%;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .sync-options {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .cloud-sync-bar {
+        padding: 10px 15px;
+        gap: 15px;
+    }
+    
+    .sync-controls {
+        gap: 8px;
+    }
+    
+    .sync-controls .btn,
+    .sync-controls .btn-sm {
+        min-width: 100px;
+        max-width: 100px;
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    /* Stack the two button groups on mobile */
+    .sync-controls {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .sync-options,
+    .sync-controls > div:last-child {
+        margin-left: 0;
+        border-left: none;
+        padding-left: 0;
+        justify-content: center;
+    }
+}
 /* ============================================================================
    HEADER BUTTONS - PERFECTLY CENTERED
    ============================================================================ */
