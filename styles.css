@@ -1943,7 +1943,7 @@ body.modal-open {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 15px; /* Horizontal space between name and rate */
+    gap: 10px; /* was 15px Horizontal space between name and rate */
     margin-bottom: 12px;
     padding-bottom: 12px;
     border-bottom: 1px solid #e9ecef;
