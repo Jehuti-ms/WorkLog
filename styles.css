@@ -1938,3 +1938,62 @@ body.modal-open {
     border-left: 4px solid #ffc107;
     background: #fff9e6;
 }
+/* Student card header spacing */
+.student-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px; /* Horizontal space between name and rate */
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.student-name {
+    flex: 1;
+    margin: 0;
+    font-size: 1.1em;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.student-rate {
+    flex-shrink: 0;
+    background: #28a745;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Alternative layout options */
+
+/* Option A: More compact */
+.student-header.compact {
+    gap: 10px;
+}
+
+.student-rate.compact {
+    font-size: 0.8em;
+    padding: 3px 6px;
+}
+
+/* Option B: With icon */
+.student-rate.with-icon::before {
+    content: '💰 ';
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+    .student-header {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+    }
+    
+    .student-rate {
+        align-self: flex-start;
+    }
+}
