@@ -433,44 +433,142 @@ body {
     padding: 12px 16px;
 }
 /* ============================================================================
-   AUTO-SYNC CHECKBOX - PROPER STYLING
+   AUTO-SYNC CHECKBOX - PROPER WORKING STYLING
    ============================================================================ */
-#autoSyncCheckbox {
-    width: 16px;
-    height: 16px;
-    margin-right: 8px;
-    cursor: pointer;
-    accent-color: #667eea; /* Modern browser styling for checkbox */
+.sync-options {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.sync-options label.checkbox {
-    display: flex !important;
+.auto-sync-label {
+    display: flex;
     align-items: center;
+    gap: 8px;
     font-size: 12px;
     color: #2c3e50;
     cursor: pointer;
     padding: 6px 12px;
     border-radius: 6px;
     transition: all 0.2s ease;
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.9);
     border: 1px solid #e0e0e0;
+    margin: 0;
 }
 
-.sync-options label.checkbox:hover {
+.auto-sync-label:hover {
     background: rgba(102, 126, 234, 0.1);
     border-color: #667eea;
 }
 
-/* Focus state for accessibility */
-#autoSyncCheckbox:focus {
-    outline: 2px solid #667eea;
-    outline-offset: 2px;
+/* Hide the default checkbox */
+#autoSyncCheckbox {
+    display: none;
 }
 
-/* Checked state styling */
-#autoSyncCheckbox:checked {
-    background-color: #667eea;
+/* Custom checkbox design */
+.custom-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #667eea;
+    border-radius: 3px;
+    display: inline-block;
+    position: relative;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+/* Checked state */
+#autoSyncCheckbox:checked + .custom-checkbox {
+    background: #667eea;
     border-color: #667eea;
+}
+
+#autoSyncCheckbox:checked + .custom-checkbox::after {
+    content: "✓";
+    position: absolute;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Focus state */
+#autoSyncCheckbox:focus + .custom-checkbox {
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+}
+
+/* ============================================================================
+   SYNC BAR LAYOUT FIXES
+   ============================================================================ */
+.cloud-sync-bar {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 15px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    gap: 20px;
+}
+
+.sync-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.sync-options {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.app-controls {
+    display: inline-flex;
+    gap: 5px;
+    margin-left: 15px;
+    border-left: 1px solid #ddd;
+    padding-left: 15px;
+}
+
+/* Button sizing fixes */
+.sync-controls .btn-sm {
+    min-width: 100px;
+    padding: 8px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Responsive fixes */
+@media (max-width: 768px) {
+    .cloud-sync-bar {
+        flex-direction: column;
+        gap: 15px;
+        padding: 12px 20px;
+    }
+    
+    .sync-controls {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .sync-options,
+    .app-controls {
+        margin-left: 0;
+        border-left: none;
+        padding-left: 0;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .auto-sync-label {
+        order: -1;
+        margin-bottom: 5px;
+    }
 }
 /* ============================================================================
    RESPONSIVE FIXES - PREVENT OVERFLOW
