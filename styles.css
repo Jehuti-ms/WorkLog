@@ -1,5 +1,5 @@
 /* ============================================================================
-   RESET & BASE STYLES - CONTAINED
+   RESET & BASE STYLES
    ============================================================================ */
 * {
     margin: 0;
@@ -26,13 +26,12 @@ body {
 }
 
 /* ============================================================================
-   HEADER STYLES - IMPROVED
+   HEADER STYLES - FIXED LAYOUT
    ============================================================================ */
 .header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 35px 40px;
-    text-align: center;
     position: relative;
 }
 
@@ -53,6 +52,7 @@ body {
     position: relative;
     font-weight: 700;
     z-index: 1;
+    text-align: center;
 }
 
 .subtitle {
@@ -61,8 +61,10 @@ body {
     margin-bottom: 25px;
     position: relative;
     z-index: 1;
+    text-align: center;
 }
 
+/* FIXED: Storage status layout */
 .storage-status {
     display: flex;
     gap: 12px;
@@ -75,7 +77,8 @@ body {
 }
 
 .status {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     padding: 10px 18px;
     border-radius: 25px;
     font-size: 0.9em;
@@ -83,33 +86,52 @@ body {
     background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.3);
+    white-space: nowrap;
 }
 
-/* Auth section positioning */
+/* FIXED: Auth section positioning */
 .auth-section {
     position: relative;
-    display: inline-block;
+    display: inline-flex;
     z-index: 1;
 }
 
+.auth-section .btn {
+    background: rgba(255, 255, 255, 0.9);
+    color: #667eea;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 25px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 100px;
+}
+
+.auth-section .btn:hover {
+    background: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+}
+
 /* ============================================================================
-   CLOUD SYNC BAR - IMPROVED
+   CLOUD SYNC BAR - FIXED LAYOUT
    ============================================================================ */
 .cloud-sync-bar {
     background: #f8f9fa;
     border-bottom: 1px solid #e9ecef;
     padding: 15px 40px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 15px;
     font-size: 14px;
-    gap: 20px;
 }
 
 .sync-status {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .sync-indicator {
@@ -117,6 +139,7 @@ body {
     height: 10px;
     border-radius: 50%;
     display: inline-block;
+    flex-shrink: 0;
 }
 
 .sync-connected { background: #28a745; }
@@ -131,30 +154,68 @@ body {
     100% { opacity: 1; }
 }
 
+/* FIXED: Sync controls layout - two rows */
 .sync-controls {
     display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 12px;
 }
 
+/* First row - cloud sync controls */
 .sync-options {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e9ecef;
 }
 
-/* Equal-sized buttons in sync bar */
+/* Checkbox styling */
+.checkbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 6px;
+    cursor: pointer;
+}
+
+/* Second row - app controls */
+.sync-controls > div:last-child {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* FIXED: Button sizing in sync bar */
 .sync-controls .btn,
 .sync-controls .btn-sm {
-    min-width: 120px;
-    justify-content: center;
+    padding: 10px 16px;
+    font-size: 13px;
+    border-radius: 8px;
+    min-width: auto;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Remove border styling that was causing issues */
+.sync-controls > div:last-child {
+    border: none;
+    padding: 0;
+    margin: 0;
 }
 
 /* ============================================================================
-   TAB SYSTEM - CONTAINED
+   TAB SYSTEM
    ============================================================================ */
 .tabs-container {
     background: #f8f9fa;
@@ -201,7 +262,7 @@ body {
 }
 
 /* ============================================================================
-   CONTENT AREA - CONTAINED
+   CONTENT AREA
    ============================================================================ */
 .content {
     padding: 40px;
@@ -231,7 +292,7 @@ body {
 }
 
 /* ============================================================================
-   FORM STYLES - ENHANCED
+   FORM STYLES
    ============================================================================ */
 .form-grid {
     display: grid;
@@ -286,12 +347,12 @@ input[readonly] {
 }
 
 /* ============================================================================
-   BUTTON STYLES - ENHANCED WITH EQUAL SIZING
+   BUTTON STYLES - FIXED
    ============================================================================ */
 .btn {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 14px 24px;
     border: none;
     border-radius: 10px;
@@ -304,7 +365,7 @@ input[readonly] {
     font-family: inherit;
     position: relative;
     overflow: hidden;
-    min-width: 140px;
+    min-width: 120px;
 }
 
 .btn::before {
@@ -374,10 +435,11 @@ input[readonly] {
 }
 
 .btn-sm {
-    padding: 10px 18px;
+    padding: 10px 16px;
     font-size: 13px;
     border-radius: 8px;
-    min-width: 100px;
+    min-width: 90px;
+    gap: 6px;
 }
 
 .btn-edit {
@@ -392,7 +454,7 @@ input[readonly] {
 }
 
 /* ============================================================================
-   LAYOUT COMPONENTS - ENHANCED
+   LAYOUT COMPONENTS
    ============================================================================ */
 .button-group {
     display: flex;
@@ -444,7 +506,7 @@ input[readonly] {
 }
 
 /* ============================================================================
-   LIST & TABLE STYLES - ENHANCED
+   LIST & TABLE STYLES
    ============================================================================ */
 .list-item {
     background: #fafbfc;
@@ -476,7 +538,7 @@ input[readonly] {
 }
 
 /* ============================================================================
-   TABLE STYLES - ENHANCED
+   TABLE STYLES
    ============================================================================ */
 .table-container {
     overflow-x: auto;
@@ -517,7 +579,7 @@ tr:hover {
 }
 
 /* ============================================================================
-   DEFAULT RATE PANEL - FIXED VISIBILITY
+   DEFAULT RATE PANEL
    ============================================================================ */
 .default-rate-panel {
     background: white;
@@ -595,10 +657,9 @@ tr:hover {
 
 .rate-actions .btn {
     flex: 1;
-    min-width: 180px;
+    min-width: 160px;
 }
 
-/* Rate input wrapper for better visual */
 .rate-input-wrapper {
     position: relative;
 }
@@ -630,7 +691,7 @@ tr:hover {
 }
 
 /* ============================================================================
-   SECTION CARDS - IMPROVED
+   SECTION CARDS
    ============================================================================ */
 .section-card {
     background: white;
@@ -650,7 +711,7 @@ tr:hover {
 }
 
 /* ============================================================================
-   ATTENDANCE STYLES - ENHANCED
+   ATTENDANCE STYLES
    ============================================================================ */
 .attendance-container {
     max-height: 450px;
@@ -779,7 +840,7 @@ tr:hover {
 }
 
 /* ============================================================================
-   STUDENT CARDS - IMPROVED
+   STUDENT CARDS
    ============================================================================ */
 .students-grid {
     display: grid;
@@ -862,7 +923,7 @@ tr:hover {
 }
 
 /* ============================================================================
-   FORM ACTIONS - IMPROVED
+   FORM ACTIONS
    ============================================================================ */
 .form-actions {
     display: flex;
@@ -876,78 +937,7 @@ tr:hover {
 
 .form-actions .btn {
     flex: 1;
-    min-width: 160px;
-}
-
-/* ============================================================================
-   MODAL STYLES - ENHANCED
-   ============================================================================ */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.6);
-    backdrop-filter: blur(8px);
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-.modal-content {
-    background-color: white;
-    margin: auto;
-    padding: 30px;
-    border-radius: 16px;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.25);
-    width: 90%;
-    max-width: 500px;
-    max-height: 85vh;
-    overflow-y: auto;
-    position: relative;
-    top: 50%;
-    transform: translateY(-50%);
-    animation: modalSlideIn 0.4s ease;
-}
-
-@keyframes modalSlideIn {
-    from { 
-        opacity: 0; 
-        transform: translateY(-60px) translateY(-50%); 
-    }
-    to { 
-        opacity: 1; 
-        transform: translateY(0) translateY(-50%); 
-    }
-}
-
-.modal .close {
-    position: absolute;
-    right: 20px;
-    top: 20px;
-    font-size: 26px;
-    font-weight: bold;
-    cursor: pointer;
-    color: #8e9aab;
-    background: none;
-    border: none;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.3s ease;
-    z-index: 1;
-}
-
-.modal .close:hover {
-    color: #2c3e50;
-    background: #f8f9fa;
-    transform: rotate(90deg);
+    min-width: 140px;
 }
 
 /* ============================================================================
@@ -1090,7 +1080,7 @@ tr:hover {
 }
 
 /* ============================================================================
-   MOBILE ENTRY CARDS - ENHANCED
+   MOBILE ENTRY CARDS
    ============================================================================ */
 .mobile-entry-card {
     background: white;
@@ -1302,7 +1292,7 @@ tr:hover {
 }
 
 /* ============================================================================
-   SEARCH BOX STYLES - ENHANCED
+   SEARCH BOX STYLES
    ============================================================================ */
 .list-controls {
     display: flex;
@@ -1344,61 +1334,74 @@ tr:hover {
 }
 
 /* ============================================================================
-   UTILITY CLASSES
+   MODAL STYLES
    ============================================================================ */
-.auto-fill-hint {
-    font-size: 0.82em;
-    color: #28a745;
-    margin-left: 6px;
-    font-weight: 600;
-}
-
-.status-connected {
-    color: #28a745;
-    font-weight: 700;
-}
-
-.status-disconnected {
-    color: #dc3545;
-    font-weight: 700;
-}
-
-.edit-mode {
-    background: #fff3cd !important;
-    border-left: 5px solid #ffc107 !important;
-    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2) !important;
-}
-
-.form-edit-mode {
-    border-left: 4px solid #ffc107;
-    background: #fffbf0;
-}
-
-.field-error {
-    color: #e74c3c;
-    font-size: 0.88em;
-    margin-top: 6px;
-    font-weight: 600;
+.modal {
     display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    padding: 20px;
+    box-sizing: border-box;
 }
 
-.field-hint {
-    color: #6c757d;
-    font-size: 0.88em;
-    margin-top: 6px;
-    line-height: 1.4;
+.modal-content {
+    background-color: white;
+    margin: auto;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+    width: 90%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    animation: modalSlideIn 0.4s ease;
 }
 
-body.modal-open {
-    overflow: hidden;
+@keyframes modalSlideIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(-60px) translateY(-50%); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) translateY(-50%); 
+    }
 }
 
-.app-icon {
-    width: 40px;
-    height: 40px;
-    margin-right: 12px;
-    vertical-align: middle;
-    border-radius: 8px;
+.modal .close {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    font-size: 26px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #8e9aab;
+    background: none;
+    border: none;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    z-index: 1;
+}
+
+.modal .close:hover {
+    color: #2c3e50;
+    background: #f8f9fa;
+    transform: rotate(90deg);
 }
 
 /* ============================================================================
@@ -1463,7 +1466,65 @@ body.modal-open {
 }
 
 /* ============================================================================
-   RESPONSIVE DESIGN - ENHANCED
+   UTILITY CLASSES
+   ============================================================================ */
+.auto-fill-hint {
+    font-size: 0.82em;
+    color: #28a745;
+    margin-left: 6px;
+    font-weight: 600;
+}
+
+.status-connected {
+    color: #28a745;
+    font-weight: 700;
+}
+
+.status-disconnected {
+    color: #dc3545;
+    font-weight: 700;
+}
+
+.edit-mode {
+    background: #fff3cd !important;
+    border-left: 5px solid #ffc107 !important;
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2) !important;
+}
+
+.form-edit-mode {
+    border-left: 4px solid #ffc107;
+    background: #fffbf0;
+}
+
+.field-error {
+    color: #e74c3c;
+    font-size: 0.88em;
+    margin-top: 6px;
+    font-weight: 600;
+    display: none;
+}
+
+.field-hint {
+    color: #6c757d;
+    font-size: 0.88em;
+    margin-top: 6px;
+    line-height: 1.4;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+.app-icon {
+    width: 40px;
+    height: 40px;
+    margin-right: 12px;
+    vertical-align: middle;
+    border-radius: 8px;
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
    ============================================================================ */
 @media (max-width: 1024px) {
     .container {
@@ -1476,6 +1537,10 @@ body.modal-open {
     .tabs-container,
     .content {
         padding: 25px 30px;
+    }
+    
+    .cloud-sync-bar {
+        padding: 15px 30px;
     }
 }
 
@@ -1501,6 +1566,26 @@ body.modal-open {
     
     .header h1 {
         font-size: 2em;
+    }
+    
+    /* Cloud sync bar mobile layout */
+    .cloud-sync-bar {
+        padding: 15px;
+    }
+    
+    .sync-options {
+        flex-direction: column;
+        align-items: stretch;
+        padding-bottom: 12px;
+    }
+    
+    .sync-controls > div:last-child {
+        flex-direction: column;
+    }
+    
+    .sync-controls .btn,
+    .sync-controls .btn-sm {
+        width: 100%;
     }
     
     .tabs {
@@ -1552,7 +1637,6 @@ body.modal-open {
         width: 100%;
     }
     
-    .sync-controls,
     .rate-actions .btn,
     .form-actions .btn {
         width: 100%;
@@ -1567,22 +1651,6 @@ body.modal-open {
     
     .status {
         text-align: center;
-    }
-    
-    .cloud-sync-bar {
-        flex-direction: column;
-        gap: 15px;
-        align-items: stretch;
-    }
-    
-    .sync-controls {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .sync-options {
-        flex-direction: column;
-        align-items: stretch;
     }
     
     .attendance-item {
