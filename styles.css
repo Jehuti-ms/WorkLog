@@ -115,80 +115,73 @@ body {
 }
 
 /* ============================================================================
-   CLOUD SYNC BAR - REMOVE ONLY THE AUTO-SYNC CHECKBOX
+   CLOUD SYNC BAR - FIXED AUTO-SYNC CHECKBOX
    ============================================================================ */
-.cloud-sync-bar {
-    background: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
-    padding: 15px 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 14px;
-    gap: 40px;
-    flex-wrap: wrap;
-    min-height: 60px;
-}
 
-.sync-status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-    min-width: 0;
-}
-
-.sync-controls {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-/* Remove ONLY the auto-sync checkbox and its label */
+/* REMOVE OR COMMENT OUT THESE LINES: */
+/*
 #autoSyncCheckbox {
     display: none !important;
 }
 
-/* Hide the label that contains the checkbox */
 .sync-options label.checkbox {
     display: none !important;
 }
+*/
 
-/* But keep all the other buttons in sync-options visible */
-.sync-options {
-    display: inline-flex !important;
+/* KEEP THIS - it styles the custom checkbox properly */
+.auto-sync-label {
+    display: flex !important;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    font-size: 12px;
+    color: #2c3e50;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #e0e0e0;
+    margin: 0;
 }
 
-/* Ensure all other buttons in sync-options remain visible */
-.sync-options .btn,
-.sync-options .btn-sm {
-    display: inline-flex !important;
+.auto-sync-label:hover {
+    background: rgba(102, 126, 234, 0.1);
+    border-color: #667eea;
 }
 
-/* Keep the app controls section visible */
-.sync-controls > div:last-child {
-    display: inline-flex !important;
-    gap: 5px;
-    margin-left: 15px;
-    border-left: 1px solid #ddd;
-    padding-left: 15px;
+/* Hide the default checkbox but show the custom one */
+#autoSyncCheckbox {
+    display: none; /* Hide the actual HTML checkbox */
 }
 
-/* Equal width buttons */
-.sync-controls .btn,
-.sync-controls .btn-sm {
-    min-width: 110px;
-    max-width: 110px;
-    flex: 0 0 auto;
-    justify-content: center;
-    white-space: nowrap;
-    padding: 10px 16px;
-    font-size: 13px;
+.custom-checkbox {
+    width: 16px !important;
+    height: 16px !important;
+    border: 2px solid #667eea !important;
+    border-radius: 3px !important;
+    display: inline-block !important;
+    position: relative;
+    transition: all 0.2s ease;
+    background: white !important;
+    flex-shrink: 0;
+}
+
+/* Checked state */
+#autoSyncCheckbox:checked + .custom-checkbox {
+    background: #667eea !important;
+    border-color: #667eea !important;
+}
+
+#autoSyncCheckbox:checked + .custom-checkbox::after {
+    content: "✓" !important;
+    position: absolute;
+    color: white !important;
+    font-size: 12px !important;
+    font-weight: bold;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 /* ============================================================================
