@@ -187,7 +187,7 @@ function loadStudents() {
             html += `
                 <div class="student-card">
                     <div class="student-header">
-                        <h4>${student.name}</h4>
+                        <h4 class="student-name">${student.name}</h4>
                         <span class="student-rate">$${student.rate || '0.00'}/session</span>
                     </div>
                     <div class="student-details">
@@ -209,14 +209,7 @@ function loadStudents() {
         html += '</div>';
         container.innerHTML = html;
         
-        // Update student count
-        document.getElementById('studentCount').textContent = appData.students.length;
-        
-        // Calculate average rate
-        const avgRate = appData.students.length > 0 
-            ? (appData.students.reduce((sum, student) => sum + parseFloat(student.rate || 0), 0) / appData.students.length).toFixed(2)
-            : '0.00';
-        document.getElementById('averageRate').textContent = avgRate;
+        // Update student count and average rate...
         
     } catch (error) {
         console.error('❌ Error loading students:', error);
