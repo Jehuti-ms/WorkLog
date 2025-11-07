@@ -115,19 +115,19 @@ body {
 }
 
 /* ============================================================================
-   CLOUD SYNC BAR - FIXED OVERFLOW ISSUE
+   CLOUD SYNC BAR - CENTERED AND CLEANED
    ============================================================================ */
 .cloud-sync-bar {
     background: #f8f9fa;
     border-bottom: 1px solid #e9ecef;
     padding: 15px 40px;
     display: flex;
-    justify-content: space-between;
+    justify-content: center; /* Center everything */
     align-items: center;
     font-size: 14px;
-    gap: 20px;
-    flex-wrap: wrap; /* Allow wrapping if needed */
-    min-height: 60px; /* Ensure consistent height */
+    gap: 30px; /* Increased gap for better spacing */
+    flex-wrap: wrap;
+    min-height: 60px;
 }
 
 .sync-status {
@@ -135,35 +135,184 @@ body {
     align-items: center;
     gap: 10px;
     flex-shrink: 0;
-    min-width: 0; /* Allow text truncation */
+    min-width: 0;
 }
 
 .sync-controls {
     display: flex;
-    gap: 8px; /* Reduced gap */
+    gap: 12px; /* Balanced gap */
     align-items: center;
     flex-shrink: 0;
-    flex-wrap: wrap; /* Allow buttons to wrap */
-    justify-content: flex-end;
+    flex-wrap: wrap;
+    justify-content: center; /* Center the buttons */
 }
 
-/* Fixed width buttons to prevent overflow */
+/* Equal width buttons */
 .sync-controls .btn,
 .sync-controls .btn-sm {
-    min-width: 100px; /* Reduced from 120px */
-    max-width: 120px;
-    flex: 1; /* Equal width */
+    min-width: 110px;
+    max-width: 110px; /* Fixed equal width */
+    flex: 0 0 auto; /* Don't grow or shrink */
     justify-content: center;
     white-space: nowrap;
-    padding: 10px 12px; /* Slightly reduced padding */
-    font-size: 13px; /* Slightly smaller font */
+    padding: 10px 16px;
+    font-size: 13px;
 }
 
+/* Remove the sync options/checkbox section entirely */
 .sync-options {
+    display: none; /* Hide auto-sync checkbox */
+}
+
+/* ============================================================================
+   HEADER BUTTONS - PERFECTLY CENTERED
+   ============================================================================ */
+.header .button-group {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
+    gap: 20px; /* Balanced gap */
+    margin: 25px 0;
+    justify-content: center;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.header .button-group .btn {
+    min-width: 150px;
+    max-width: 150px; /* Fixed equal width */
+    flex: 0 0 auto; /* Don't grow or shrink */
+    justify-content: center;
+    padding: 14px 20px;
+}
+
+/* ============================================================================
+   SYNC STATUS IMPROVEMENTS
+   ============================================================================ */
+.sync-status {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.sync-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    animation: none; /* Remove pulsing animation for cleaner look */
+}
+
+.sync-connected { background: #28a745; }
+.sync-syncing { background: #ffc107; animation: pulse 1.5s infinite; } /* Keep only for syncing */
+.sync-pending { background: #6c757d; }
+.sync-error { background: #dc3545; }
+.sync-offline { background: #6c757d; }
+
+/* ============================================================================
+   RESPONSIVE FIXES - MAINTAIN CENTERING
+   ============================================================================ */
+@media (max-width: 1024px) {
+    .cloud-sync-bar {
+        padding: 15px 30px;
+        gap: 25px;
+    }
+    
+    .sync-controls .btn,
+    .sync-controls .btn-sm {
+        min-width: 100px;
+        max-width: 100px;
+        padding: 9px 14px;
+    }
+    
+    .header .button-group .btn {
+        min-width: 140px;
+        max-width: 140px;
+    }
+}
+
+@media (max-width: 768px) {
+    .cloud-sync-bar {
+        padding: 12px 20px;
+        gap: 20px;
+        flex-direction: row; /* Keep in single row if possible */
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .sync-status {
+        order: 1; /* Status first */
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+    
+    .sync-controls {
+        order: 2; /* Controls second */
+        width: 100%;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .sync-controls .btn,
+    .sync-controls .btn-sm {
+        min-width: 110px;
+        max-width: 110px;
+        flex: 0 0 auto;
+    }
+    
+    .header .button-group {
+        gap: 15px;
+    }
+    
+    .header .button-group .btn {
+        min-width: 130px;
+        max-width: 130px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cloud-sync-bar {
+        padding: 10px 15px;
+        gap: 15px;
+    }
+    
+    .sync-controls {
+        gap: 8px;
+    }
+    
+    .sync-controls .btn,
+    .sync-controls .btn-sm {
+        min-width: 100px;
+        max-width: 100px;
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    .header .button-group {
+        gap: 10px;
+    }
+    
+    .header .button-group .btn {
+        min-width: 120px;
+        max-width: 120px;
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+}
+
+/* ============================================================================
+   ENHANCED VISUAL BALANCE
+   ============================================================================ */
+.sync-status-text {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* Ensure all buttons have consistent visual weight */
+.btn {
+    font-weight: 600;
+    letter-spacing: 0.3px;
 }
 
 /* ============================================================================
