@@ -115,103 +115,136 @@ body {
 }
 
 /* ============================================================================
-   CLOUD SYNC BAR - FIXED LAYOUT
+   CLOUD SYNC BAR - FIXED SINGLE ROW LAYOUT
    ============================================================================ */
 .cloud-sync-bar {
     background: #f8f9fa;
     border-bottom: 1px solid #e9ecef;
     padding: 15px 40px;
     display: flex;
-    flex-direction: column;
-    gap: 15px;
+    justify-content: space-between; /* Push status left, controls right */
+    align-items: center;
     font-size: 14px;
+    gap: 20px;
 }
 
 .sync-status {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
-.sync-indicator {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    display: inline-block;
-    flex-shrink: 0;
-}
-
-.sync-connected { background: #28a745; }
-.sync-syncing { background: #ffc107; animation: pulse 1.5s infinite; }
-.sync-pending { background: #ffc107; animation: pulse 2s infinite; }
-.sync-error { background: #dc3545; }
-.sync-offline { background: #6c757d; }
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-/* FIXED: Sync controls layout - two rows */
 .sync-controls {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
-/* First row - cloud sync controls */
+/* Equal-sized buttons in sync bar */
+.sync-controls .btn,
+.sync-controls .btn-sm {
+    min-width: 120px;
+    flex: 1; /* Make buttons equal width */
+    justify-content: center;
+    white-space: nowrap;
+}
+
 .sync-options {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #e9ecef;
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
-/* Checkbox styling */
-.checkbox {
+/* ============================================================================
+   HEADER BUTTONS - CENTERED IN SINGLE ROW
+   ============================================================================ */
+.header .button-group {
     display: flex;
-    align-items: center;
-    cursor: pointer;
-    user-select: none;
+    gap: 12px;
+    margin: 25px 0;
+    justify-content: center;
+    width: 100%;
 }
 
-.checkbox input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    margin-right: 6px;
-    cursor: pointer;
+.header .button-group .btn {
+    flex: 1;
+    min-width: 160px;
+    max-width: 200px;
+    justify-content: center;
 }
 
-/* Second row - app controls */
-.sync-controls > div:last-child {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
+/* ============================================================================
+   RESPONSIVE FIXES
+   ============================================================================ */
+@media (max-width: 768px) {
+    .cloud-sync-bar {
+        flex-direction: row; /* Keep in single row */
+        flex-wrap: wrap; /* Allow wrapping if needed */
+        gap: 15px;
+        padding: 15px 20px;
+    }
+    
+    .sync-status {
+        flex: 1;
+        min-width: 100%; /* Take full width on mobile */
+        justify-content: center;
+    }
+    
+    .sync-controls {
+        flex: 1;
+        min-width: 100%; /* Take full width on mobile */
+        justify-content: center;
+    }
+    
+    .sync-controls .btn,
+    .sync-controls .btn-sm {
+        min-width: 120px;
+        flex: 1;
+    }
+    
+    .header .button-group {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .header .button-group .btn {
+        min-width: 120px;
+        flex: 1;
+        max-width: 45%;
+    }
 }
 
-/* FIXED: Button sizing in sync bar */
-.sync-controls .btn,
-.sync-controls .btn-sm {
-    padding: 10px 16px;
-    font-size: 13px;
-    border-radius: 8px;
-    min-width: auto;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-/* Remove border styling that was causing issues */
-.sync-controls > div:last-child {
-    border: none;
-    padding: 0;
-    margin: 0;
+@media (max-width: 480px) {
+    .cloud-sync-bar {
+        flex-direction: column; /* Stack on very small screens */
+        gap: 10px;
+    }
+    
+    .sync-status,
+    .sync-controls {
+        min-width: 100%;
+        justify-content: center;
+    }
+    
+    .sync-controls {
+        flex-wrap: wrap;
+    }
+    
+    .sync-controls .btn,
+    .sync-controls .btn-sm {
+        min-width: 100px;
+        flex: 1;
+        max-width: 48%;
+    }
+    
+    .header .button-group .btn {
+        min-width: 100px;
+        max-width: 100%; /* Full width buttons on very small screens */
+    }
 }
 
 /* ============================================================================
