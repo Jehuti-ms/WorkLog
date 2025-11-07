@@ -154,16 +154,24 @@
                 </div>
 
                 <!-- Default Rate Settings Panel -->
-                <div class="default-rate-panel">
+               <div class="default-rate-panel">
                     <h4>💰 Default Rate Settings</h4>
+                    
                     <div class="form-group">
-                        <label for="defaultBaseRate">Default Base Rate ($/session)</label>
-                        <input type="number" id="defaultBaseRate" step="0.01" min="0" placeholder="e.g., 25.00">
-                        <div class="help-text">This rate will be automatically filled for new students.</div>
-                        <div class="current-rate-display">
-                            Current: $<span id="currentDefaultRate">0.00</span>
+                        <label for="defaultBaseRate">Set Default Rate ($/session)</label>
+                        <div class="rate-input-wrapper">
+                            <span class="currency-symbol">$</span>
+                            <input type="number" id="defaultBaseRate" step="0.01" min="0" placeholder="25.00">
+                            <span class="rate-suffix">/ session</span>
                         </div>
+                        <div class="help-text">This rate will be automatically filled for new students</div>
                     </div>
+                    
+                    <div class="current-rate-display">
+                        <span class="current-label">Current Default Rate:</span>
+                        <span class="current-value">$<span id="currentDefaultRate">0.00</span>/session</span>
+                    </div>
+                    
                     <div class="rate-actions">
                         <button type="button" class="btn btn-success" onclick="saveDefaultRate()">
                             💾 Save Default Rate
@@ -172,7 +180,7 @@
                             🔄 Apply to All Students
                         </button>
                         <button type="button" class="btn btn-secondary" onclick="useDefaultRate()">
-                            📝 Use in Form
+                            📝 Use in Student Form
                         </button>
                     </div>
                 </div>
