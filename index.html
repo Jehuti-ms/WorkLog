@@ -85,8 +85,8 @@
                 </div>
             </div>
         </header>
-
-     <!-- Cloud Sync Bar -->
+        
+        <!-- Cloud Sync Bar -->
 <div class="cloud-sync-bar">
     <div class="sync-status">
         <span class="sync-indicator sync-connected" id="syncIndicator"></span>
@@ -95,9 +95,10 @@
     </div>
     <div class="sync-controls">
         <!-- Sync Controls -->
-        <div class="sync-options" style="display: inline-flex; align-items: center; gap: 10px;">
-            <label class="checkbox" style="display: flex; align-items: center; font-size: 12px; cursor: pointer; margin: 0;">
-                <input type="checkbox" id="autoSyncCheckbox" onchange="toggleAutoSync()" style="margin-right: 6px;">
+        <div class="sync-options">
+            <label class="auto-sync-label">
+                <input type="checkbox" id="autoSyncCheckbox" onchange="toggleAutoSync()">
+                <span class="custom-checkbox"></span>
                 Auto-sync
             </label>
             
@@ -119,7 +120,7 @@
         </div>
         
         <!-- App Controls -->
-        <div style="display: inline-flex; gap: 5px; margin-left: 15px; border-left: 1px solid #ddd; padding-left: 15px;">
+        <div class="app-controls">
             <button class="btn btn-sm" onclick="exportData()">📤 Export Data</button>
             <button class="btn btn-sm btn-secondary" onclick="importData()">📥 Import Data</button>
             <button class="btn btn-sm btn-danger" onclick="clearAllData()">🗑️ Clear All</button>
