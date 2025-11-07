@@ -113,7 +113,119 @@ body {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
 }
+/* ============================================================================
+   HEADER - CENTER STORAGE STATUS AND BUTTONS
+   ============================================================================ */
 
+/* Center the entire header content */
+.header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 35px 40px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* Remove the inline style that's causing left alignment and center everything */
+.header > div[style*="display: flex"] {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin-top: 20px;
+}
+
+/* Center the storage status section */
+.storage-status {
+    display: flex !important;
+    gap: 12px;
+    align-items: center;
+    justify-content: center !important;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+}
+
+/* Ensure status items are properly centered */
+.status {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 18px;
+    border-radius: 25px;
+    font-size: 0.9em;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    white-space: nowrap;
+    justify-content: center;
+}
+
+/* Center the auth section */
+.auth-section {
+    position: relative;
+    display: inline-flex;
+    z-index: 1;
+    justify-content: center;
+}
+
+/* Override any inline styles that might be pushing content left */
+.header > * {
+    justify-content: center !important;
+    text-align: center !important;
+}
+
+/* ============================================================================
+   RESPONSIVE CENTERING
+   ============================================================================ */
+@media (max-width: 1024px) {
+    .header {
+        padding: 30px 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        padding: 25px 20px;
+    }
+    
+    .storage-status {
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    .status {
+        width: auto;
+        min-width: 200px;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .header {
+        padding: 20px 15px;
+    }
+    
+    .status {
+        width: 100%;
+        max-width: 280px;
+    }
+    
+    .auth-section {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .auth-section .btn {
+        width: 100%;
+        max-width: 200px;
+    }
+}
 /* ============================================================================
    CLOUD SYNC BAR - FIXED AUTO-SYNC CHECKBOX
    ============================================================================ */
