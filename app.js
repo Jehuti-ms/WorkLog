@@ -933,6 +933,43 @@ function updateHoursStats() {
     }
 }
 
+function displayHours() {
+    const container = document.getElementById('hoursContainer');
+    if (!container) return;
+    
+    const entries = window.hoursEntries || [];
+    
+    if (entries.length === 0) {
+        container.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">No work logged yet. Start tracking your earnings!</p>';
+        return;
+    }
+    
+    // Sort by date descending (newest first)
+    const sortedEntries = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    container.innerHTML = sortedEntries.map((entry, index) => `
+        <div class="mobile-entry-card">
+            <div class="entry-header">
+                <div class="entry-main">
+                    <strong>${entry.organization}</strong>
+                    <div class="entry-date">${formatDate(entry.date)} • ${entry.hours}h • $${entry.rate}/h</div>
+                </div>
+                <div class="entry-amount">$${entry.total.toFixed(2)}</div>
+            </div>
+            <div class="entry-details">
+                <div><strong>Subject:</strong> ${entry.subject || 'N/A'}</div>
+                <div><strong>Topic:</strong> ${entry.topic || 'N/A'}</div>
+                <div><strong>Work Type:</strong> ${entry.workType || 'hourly'}</div>
+                ${entry.notes ? `<div><strong>Notes:</strong> ${entry.notes}</div>` : ''}
+            </div>
+            <div class="entry-actions">
+                <button class="btn btn-sm btn-edit" onclick="editHours(${entries.indexOf(entry)})">✏️ Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteHours(${entries.indexOf(entry)})">🗑️ Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
 // Debug function
 function debugHours() {
     console.log('=== HOURS DEBUG INFO ===');
