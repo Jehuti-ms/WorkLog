@@ -1898,3 +1898,43 @@ body.modal-open {
 .attendance-record-actions {
     text-align: right;
 }
+/* Edit mode styling */
+.btn-edit {
+    background: #ffc107;
+    border-color: #ffc107;
+    color: #000;
+}
+
+.btn-edit:hover {
+    background: #e0a800;
+    border-color: #e0a800;
+}
+
+.btn-warning {
+    background: #ffc107;
+    border-color: #ffc107;
+    color: #000;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+    border-color: #e0a800;
+}
+
+/* Student card hover effects */
+.student-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.student-card:hover {
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Form in edit mode */
+.form-edit-mode {
+    border-left: 4px solid #ffc107;
+    background: #fff9e6;
+}
