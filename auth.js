@@ -14,7 +14,7 @@ let authState = {
 const AUTH_CONFIG = {
     storageKey: 'worklog_auth_v2',
     sessionTimeout: 7 * 24 * 60 * 60 * 1000, // 7 days
-    googleClientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com', // You'll get this from Google Cloud Console
+    googleClientId: '919764968127-fi882r3rsgcnukm65pq14t1qdd4pr8ot.apps.googleusercontent.com', // You'll get this from Google Cloud Console
     googleScope: 'profile email'
 };
 
