@@ -959,11 +959,15 @@ function loadAttendance() {
                 return student ? student.name : 'Unknown';
             });
             
+            // FIXED: Use proper date formatting to avoid timezone issues
+            const sessionDate = formatAttendanceDate(session.date);
+            const fullDate = formatAttendanceFullDate(session.date);
+            
             html += `
                 <div class="attendance-entry">
                     <div class="attendance-header">
                         <div class="attendance-main">
-                            <h4>${session.subject} - ${new Date(session.date).toLocaleDateString()}</h4>
+                            <h4>${session.subject} - ${sessionDate}</h4>
                             <span class="attendance-count">${session.presentStudents.length} students</span>
                         </div>
                         <div class="attendance-actions">
@@ -974,12 +978,7 @@ function loadAttendance() {
                     <div class="attendance-details">
                         <p><strong>Topic:</strong> ${session.topic || 'N/A'}</p>
                         <p><strong>Present:</strong> ${presentStudents.join(', ')}</p>
-                        <p><strong>Date:</strong> ${new Date(session.date).toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                        })}</p>
+                        <p><strong>Date:</strong> ${fullDate}</p>
                     </div>
                 </div>
             `;
@@ -1062,8 +1061,11 @@ function editAttendance(index) {
         return;
     }
     
+    // FIXED: Use proper date formatting for the input
+    const displayDate = formatDateForAttendanceInput(session.date);
+    
     // Populate the form with existing data
-    document.getElementById('attendanceDate').value = session.date;
+    document.getElementById('attendanceDate').value = displayDate;
     document.getElementById('attendanceSubject').value = session.subject || '';
     document.getElementById('attendanceTopic').value = session.topic || '';
     
@@ -1250,6 +1252,102 @@ function cancelAttendanceEdit() {
     // Remove edit mode styling
     const formCard = document.querySelector('#attendance .section-card');
     formCard.classList.remove('edit-mode');
+}
+
+
+// ============================================================================
+// ATTENDANCE DATE FORMATTING - FIXED TIMEZONE ISSUES
+// ============================================================================
+
+function formatAttendanceDate(dateString) {
+    if (!dateString) return 'No Date';
+    
+    try {
+        const date = new Date(dateString);
+        // Use local date components to avoid timezone issues
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        return `${month}/${day}/${year}`;
+    } catch (e) {
+        console.error('Error formatting attendance date:', e);
+        return dateString;
+    }
+}
+
+function formatAttendanceFullDate(dateString) {
+    if (!dateString) return 'No Date';
+    
+    try {
+        const date = new Date(dateString);
+        // Use local date for display
+        return date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+    } catch (e) {
+        console.error('Error formatting full attendance date:', e);
+        return dateString;
+    }
+}
+
+function formatDateForAttendanceInput(dateString) {
+    if (!dateString) return '';
+    
+    try {
+        const date = new Date(dateString);
+        // Ensure we're using the local date, not UTC
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
+    } catch (e) {
+        console.error('Error formatting date for attendance input:', e);
+        return dateString;
+    }
+}
+
+function setTodayDate() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    
+    document.getElementById('attendanceDate').value = `${year}-${month}-${day}`;
+}
+
+function setYesterdayDate() {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const year = yesterday.getFullYear();
+    const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+    const day = String(yesterday.getDate()).padStart(2, '0');
+    
+    document.getElementById('attendanceDate').value = `${year}-${month}-${day}`;
+}
+
+function debugAttendanceDates() {
+    console.log('=== ATTENDANCE DATE DEBUG ===');
+    
+    if (!appData.attendance || appData.attendance.length === 0) {
+        console.log('No attendance records found');
+        return;
+    }
+    
+    appData.attendance.forEach((session, index) => {
+        console.log(`Record ${index}:`, {
+            storedDate: session.date,
+            newDate: new Date(session.date),
+            formatted: formatAttendanceDate(session.date),
+            inputFormatted: formatDateForAttendanceInput(session.date),
+            getDate: new Date(session.date).getDate(),
+            getUTCDate: new Date(session.date).getUTCDate()
+        });
+    });
 }
 
 // ============================================================================
@@ -3082,10 +3180,6 @@ function updateStats() {
     }
 }
 
-// ============================================================================
-// GLOBAL FUNCTION EXPORTS
-// ============================================================================
-
 // Make all functions globally available
 // ============================================================================
 // GLOBAL FUNCTION EXPORTS - ORGANIZED BY SECTION
@@ -3149,6 +3243,7 @@ window.showDetailedBiWeeklyAnalysis = showDetailedBiWeeklyAnalysis;
 window.initializeMonthlyReport = initializeMonthlyReport;
 window.onMonthChange = onMonthChange;
 window.generateCurrentMonthReport = generateCurrentMonthReport;
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🏁 DOM fully loaded, initializing app...');
