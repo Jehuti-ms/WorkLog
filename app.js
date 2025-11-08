@@ -1078,92 +1078,110 @@ function saveAttendance() {
     }
 }
 
-function editAttendance(index) {
-    console.log('✏️ Editing attendance record:', index);
+function editAttendance(button) {
+    const row = button.closest('tr');
+    const cells = row.querySelectorAll('td:not(:last-child)');
+    const editButton = row.querySelector('.edit-btn');
     
-    const session = appData.attendance[index];
-    if (!session) {
-        alert('Attendance record not found!');
+    // If already in edit mode, do nothing
+    if (row.classList.contains('edit-mode')) {
         return;
     }
+
+    // Enter edit mode
+    row.classList.add('edit-mode');
     
-    // FIXED: Use proper date formatting for the input
-    const displayDate = formatDateForAttendanceInput(session.date);
+    // Store original values
+    const originalValues = Array.from(cells).slice(1, -1).map(cell => cell.textContent);
     
-    // Populate the form with existing data
-    document.getElementById('attendanceDate').value = displayDate;
-    document.getElementById('attendanceSubject').value = session.subject || '';
-    document.getElementById('attendanceTopic').value = session.topic || '';
-    
-    // Clear all checkboxes first
-    appData.students.forEach(student => {
-        const checkbox = document.getElementById(`attend_${student.id}`);
-        if (checkbox) {
-            checkbox.checked = false;
+    // Replace cells with inputs (skip first and last cells)
+    cells.forEach((cell, index) => {
+        if (index > 0 && index < cells.length - 1) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = cell.textContent;
+            input.className = 'edit-input';
+            cell.textContent = '';
+            cell.appendChild(input);
         }
     });
+
+    // Change button to Update and Cancel
+    editButton.textContent = 'Update';
+    editButton.classList.remove('edit-btn');
+    editButton.classList.add('update-btn');
+
+    // Create Cancel button
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'Cancel';
+    cancelButton.className = 'cancel-btn';
+    cancelButton.style.marginLeft = '5px';
+
+    // Add event listeners using cloned buttons to prevent duplicates
+    const newUpdateBtn = editButton.cloneNode(true);
+    const newCancelBtn = cancelButton.cloneNode(true);
     
-    // Check the students who were present
-    session.presentStudents.forEach(studentId => {
-        const checkbox = document.getElementById(`attend_${studentId}`);
-        if (checkbox) {
-            checkbox.checked = true;
-        }
+    editButton.parentNode.replaceChild(newUpdateBtn, editButton);
+    newUpdateBtn.parentNode.insertBefore(newCancelBtn, newUpdateBtn.nextSibling);
+
+    // Add event listener for Update button
+    newUpdateBtn.addEventListener('click', function() {
+        updateAttendance(this, originalValues);
+    });
+
+    // Add event listener for Cancel button
+    newCancelBtn.addEventListener('click', function() {
+        console.log('Cancel edit triggered'); // This should show in console when Cancel is clicked
+        cancelEdit(this, originalValues);
+    });
+}
+
+function updateAttendance(button, originalValues) {
+    console.log('Update button clicked'); // Debug log
+    const row = button.closest('tr');
+    const inputs = row.querySelectorAll('.edit-input');
+    
+    // Update cell values from inputs
+    inputs.forEach((input, index) => {
+        const cell = input.closest('td');
+        cell.textContent = input.value;
     });
     
-    // FIXED: Update the save button properly
-    const saveButton = document.querySelector('#attendance .btn-primary');
-    if (saveButton) {
-        // Remove any existing event listeners
-        saveButton.replaceWith(saveButton.cloneNode(true));
-        
-        // Get the fresh button reference
-        const freshSaveButton = document.querySelector('#attendance .btn-primary');
-        
-        // Update the button
-        freshSaveButton.innerHTML = '💾 Update Attendance';
-        freshSaveButton.onclick = function(e) {
-            console.log('🔄 Update button clicked for index:', index);
-            e.preventDefault();
-            e.stopPropagation();
-            updateAttendance(index);
-            return false;
-        };
-        
-        // Add a data attribute to track edit mode
-        freshSaveButton.setAttribute('data-editing', 'true');
-        freshSaveButton.setAttribute('data-edit-index', index);
+    // Exit edit mode and restore original button
+    exitEditMode(row, 'Edit', 'edit-btn', 'Edit');
+}
+
+function cancelEdit(button, originalValues) {
+    console.log('Cancel edit function called'); // Debug log
+    const row = button.closest('tr');
+    const inputs = row.querySelectorAll('.edit-input');
+    
+    // Restore original values
+    inputs.forEach((input, index) => {
+        const cell = input.closest('td');
+        cell.textContent = originalValues[index];
+    });
+    
+    // Exit edit mode and restore original button
+    exitEditMode(row, 'Edit', 'edit-btn', 'Edit');
+}
+
+function exitEditMode(row, buttonText, buttonClass, buttonTextContent) {
+    row.classList.remove('edit-mode');
+    
+    // Remove Cancel button
+    const cancelBtn = row.querySelector('.cancel-btn');
+    if (cancelBtn) {
+        cancelBtn.remove();
     }
     
-    // Add cancel edit button if not exists
-    if (!document.querySelector('.cancel-attendance-edit')) {
-        const cancelButton = document.createElement('button');
-        cancelButton.type = 'button';
-        cancelButton.className = 'btn btn-warning cancel-attendance-edit';
-        cancelButton.innerHTML = '❌ Cancel Edit';
-        cancelButton.onclick = function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            cancelAttendanceEdit();
-            return false;
-        };
-        
-        const formActions = document.querySelector('#attendance .form-actions');
-        if (formActions) {
-            formActions.appendChild(cancelButton);
-        }
+    // Restore Edit button
+    const actionButton = row.querySelector('.update-btn') || row.querySelector('.edit-btn');
+    if (actionButton) {
+        actionButton.textContent = buttonTextContent;
+        actionButton.className = buttonClass;
+        actionButton.onclick = function() { editAttendance(this); };
     }
-    
-    // Scroll to the form
-    document.querySelector('#attendance .section-card').scrollIntoView({ 
-        behavior: 'smooth' 
-    });
-    
-    // Highlight the form in edit mode
-    const formCard = document.querySelector('#attendance .section-card');
-    formCard.classList.add('edit-mode');
-    
-    console.log('✅ Attendance form ready for editing');
 }
 
 function debugButtonClick() {
