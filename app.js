@@ -47,6 +47,86 @@ function init() {
     console.log('✅ App initialized successfully');
 }
 
+// ============================================================================
+// ADD MISSING loadHours FUNCTION - PUT THIS AT THE TOP OF YOUR FUNCTIONS
+// ============================================================================
+
+function loadHours() {
+    try {
+        console.log('⏱️ Loading hours...');
+        
+        // Load hours from storage
+        const savedHours = loadHoursFromStorage();
+        window.hoursEntries = savedHours;
+        
+        // Display hours
+        displayHours();
+        
+        // Update hours stats
+        updateHoursStats();
+        
+    } catch (error) {
+        console.error('❌ Error loading hours:', error);
+    }
+}
+
+function updateHoursStats() {
+    try {
+        const entries = window.hoursEntries || [];
+        
+        // Calculate weekly and monthly totals
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        
+        const weeklyHours = entries
+            .filter(entry => {
+                if (!entry.date) return false;
+                const entryDate = new Date(entry.date);
+                return entryDate >= oneWeekAgo;
+            })
+            .reduce((sum, entry) => sum + (entry.hours || 0), 0);
+            
+        const weeklyTotal = entries
+            .filter(entry => {
+                if (!entry.date) return false;
+                const entryDate = new Date(entry.date);
+                return entryDate >= oneWeekAgo;
+            })
+            .reduce((sum, entry) => sum + (entry.total || 0), 0);
+            
+        const monthlyHours = entries
+            .filter(entry => {
+                if (!entry.date) return false;
+                const entryDate = new Date(entry.date);
+                return entryDate >= startOfMonth;
+            })
+            .reduce((sum, entry) => sum + (entry.hours || 0), 0);
+            
+        const monthlyTotal = entries
+            .filter(entry => {
+                if (!entry.date) return false;
+                const entryDate = new Date(entry.date);
+                return entryDate >= startOfMonth;
+            })
+            .reduce((sum, entry) => sum + (entry.total || 0), 0);
+        
+        // Update UI
+        const weeklyHoursEl = document.getElementById('weeklyHours');
+        const weeklyTotalEl = document.getElementById('weeklyTotal');
+        const monthlyHoursEl = document.getElementById('monthlyHours');
+        const monthlyTotalEl = document.getElementById('monthlyTotal');
+        
+        if (weeklyHoursEl) weeklyHoursEl.textContent = weeklyHours.toFixed(1);
+        if (weeklyTotalEl) weeklyTotalEl.textContent = weeklyTotal.toFixed(2);
+        if (monthlyHoursEl) monthlyHoursEl.textContent = monthlyHours.toFixed(1);
+        if (monthlyTotalEl) monthlyTotalEl.textContent = monthlyTotal.toFixed(2);
+        
+    } catch (error) {
+        console.error('❌ Error updating hours stats:', error);
+    }
+}
+
 function loadAllData() {
     const userId = window.Auth.getCurrentUserId();
     const savedData = localStorage.getItem(`worklog_data_${userId}`);
@@ -2263,19 +2343,19 @@ function updateMonthSelector(year, month) {
 }
 
 // ============================================================================
-// WORKING BI-WEEKLY BREAKDOWN - REPLACE EXISTING FUNCTION
+// CLEAN BI-WEEKLY BREAKDOWN - REPLACE ALL EXISTING BI-WEEKLY CODE
 // ============================================================================
 
 function showBiWeeklyBreakdown() {
-    console.log('🎯 BI-WEEKLY BREAKDOWN - Starting execution');
+    console.log('🎯 BI-WEEKLY - Starting...');
     
     try {
-        // Get current month and year
+        // Get current selection
         const monthSelect = document.getElementById('reportMonth');
         const yearSelect = document.getElementById('reportYear');
         
         if (!monthSelect || !yearSelect) {
-            throw new Error('Month or year selectors not found');
+            throw new Error('Month/year selectors not found');
         }
         
         const currentMonth = parseInt(monthSelect.value);
@@ -2284,603 +2364,336 @@ function showBiWeeklyBreakdown() {
         
         console.log('📅 Processing:', monthName, currentYear);
         
-        // Get the container
+        // Get container
         const container = document.getElementById('breakdownContainer');
         if (!container) {
             throw new Error('Breakdown container not found');
         }
         
-        // Show immediate loading state
+        // Show loading state
         container.innerHTML = `
-            <div style="background: #fff3cd; padding: 30px; border-radius: 8px; text-align: center;">
-                <h3>🔄 Generating Bi-Weekly Breakdown...</h3>
-                <p>Processing data for ${monthName} ${currentYear}</p>
-                <div class="spinner"></div>
+            <div style="background: #fff3cd; padding: 40px; border-radius: 8px; text-align: center;">
+                <h3>🔄 Generating Bi-Weekly Breakdown</h3>
+                <p>Processing your data for ${monthName} ${currentYear}...</p>
+                <div style="margin-top: 20px;">⏳ Please wait</div>
             </div>
         `;
         
-        // Get filtered data
-        const monthlyHours = (appData.hours || []).filter(entry => {
-            if (!entry.date) return false;
+        // Use setTimeout to allow UI to update
+        setTimeout(() => {
             try {
-                const entryDate = new Date(entry.date);
-                return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear;
-            } catch (e) {
-                return false;
+                // Get data directly from appData
+                const allHours = appData.hours || [];
+                const allMarks = appData.marks || [];
+                
+                console.log('📊 Total data:', {
+                    hours: allHours.length,
+                    marks: allMarks.length
+                });
+                
+                // Filter for current month
+                const monthlyHours = allHours.filter(entry => {
+                    if (!entry.date) return false;
+                    try {
+                        const entryDate = new Date(entry.date);
+                        return entryDate.getMonth() === currentMonth && 
+                               entryDate.getFullYear() === currentYear;
+                    } catch (e) {
+                        return false;
+                    }
+                });
+                
+                const monthlyMarks = allMarks.filter(mark => {
+                    if (!mark.date) return false;
+                    try {
+                        const markDate = new Date(mark.date);
+                        return markDate.getMonth() === currentMonth && 
+                               markDate.getFullYear() === currentYear;
+                    } catch (e) {
+                        return false;
+                    }
+                });
+                
+                console.log('📈 Monthly data:', {
+                    hours: monthlyHours.length,
+                    marks: monthlyMarks.length
+                });
+                
+                // Create bi-weekly data
+                const firstHalf = monthlyHours.filter(entry => {
+                    if (!entry.date) return false;
+                    const day = new Date(entry.date).getDate();
+                    return day <= 15;
+                });
+                
+                const secondHalf = monthlyHours.filter(entry => {
+                    if (!entry.date) return false;
+                    const day = new Date(entry.date).getDate();
+                    return day > 15;
+                });
+                
+                // Calculate stats
+                const firstHalfHours = firstHalf.reduce((sum, entry) => sum + (entry.hours || 0), 0);
+                const firstHalfEarnings = firstHalf.reduce((sum, entry) => sum + (entry.total || 0), 0);
+                const firstHalfAvgRate = firstHalfHours > 0 ? firstHalfEarnings / firstHalfHours : 0;
+                
+                const secondHalfHours = secondHalf.reduce((sum, entry) => sum + (entry.hours || 0), 0);
+                const secondHalfEarnings = secondHalf.reduce((sum, entry) => sum + (entry.total || 0), 0);
+                const secondHalfAvgRate = secondHalfHours > 0 ? secondHalfEarnings / secondHalfHours : 0;
+                
+                // Get unique entities
+                const firstHalfSubjects = [...new Set(firstHalf.map(entry => entry.subject).filter(Boolean))];
+                const firstHalfOrgs = [...new Set(firstHalf.map(entry => entry.organization).filter(Boolean))];
+                
+                const secondHalfSubjects = [...new Set(secondHalf.map(entry => entry.subject).filter(Boolean))];
+                const secondHalfOrgs = [...new Set(secondHalf.map(entry => entry.organization).filter(Boolean))];
+                
+                console.log('✅ Bi-weekly stats calculated');
+                
+                // Generate display
+                container.innerHTML = createBiWeeklyDisplay({
+                    monthName,
+                    currentYear,
+                    firstHalf: {
+                        hours: firstHalfHours,
+                        earnings: firstHalfEarnings,
+                        avgRate: firstHalfAvgRate,
+                        entries: firstHalf.length,
+                        subjects: firstHalfSubjects,
+                        organizations: firstHalfOrgs,
+                        data: firstHalf
+                    },
+                    secondHalf: {
+                        hours: secondHalfHours,
+                        earnings: secondHalfEarnings,
+                        avgRate: secondHalfAvgRate,
+                        entries: secondHalf.length,
+                        subjects: secondHalfSubjects,
+                        organizations: secondHalfOrgs,
+                        data: secondHalf
+                    },
+                    monthlyMarks: monthlyMarks.length
+                });
+                
+                console.log('🎉 Bi-weekly breakdown completed!');
+                
+            } catch (error) {
+                console.error('❌ Processing error:', error);
+                container.innerHTML = `
+                    <div style="background: #f8d7da; padding: 30px; border-radius: 8px; text-align: center;">
+                        <h3>❌ Processing Error</h3>
+                        <p>${error.message}</p>
+                        <button class="btn btn-primary" onclick="showBiWeeklyBreakdown()" style="margin-top: 15px;">
+                            Try Again
+                        </button>
+                    </div>
+                `;
             }
-        });
-        
-        const monthlyMarks = (appData.marks || []).filter(mark => {
-            if (!mark.date) return false;
-            try {
-                const markDate = new Date(mark.date);
-                return markDate.getMonth() === currentMonth && markDate.getFullYear() === currentYear;
-            } catch (e) {
-                return false;
-            }
-        });
-        
-        console.log('📊 Data filtered:', {
-            hours: monthlyHours.length,
-            marks: monthlyMarks.length
-        });
-        
-        // Create bi-weekly periods
-        const periods = getBiWeeklyPeriods(currentYear, currentMonth);
-        
-        // Process each period
-        const biWeeklyData = periods.map((period, index) => {
-            const periodHours = monthlyHours.filter(entry => {
-                if (!entry.date) return false;
-                const entryDate = new Date(entry.date);
-                const day = entryDate.getDate();
-                return index === 0 ? day <= 15 : day > 15;
-            });
-            
-            const periodMarks = monthlyMarks.filter(mark => {
-                if (!mark.date) return false;
-                const markDate = new Date(mark.date);
-                const day = markDate.getDate();
-                return index === 0 ? day <= 15 : day > 15;
-            });
-            
-            // Calculate stats
-            const totalHours = periodHours.reduce((sum, entry) => sum + (entry.hours || 0), 0);
-            const totalEarnings = periodHours.reduce((sum, entry) => sum + (entry.total || 0), 0);
-            const avgRate = totalHours > 0 ? totalEarnings / totalHours : 0;
-            
-            // Get unique subjects and organizations
-            const subjects = [...new Set(periodHours.map(entry => entry.subject).filter(Boolean))];
-            const organizations = [...new Set(periodHours.map(entry => entry.organization).filter(Boolean))];
-            
-            return {
-                period: period.label,
-                stats: {
-                    totalHours: totalHours.toFixed(1),
-                    totalEarnings: totalEarnings.toFixed(2),
-                    avgRate: avgRate.toFixed(2),
-                    totalEntries: periodHours.length,
-                    totalMarks: periodMarks.length,
-                    subjects: subjects.length,
-                    organizations: organizations.length
-                },
-                details: {
-                    hours: periodHours,
-                    marks: periodMarks,
-                    topSubjects: subjects.slice(0, 3),
-                    topOrganizations: organizations.slice(0, 3)
-                }
-            };
-        });
-        
-        console.log('✅ Bi-weekly data processed:', biWeeklyData);
-        
-        // Generate and display the HTML
-        container.innerHTML = generateBiWeeklyDisplay(biWeeklyData, currentYear, currentMonth);
-        
-        console.log('🎉 Bi-weekly breakdown completed successfully!');
+        }, 100);
         
     } catch (error) {
-        console.error('❌ Bi-weekly error:', error);
+        console.error('❌ Initial error:', error);
         const container = document.getElementById('breakdownContainer');
         if (container) {
             container.innerHTML = `
-                <div style="background: #f8d7da; padding: 20px; border-radius: 8px; text-align: center;">
-                    <h3>❌ Error Generating Breakdown</h3>
+                <div style="background: #f8d7da; padding: 30px; border-radius: 8px; text-align: center;">
+                    <h3>❌ Initialization Error</h3>
                     <p>${error.message}</p>
-                    <button class="btn btn-primary" onclick="showBiWeeklyBreakdown()">Try Again</button>
                 </div>
             `;
         }
     }
 }
 
-function generateBiWeeklyDisplay(biWeeklyData, year, month) {
-    const monthName = monthNames[month];
+function createBiWeeklyDisplay(data) {
+    const { monthName, currentYear, firstHalf, secondHalf, monthlyMarks } = data;
+    const daysInMonth = new Date(currentYear, monthNames.indexOf(monthName) + 1, 0).getDate();
     
-    let html = `
+    return `
         <div class="monthly-report">
-            <div class="report-header">
-                <h3>📆 ${monthName} ${year} - Bi-Weekly Breakdown</h3>
-                <div class="report-period">Data analyzed in two-week intervals</div>
+            <!-- Success Banner -->
+            <div style="background: #d4edda; padding: 20px; border-radius: 8px; margin-bottom: 25px; text-align: center;">
+                <h3 style="margin: 0; color: #155724;">🎉 BI-WEEKLY BREAKDOWN WORKING!</h3>
+                <p style="margin: 10px 0 0 0; color: #155724;">
+                    Successfully generated for ${monthName} ${currentYear}
+                </p>
             </div>
             
-            <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-                <h4 style="margin: 0; color: #155724;">🎉 SUCCESS! Bi-Weekly Breakdown is Working</h4>
-                <p style="margin: 5px 0 0 0; color: #155724;">Your data has been processed successfully.</p>
+            <!-- Overall Summary -->
+            <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+                <h4 style="margin-top: 0; color: #3a5a5a; text-align: center;">📊 ${monthName} ${currentYear} Overview</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; text-align: center;">
+                    <div>
+                        <div style="font-size: 2em; font-weight: bold; color: #3a5a5a;">
+                            ${(firstHalf.hours + secondHalf.hours).toFixed(1)}h
+                        </div>
+                        <div style="color: #666;">Total Hours</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 2em; font-weight: bold; color: #28a745;">
+                            $${(firstHalf.earnings + secondHalf.earnings).toFixed(2)}
+                        </div>
+                        <div style="color: #666;">Total Earnings</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 2em; font-weight: bold; color: #007bff;">
+                            ${firstHalf.entries + secondHalf.entries}
+                        </div>
+                        <div style="color: #666;">Work Entries</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 2em; font-weight: bold; color: #6f42c1;">
+                            ${monthlyMarks}
+                        </div>
+                        <div style="color: #666;">Assessments</div>
+                    </div>
+                </div>
             </div>
-    `;
-    
-    // Overall summary
-    const totalHours = biWeeklyData.reduce((sum, period) => sum + parseFloat(period.stats.totalHours), 0);
-    const totalEarnings = biWeeklyData.reduce((sum, period) => sum + parseFloat(period.stats.totalEarnings), 0);
-    const totalEntries = biWeeklyData.reduce((sum, period) => sum + period.stats.totalEntries, 0);
-    
-    html += `
-        <div class="overall-summary" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-            <h4 style="margin-top: 0; color: #3a5a5a;">📊 Monthly Overview</h4>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px;">
-                <div style="text-align: center;">
-                    <div style="font-size: 1.5em; font-weight: bold; color: #3a5a5a;">${totalHours.toFixed(1)}h</div>
-                    <div style="color: #666;">Total Hours</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 1.5em; font-weight: bold; color: #28a745;">$${totalEarnings.toFixed(2)}</div>
-                    <div style="color: #666;">Total Earnings</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 1.5em; font-weight: bold; color: #007bff;">${totalEntries}</div>
-                    <div style="color: #666;">Total Entries</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bi-weekly-periods" style="display: grid; gap: 20px;">
-    `;
-    
-    // Bi-weekly periods
-    biWeeklyData.forEach((period, index) => {
-        const isFirstHalf = index === 0;
-        const cardColor = isFirstHalf ? '#e7f3ff' : '#fff3cd';
-        const borderColor = isFirstHalf ? '#007bff' : '#ffc107';
-        
-        html += `
-            <div style="background: ${cardColor}; border-left: 4px solid ${borderColor}; padding: 20px; border-radius: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h4 style="margin: 0; color: #3a5a5a;">
-                        ${isFirstHalf ? '📅 First Half' : '📅 Second Half'} 
-                        <span style="font-size: 0.9em; color: #666; font-weight: normal;">(${period.period})</span>
-                    </h4>
-                    <div style="color: #666; font-size: 0.9em;">
-                        ${isFirstHalf ? '1st-15th' : `16th-${new Date(year, month + 1, 0).getDate()}th`}
+            
+            <!-- Bi-Weekly Comparison -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+                <!-- First Half -->
+                <div style="background: #e7f3ff; padding: 25px; border-radius: 8px; border-left: 6px solid #007bff;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 10px 0; color: #007bff;">📅 First Half</h4>
+                        <div style="color: #666; font-size: 0.9em;">1st - 15th ${monthName}</div>
                     </div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 15px;">
-                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 1.2em; font-weight: bold; color: #3a5a5a;">${period.stats.totalHours}h</div>
-                        <div style="font-size: 0.8em; color: #666;">Hours</div>
+                    
+                    <!-- Stats -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5em; font-weight: bold; color: #3a5a5a;">${firstHalf.hours.toFixed(1)}h</div>
+                            <div style="color: #666; font-size: 0.8em;">Hours</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5em; font-weight: bold; color: #28a745;">$${firstHalf.earnings.toFixed(2)}</div>
+                            <div style="color: #666; font-size: 0.8em;">Earnings</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5em; font-weight: bold; color: #007bff;">${firstHalf.entries}</div>
+                            <div style="color: #666; font-size: 0.8em;">Entries</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5em; font-weight: bold; color: #6f42c1;">$${firstHalf.avgRate.toFixed(2)}</div>
+                            <div style="color: #666; font-size: 0.8em;">Avg Rate</div>
+                        </div>
                     </div>
-                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 1.2em; font-weight: bold; color: #28a745;">$${period.stats.totalEarnings}</div>
-                        <div style="font-size: 0.8em; color: #666;">Earnings</div>
-                    </div>
-                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 1.2em; font-weight: bold; color: #007bff;">${period.stats.totalEntries}</div>
-                        <div style="font-size: 0.8em; color: #666;">Entries</div>
-                    </div>
-                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                        <div style="font-size: 1.2em; font-weight: bold; color: #6f42c1;">${period.stats.totalMarks}</div>
-                        <div style="font-size: 0.8em; color: #666;">Assessments</div>
-                    </div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div style="background: rgba(255,255,255,0.7); padding: 12px; border-radius: 6px;">
-                        <h5 style="margin: 0 0 8px 0; color: #3a5a5a; font-size: 0.9em;">📊 Details</h5>
+                    
+                    <!-- Details -->
+                    <div style="background: rgba(255,255,255,0.6); padding: 15px; border-radius: 6px;">
+                        <h5 style="margin: 0 0 10px 0; color: #3a5a5a; font-size: 0.9em;">📋 Activity Details</h5>
                         <div style="font-size: 0.85em;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                                <span>Avg Rate:</span>
-                                <strong>$${period.stats.avgRate}/h</strong>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                                 <span>Subjects:</span>
-                                <strong>${period.stats.subjects}</strong>
+                                <strong>${firstHalf.subjects.length}</strong>
                             </div>
-                            <div style="display: flex; justify-content: space-between;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                                 <span>Organizations:</span>
-                                <strong>${period.stats.organizations}</strong>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="background: rgba(255,255,255,0.7); padding: 12px; border-radius: 6px;">
-                        <h5 style="margin: 0 0 8px 0; color: #3a5a5a; font-size: 0.9em;">🏆 Top Entities</h5>
-                        <div style="font-size: 0.85em;">
-                            ${period.details.topSubjects.length > 0 ? `
-                            <div style="margin-bottom: 6px;">
-                                <strong>Subjects:</strong><br>
-                                ${period.details.topSubjects.map(subj => `• ${subj}`).join('<br>')}
-                            </div>
-                            ` : '<div style="color: #666; font-style: italic;">No subjects</div>'}
-                            ${period.details.topOrganizations.length > 0 ? `
-                            <div>
-                                <strong>Organizations:</strong><br>
-                                ${period.details.topOrganizations.map(org => `• ${org}`).join('<br>')}
-                            </div>
-                            ` : '<div style="color: #666; font-style: italic;">No organizations</div>'}
-                        </div>
-                    </div>
-                </div>
-                
-                ${period.details.hours.length > 0 ? `
-                <div style="margin-top: 12px; font-size: 0.8em;">
-                    <strong>Recent Work:</strong>
-                    <div style="max-height: 80px; overflow-y: auto; background: rgba(255,255,255,0.5); padding: 8px; border-radius: 4px; margin-top: 4px;">
-                        ${period.details.hours.slice(-3).map(entry => 
-                            `<div style="margin-bottom: 2px;">${entry.organization} - ${entry.hours}h - $${(entry.total || 0).toFixed(2)}</div>`
-                        ).join('')}
-                    </div>
-                </div>
-                ` : ''}
-            </div>
-        `;
-    });
-    
-    html += `
-            </div>
-            
-            <div style="text-align: center; margin-top: 20px; color: #666;">
-                <p>✅ Bi-weekly breakdown generated successfully for ${monthName} ${year}</p>
-            </div>
-        </div>
-    `;
-    
-    return html;
-}
-
-function generateBiWeeklyBreakdown(hours, marks, attendance, payments, year, month) {
-    console.log('🔄 Generating bi-weekly data for:', year, month);
-    
-    const biWeeklyPeriods = getBiWeeklyPeriods(year, month);
-    const periods = [];
-    
-    biWeeklyPeriods.forEach((period, index) => {
-        console.log(`📅 Processing period ${index + 1}:`, period.label);
-        
-        // Filter data for this bi-weekly period
-        const periodHours = hours.filter(entry => {
-            if (!entry.date) return false;
-            try {
-                const entryDate = new Date(entry.date);
-                return entryDate >= period.start && entryDate <= period.end;
-            } catch (e) {
-                return false;
-            }
-        });
-        
-        const periodMarks = marks.filter(mark => {
-            if (!mark.date) return false;
-            try {
-                const markDate = new Date(mark.date);
-                return markDate >= period.start && markDate <= period.end;
-            } catch (e) {
-                return false;
-            }
-        });
-        
-        const periodAttendance = attendance.filter(session => {
-            if (!session.date) return false;
-            try {
-                const sessionDate = new Date(session.date);
-                return sessionDate >= period.start && sessionDate <= period.end;
-            } catch (e) {
-                return false;
-            }
-        });
-        
-        const periodPayments = payments.filter(payment => {
-            if (!payment.date) return false;
-            try {
-                const paymentDate = new Date(payment.date);
-                return paymentDate >= period.start && paymentDate <= period.end;
-            } catch (e) {
-                return false;
-            }
-        });
-        
-        console.log(`📊 Period ${index + 1} data:`, {
-            hours: periodHours.length,
-            marks: periodMarks.length,
-            attendance: periodAttendance.length,
-            payments: periodPayments.length
-        });
-        
-        // Calculate statistics
-        const totalHours = periodHours.reduce((sum, entry) => sum + (entry.hours || 0), 0);
-        const totalEarnings = periodHours.reduce((sum, entry) => sum + (entry.total || 0), 0);
-        const avgHourlyRate = totalHours > 0 ? totalEarnings / totalHours : 0;
-        
-        const totalMarks = periodMarks.length;
-        const avgMark = totalMarks > 0 
-            ? (periodMarks.reduce((sum, mark) => sum + (mark.percentage || 0), 0) / totalMarks)
-            : 0;
-            
-        const totalSessions = periodAttendance.length;
-        const totalStudentsPresent = periodAttendance.reduce((sum, session) => 
-            sum + (session.presentStudents ? session.presentStudents.length : 0), 0
-        );
-        
-        const totalPayments = periodPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-        
-        // Get unique subjects and organizations
-        const subjects = [...new Set(periodHours.map(entry => entry.subject).filter(Boolean))];
-        const organizations = [...new Set(periodHours.map(entry => entry.organization).filter(Boolean))];
-        
-        periods.push({
-            period: period.label,
-            startDate: period.start,
-            endDate: period.end,
-            stats: {
-                totalHours: totalHours.toFixed(1),
-                totalEarnings: totalEarnings.toFixed(2),
-                avgHourlyRate: avgHourlyRate.toFixed(2),
-                totalMarks,
-                avgMark: avgMark.toFixed(1),
-                totalSessions,
-                totalStudentsPresent,
-                totalPayments: totalPayments.toFixed(2),
-                subjects: subjects.length,
-                organizations: organizations.length
-            },
-            details: {
-                hours: periodHours,
-                marks: periodMarks,
-                attendance: periodAttendance,
-                payments: periodPayments,
-                topSubjects: subjects.slice(0, 3),
-                topOrganizations: organizations.slice(0, 3)
-            }
-        });
-    });
-    
-    console.log('✅ Bi-weekly periods generated:', periods.length);
-    return periods;
-}
-
-function generateBiWeeklyHTML(biWeeklyData, year, month) {
-    const monthName = monthNames[month];
-    
-    console.log('🎨 Generating bi-weekly HTML for:', monthName, year);
-    console.log('📊 Bi-weekly data:', biWeeklyData);
-    
-    if (!biWeeklyData || biWeeklyData.length === 0) {
-        return `
-            <div class="monthly-report">
-                <div class="report-header">
-                    <h3>📆 ${monthName} ${year} - Bi-Weekly Breakdown</h3>
-                    <div class="report-period">No data available for this period</div>
-                </div>
-                <div style="text-align: center; padding: 40px; color: #666;">
-                    <p>No data found for ${monthName} ${year}.</p>
-                    <p>Add hours, marks, and attendance to see bi-weekly breakdowns.</p>
-                </div>
-            </div>
-        `;
-    }
-    
-    let html = `
-        <div class="monthly-report">
-            <div class="report-header">
-                <h3>📆 ${monthName} ${year} - Bi-Weekly Breakdown</h3>
-                <div class="report-period">Data analyzed in two-week intervals</div>
-            </div>
-    `;
-    
-    // Overall summary for the month
-    const overallStats = calculateOverallBiWeeklyStats(biWeeklyData);
-    html += `
-        <div class="overall-summary" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-            <h4 style="margin-top: 0; color: #3a5a5a;">📊 Monthly Overview</h4>
-            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px;">
-                <div class="stat-item">
-                    <div class="stat-value">${overallStats.totalHours}h</div>
-                    <div class="stat-label">Total Hours</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">$${overallStats.totalEarnings}</div>
-                    <div class="stat-label">Total Earnings</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${overallStats.totalSessions}</div>
-                    <div class="stat-label">Sessions</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${overallStats.totalMarks}</div>
-                    <div class="stat-label">Assessments</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bi-weekly-periods">
-    `;
-    
-    // Bi-weekly periods
-    biWeeklyData.forEach((period, index) => {
-        const isFirstHalf = index === 0;
-        const cardColor = isFirstHalf ? '#e7f3ff' : '#fff3cd';
-        const borderColor = isFirstHalf ? '#007bff' : '#ffc107';
-        
-        html += `
-            <div class="bi-weekly-period" style="background: ${cardColor}; border-left: 4px solid ${borderColor}; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <div class="period-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h4 style="margin: 0; color: #3a5a5a;">
-                        ${isFirstHalf ? '📅 First Half' : '📅 Second Half'} 
-                        <span style="font-size: 0.9em; color: #666; font-weight: normal;">(${period.period})</span>
-                    </h4>
-                    <div class="period-dates" style="color: #666; font-size: 0.9em;">
-                        ${formatDate(period.startDate)} - ${formatDate(period.endDate)}
-                    </div>
-                </div>
-                
-                <div class="period-stats">
-                    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 15px;">
-                        <div class="stat-card" style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                            <div class="stat-value" style="font-size: 1.2em; font-weight: bold; color: #3a5a5a;">${period.stats.totalHours}h</div>
-                            <div class="stat-label" style="font-size: 0.8em; color: #666;">Hours</div>
-                        </div>
-                        <div class="stat-card" style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                            <div class="stat-value" style="font-size: 1.2em; font-weight: bold; color: #28a745;">$${period.stats.totalEarnings}</div>
-                            <div class="stat-label" style="font-size: 0.8em; color: #666;">Earnings</div>
-                        </div>
-                        <div class="stat-card" style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                            <div class="stat-value" style="font-size: 1.2em; font-weight: bold; color: #007bff;">${period.stats.totalSessions}</div>
-                            <div class="stat-label" style="font-size: 0.8em; color: #666;">Sessions</div>
-                        </div>
-                        <div class="stat-card" style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                            <div class="stat-value" style="font-size: 1.2em; font-weight: bold; color: #6f42c1;">${period.stats.totalMarks}</div>
-                            <div class="stat-label" style="font-size: 0.8em; color: #666;">Assessments</div>
-                        </div>
-                    </div>
-                    
-                    <div class="period-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div class="detail-section" style="background: rgba(255,255,255,0.7); padding: 12px; border-radius: 6px;">
-                            <h5 style="margin: 0 0 8px 0; color: #3a5a5a; font-size: 0.9em;">📚 Activity</h5>
-                            <div style="font-size: 0.85em;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                                    <span>Avg Rate:</span>
-                                    <strong>$${period.stats.avgHourlyRate}/h</strong>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                                    <span>Students Present:</span>
-                                    <strong>${period.stats.totalStudentsPresent}</strong>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                                    <span>Payments:</span>
-                                    <strong>$${period.stats.totalPayments}</strong>
-                                </div>
-                                ${period.stats.avgMark > 0 ? `
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span>Avg Score:</span>
-                                    <strong>${period.stats.avgMark}%</strong>
-                                </div>
-                                ` : ''}
+                                <strong>${firstHalf.organizations.length}</strong>
                             </div>
                         </div>
                         
-                        <div class="detail-section" style="background: rgba(255,255,255,0.7); padding: 12px; border-radius: 6px;">
-                            <h5 style="margin: 0 0 8px 0; color: #3a5a5a; font-size: 0.9em;">🏆 Top Entities</h5>
-                            <div style="font-size: 0.85em;">
-                                ${period.details.topSubjects.length > 0 ? `
-                                <div style="margin-bottom: 6px;">
-                                    <strong>Subjects:</strong><br>
-                                    ${period.details.topSubjects.map(subj => `• ${subj}`).join('<br>')}
-                                </div>
-                                ` : '<div style="color: #666; font-style: italic;">No subjects</div>'}
-                                ${period.details.topOrganizations.length > 0 ? `
-                                <div>
-                                    <strong>Organizations:</strong><br>
-                                    ${period.details.topOrganizations.map(org => `• ${org}`).join('<br>')}
-                                </div>
-                                ` : '<div style="color: #666; font-style: italic;">No organizations</div>'}
+                        ${firstHalf.subjects.length > 0 ? `
+                        <div style="margin-top: 10px;">
+                            <strong>Top Subjects:</strong><br>
+                            <div style="margin-top: 5px;">
+                                ${firstHalf.subjects.slice(0, 3).map(subj => 
+                                    `<span style="background: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; margin: 2px; display: inline-block;">${subj}</span>`
+                                ).join('')}
                             </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${firstHalf.data.length > 0 ? `
+                        <div style="margin-top: 10px;">
+                            <strong>Recent Work:</strong>
+                            <div style="max-height: 80px; overflow-y: auto; margin-top: 5px;">
+                                ${firstHalf.data.slice(-3).map(entry => 
+                                    `<div style="font-size: 0.75em; padding: 2px 0;">• ${entry.organization}: ${entry.hours}h ($${entry.total})</div>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <!-- Second Half -->
+                <div style="background: #fff3cd; padding: 25px; border-radius: 8px; border-left: 6px solid #ffc107;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 10px 0; color: #856404;">📅 Second Half</h4>
+                        <div style="color: #666; font-size: 0.9em;">16th - ${daysInMonth}th ${monthName}</div>
+                    </div>
+                    
+                    <!-- Stats -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5em; font-weight: bold; color: #3a5a5a;">${secondHalf.hours.toFixed(1)}h</div>
+                            <div style="color: #666; font-size: 0.8em;">Hours</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5em; font-weight: bold; color: #28a745;">$${secondHalf.earnings.toFixed(2)}</div>
+                            <div style="color: #666; font-size: 0.8em;">Earnings</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5em; font-weight: bold; color: #007bff;">${secondHalf.entries}</div>
+                            <div style="color: #666; font-size: 0.8em;">Entries</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5em; font-weight: bold; color: #6f42c1;">$${secondHalf.avgRate.toFixed(2)}</div>
+                            <div style="color: #666; font-size: 0.8em;">Avg Rate</div>
                         </div>
                     </div>
                     
-                    ${period.details.hours.length > 0 ? `
-                    <div class="recent-activity" style="margin-top: 12px; font-size: 0.8em;">
-                        <strong>Recent Work:</strong>
-                        <div style="max-height: 80px; overflow-y: auto; background: rgba(255,255,255,0.5); padding: 8px; border-radius: 4px; margin-top: 4px;">
-                            ${period.details.hours.slice(-3).map(entry => 
-                                `<div style="margin-bottom: 2px;">${entry.organization} - ${entry.hours}h - $${(entry.total || 0).toFixed(2)}</div>`
-                            ).join('')}
+                    <!-- Details -->
+                    <div style="background: rgba(255,255,255,0.6); padding: 15px; border-radius: 6px;">
+                        <h5 style="margin: 0 0 10px 0; color: #3a5a5a; font-size: 0.9em;">📋 Activity Details</h5>
+                        <div style="font-size: 0.85em;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span>Subjects:</span>
+                                <strong>${secondHalf.subjects.length}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span>Organizations:</span>
+                                <strong>${secondHalf.organizations.length}</strong>
+                            </div>
                         </div>
+                        
+                        ${secondHalf.subjects.length > 0 ? `
+                        <div style="margin-top: 10px;">
+                            <strong>Top Subjects:</strong><br>
+                            <div style="margin-top: 5px;">
+                                ${secondHalf.subjects.slice(0, 3).map(subj => 
+                                    `<span style="background: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; margin: 2px; display: inline-block;">${subj}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${secondHalf.data.length > 0 ? `
+                        <div style="margin-top: 10px;">
+                            <strong>Recent Work:</strong>
+                            <div style="max-height: 80px; overflow-y: auto; margin-top: 5px;">
+                                ${secondHalf.data.slice(-3).map(entry => 
+                                    `<div style="font-size: 0.75em; padding: 2px 0;">• ${entry.organization}: ${entry.hours}h ($${entry.total})</div>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
-                    ` : ''}
                 </div>
             </div>
-        `;
-    });
-    
-    html += `</div>`; // Close bi-weekly-periods
-    
-    // Comparison section (only if we have both periods)
-    if (biWeeklyData.length === 2) {
-        const comparison = compareBiWeeklyPeriods(biWeeklyData[0], biWeeklyData[1]);
-        html += generateComparisonHTML(comparison);
-    }
-    
-    html += `</div>`; // Close monthly-report
-    
-    console.log('✅ Bi-weekly HTML generated successfully');
-    return html;
-}
-
-// ============================================================================
-// MISSING FUNCTION - ADD THIS TO app.js
-// ============================================================================
-
-function getBiWeeklyPeriods(year, month) {
-    console.log('📅 Creating bi-weekly periods for:', year, month);
-    
-    const periods = [];
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    
-    // First half: 1st to 15th
-    const firstHalfEnd = new Date(year, month, 15);
-    periods.push({
-        start: new Date(firstDay),
-        end: firstHalfEnd,
-        label: `1st-15th ${monthNames[month]}`
-    });
-    
-    // Second half: 16th to end of month
-    const secondHalfStart = new Date(year, month, 16);
-    if (secondHalfStart <= lastDay) {
-        periods.push({
-            start: secondHalfStart,
-            end: new Date(lastDay),
-            label: `16th-${lastDay.getDate()}th ${monthNames[month]}`
-        });
-    }
-    
-    console.log('✅ Bi-weekly periods created:', periods);
-    return periods;
-}
-
-// Debug function - run this in browser console to test bi-weekly
-function testBiWeekly() {
-    console.log('🧪 Testing bi-weekly breakdown...');
-    
-    // Check if required functions exist
-    console.log('Functions check:', {
-        showBiWeeklyBreakdown: typeof showBiWeeklyBreakdown,
-        generateBiWeeklyBreakdown: typeof generateBiWeeklyBreakdown,
-        filterDataByMonth: typeof filterDataByMonth,
-        getBiWeeklyPeriods: typeof getBiWeeklyPeriods
-    });
-    
-    // Check current data
-    console.log('Current app data:', {
-        hours: appData.hours?.length || 0,
-        marks: appData.marks?.length || 0,
-        attendance: appData.attendance?.length || 0,
-        payments: appData.payments?.length || 0
-    });
-    
-    // Test the bi-weekly function directly
-    if (typeof showBiWeeklyBreakdown === 'function') {
-        console.log('🚀 Running bi-weekly breakdown...');
-        showBiWeeklyBreakdown();
-    }
-}
-
-function formatDate(date) {
-    return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-    });
+            
+            <!-- Success Footer -->
+            <div style="text-align: center; margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                <p style="margin: 0; color: #666;">
+                    ✅ Bi-weekly breakdown generated successfully for ${monthName} ${currentYear}
+                </p>
+                <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9em;">
+                    Data split into two periods for better analysis
+                </p>
+            </div>
+        </div>
+    `;
 }
 
 // ============================================================================
