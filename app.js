@@ -1901,6 +1901,10 @@ function setupEventListeners() {
     }
 }
 
+// ============================================================================
+// FIXED UPDATE STATS FUNCTION - REPLACE THE EXISTING ONE
+// ============================================================================
+
 function updateStats() {
     console.log('📈 Updating stats...');
     
@@ -1915,12 +1919,26 @@ function updateStats() {
         
         document.getElementById('dataStatus').textContent = `📊 Data: ${totalStudents} Students, ${totalSessions} Sessions`;
         
-        // Update all tab-specific stats
-        loadStudents();
-        loadHours();
-        loadMarks();
-        loadAttendance();
-        loadPayments();
+        // Update all tab-specific stats - with error handling
+        try {
+            if (typeof loadStudents === 'function') loadStudents();
+        } catch (e) { console.error('Error in loadStudents:', e); }
+        
+        try {
+            if (typeof loadHours === 'function') loadHours();
+        } catch (e) { console.error('Error in loadHours:', e); }
+        
+        try {
+            if (typeof loadMarks === 'function') loadMarks();
+        } catch (e) { console.error('Error in loadMarks:', e); }
+        
+        try {
+            if (typeof loadAttendance === 'function') loadAttendance();
+        } catch (e) { console.error('Error in loadAttendance:', e); }
+        
+        try {
+            if (typeof loadPayments === 'function') loadPayments();
+        } catch (e) { console.error('Error in loadPayments:', e); }
         
     } catch (error) {
         console.error('❌ Error updating stats:', error);
@@ -2097,6 +2115,10 @@ function clearAttendanceForm() {
     }
 }
 
+// ============================================================================
+// PROPER INITIALIZATION - REPLACE EXISTING CODE
+// ============================================================================
+
 // Make functions globally available
 window.loadStudents = loadStudents;
 window.loadHours = loadHours;
@@ -2126,9 +2148,67 @@ window.useDefaultRate = useDefaultRate;
 window.selectAllStudents = selectAllStudents;
 window.deselectAllStudents = deselectAllStudents;
 window.deleteAttendance = deleteAttendance;
-window.selectAllStudents = selectAllStudents;
-window.deselectAllStudents = deselectAllStudents;
 window.saveAttendance = saveAttendance;
 window.clearAttendanceForm = clearAttendanceForm;
 window.deleteAttendance = deleteAttendance;
+window.initializeMonthlyReport = initializeMonthlyReport;
+window.onMonthChange = onMonthChange;
+window.generateCurrentMonthReport = generateCurrentMonthReport;
+window.generateMonthlyReport = generateMonthlyReport;
 
+// Initialize hours system when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('⏱️ Initializing hours system...');
+    
+    // Load existing hours data
+    loadHoursFromStorage();
+    displayHours();
+    
+    // Setup auto-calculation
+    const hoursInput = document.getElementById('hoursWorked');
+    const rateInput = document.getElementById('baseRate');
+    
+    if (hoursInput && rateInput) {
+        const calculateTotal = () => {
+            const hours = parseFloat(hoursInput.value) || 0;
+            const rate = parseFloat(rateInput.value) || 0;
+            const totalPayInput = document.getElementById('totalPay');
+            if (totalPayInput) {
+                totalPayInput.value = (hours * rate).toFixed(2);
+            }
+        };
+        
+        hoursInput.addEventListener('input', calculateTotal);
+        rateInput.addEventListener('input', calculateTotal);
+    }
+    
+    // Set default date to today
+    const dateInput = document.getElementById('workDate');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    
+    console.log('✅ Hours system initialized');
+});
+
+// Sync status checker
+function checkSyncStatus() {
+    if (window.cloudSync) {
+        console.log('🔍 Cloud Sync Status:', {
+            initialized: !!window.cloudSync.supabase,
+            connected: window.cloudSync.isConnected,
+            autoSync: window.cloudSync.autoSync,
+            syncEnabled: window.cloudSync.syncEnabled
+        });
+        
+        // Update UI if sync is ready
+        if (window.cloudSync.syncEnabled) {
+            window.cloudSync.updateSyncUI();
+        }
+    } else {
+        console.log('🔍 Cloud Sync: Not initialized yet');
+    }
+}
+
+// Call this after app initialization
+setTimeout(checkSyncStatus, 2000);
