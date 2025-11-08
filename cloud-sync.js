@@ -667,18 +667,74 @@ window.getSyncStats = function() {
     }
 };
 
+// Replace the broken showSyncStats function:
 window.showSyncStats = function() {
-    if (window.cloudSync) {
-        if (typeof window.showSyncStats === 'function') {
-            window.showSyncStats();
-        } else {
-            alert('Sync stats function not available. Make sure app.js is loaded.');
+    console.log('📊 Showing sync stats...');
+    
+    try {
+        const modal = document.getElementById('syncStatsModal');
+        const content = document.getElementById('syncStatsContent');
+        
+        if (!modal || !content) {
+            console.error('Sync stats modal elements not found');
+            return;
         }
-    } else {
-        console.error('Cloud sync not initialized');
-        alert('Cloud sync is not ready yet. Please wait a moment and try again.');
+        
+        // Get sync stats without recursion
+        const stats = getSyncStats();
+        
+        content.innerHTML = `
+            <div class="sync-stats-grid">
+                <div class="stat-item">
+                    <strong>Last Sync:</strong>
+                    <span>${stats.lastSync || 'Never'}</span>
+                </div>
+                <div class="stat-item">
+                    <strong>Sync Status:</strong>
+                    <span class="status-${stats.status}">${stats.status}</span>
+                </div>
+                <div class="stat-item">
+                    <strong>Students:</strong>
+                    <span>${stats.studentsCount} local / ${stats.cloudStudentsCount} cloud</span>
+                </div>
+                <div class="stat-item">
+                    <strong>Attendance:</strong>
+                    <span>${stats.attendanceCount} local / ${stats.cloudAttendanceCount} cloud</span>
+                </div>
+                <div class="stat-item">
+                    <strong>Auto-sync:</strong>
+                    <span>${stats.autoSync ? 'Enabled' : 'Disabled'}</span>
+                </div>
+                <div class="stat-item">
+                    <strong>Connection:</strong>
+                    <span class="status-${stats.connectionStatus}">${stats.connectionStatus}</span>
+                </div>
+            </div>
+        `;
+        
+        modal.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Error showing sync stats:', error);
     }
 };
+
+// Add this helper function to avoid recursion
+function getSyncStats() {
+    const appData = JSON.parse(localStorage.getItem('worklog_data') || '{}');
+    const cloudData = window.cloudSync?.lastDownloadedData || {};
+    
+    return {
+        lastSync: window.cloudSync?.lastSyncTime || 'Never',
+        status: window.cloudSync?.lastSyncStatus || 'unknown',
+        studentsCount: appData.students?.length || 0,
+        attendanceCount: appData.attendance?.length || 0,
+        cloudStudentsCount: cloudData.students?.length || 0,
+        cloudAttendanceCount: cloudData.attendance?.length || 0,
+        autoSync: window.cloudSync?.autoSyncEnabled || false,
+        connectionStatus: window.cloudSync?.isConnected ? 'connected' : 'disconnected'
+    };
+}
 
 window.closeSyncStats = function() {
     const modal = document.getElementById('syncStatsModal');
