@@ -1080,20 +1080,27 @@ function editAttendance(index) {
         }
     });
     
-    // Update the save button to handle editing
+    // Update the save button to handle editing - CRITICAL FIX
     const saveButton = document.querySelector('#attendance .btn-primary');
     if (saveButton) {
         saveButton.innerHTML = '💾 Update Attendance';
-        saveButton.onclick = function() { updateAttendance(index); };
+        saveButton.type = 'button'; // ← THIS IS THE KEY FIX
+        saveButton.onclick = function(e) { 
+            e.preventDefault();
+            updateAttendance(index); 
+        };
     }
     
     // Add cancel edit button if not exists
     if (!document.querySelector('.cancel-attendance-edit')) {
         const cancelButton = document.createElement('button');
-        cancelButton.type = 'button';
+        cancelButton.type = 'button'; // ← Make sure this is also type="button"
         cancelButton.className = 'btn btn-warning cancel-attendance-edit';
         cancelButton.innerHTML = '❌ Cancel Edit';
-        cancelButton.onclick = cancelAttendanceEdit;
+        cancelButton.onclick = function(e) {
+            e.preventDefault();
+            cancelAttendanceEdit();
+        };
         
         const formActions = document.querySelector('#attendance .form-actions');
         if (formActions) {
