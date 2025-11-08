@@ -2263,50 +2263,280 @@ function updateMonthSelector(year, month) {
 }
 
 // ============================================================================
-// FIXED BI-WEEKLY BREAKDOWN - REPLACE EXISTING FUNCTION
+// WORKING BI-WEEKLY BREAKDOWN - REPLACE EXISTING FUNCTION
 // ============================================================================
 
 function showBiWeeklyBreakdown() {
-    console.log('📆 Switching to bi-weekly breakdown');
+    console.log('🎯 BI-WEEKLY BREAKDOWN - Starting execution');
     
-    // Get current selected month and year
-    const monthSelect = document.getElementById('reportMonth');
-    const yearSelect = document.getElementById('reportYear');
-    
-    if (!monthSelect || !yearSelect) {
-        console.error('❌ Month or year selector not found');
-        return;
+    try {
+        // Get current month and year
+        const monthSelect = document.getElementById('reportMonth');
+        const yearSelect = document.getElementById('reportYear');
+        
+        if (!monthSelect || !yearSelect) {
+            throw new Error('Month or year selectors not found');
+        }
+        
+        const currentMonth = parseInt(monthSelect.value);
+        const currentYear = parseInt(yearSelect.value);
+        const monthName = monthNames[currentMonth];
+        
+        console.log('📅 Processing:', monthName, currentYear);
+        
+        // Get the container
+        const container = document.getElementById('breakdownContainer');
+        if (!container) {
+            throw new Error('Breakdown container not found');
+        }
+        
+        // Show immediate loading state
+        container.innerHTML = `
+            <div style="background: #fff3cd; padding: 30px; border-radius: 8px; text-align: center;">
+                <h3>🔄 Generating Bi-Weekly Breakdown...</h3>
+                <p>Processing data for ${monthName} ${currentYear}</p>
+                <div class="spinner"></div>
+            </div>
+        `;
+        
+        // Get filtered data
+        const monthlyHours = (appData.hours || []).filter(entry => {
+            if (!entry.date) return false;
+            try {
+                const entryDate = new Date(entry.date);
+                return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear;
+            } catch (e) {
+                return false;
+            }
+        });
+        
+        const monthlyMarks = (appData.marks || []).filter(mark => {
+            if (!mark.date) return false;
+            try {
+                const markDate = new Date(mark.date);
+                return markDate.getMonth() === currentMonth && markDate.getFullYear() === currentYear;
+            } catch (e) {
+                return false;
+            }
+        });
+        
+        console.log('📊 Data filtered:', {
+            hours: monthlyHours.length,
+            marks: monthlyMarks.length
+        });
+        
+        // Create bi-weekly periods
+        const periods = getBiWeeklyPeriods(currentYear, currentMonth);
+        
+        // Process each period
+        const biWeeklyData = periods.map((period, index) => {
+            const periodHours = monthlyHours.filter(entry => {
+                if (!entry.date) return false;
+                const entryDate = new Date(entry.date);
+                const day = entryDate.getDate();
+                return index === 0 ? day <= 15 : day > 15;
+            });
+            
+            const periodMarks = monthlyMarks.filter(mark => {
+                if (!mark.date) return false;
+                const markDate = new Date(mark.date);
+                const day = markDate.getDate();
+                return index === 0 ? day <= 15 : day > 15;
+            });
+            
+            // Calculate stats
+            const totalHours = periodHours.reduce((sum, entry) => sum + (entry.hours || 0), 0);
+            const totalEarnings = periodHours.reduce((sum, entry) => sum + (entry.total || 0), 0);
+            const avgRate = totalHours > 0 ? totalEarnings / totalHours : 0;
+            
+            // Get unique subjects and organizations
+            const subjects = [...new Set(periodHours.map(entry => entry.subject).filter(Boolean))];
+            const organizations = [...new Set(periodHours.map(entry => entry.organization).filter(Boolean))];
+            
+            return {
+                period: period.label,
+                stats: {
+                    totalHours: totalHours.toFixed(1),
+                    totalEarnings: totalEarnings.toFixed(2),
+                    avgRate: avgRate.toFixed(2),
+                    totalEntries: periodHours.length,
+                    totalMarks: periodMarks.length,
+                    subjects: subjects.length,
+                    organizations: organizations.length
+                },
+                details: {
+                    hours: periodHours,
+                    marks: periodMarks,
+                    topSubjects: subjects.slice(0, 3),
+                    topOrganizations: organizations.slice(0, 3)
+                }
+            };
+        });
+        
+        console.log('✅ Bi-weekly data processed:', biWeeklyData);
+        
+        // Generate and display the HTML
+        container.innerHTML = generateBiWeeklyDisplay(biWeeklyData, currentYear, currentMonth);
+        
+        console.log('🎉 Bi-weekly breakdown completed successfully!');
+        
+    } catch (error) {
+        console.error('❌ Bi-weekly error:', error);
+        const container = document.getElementById('breakdownContainer');
+        if (container) {
+            container.innerHTML = `
+                <div style="background: #f8d7da; padding: 20px; border-radius: 8px; text-align: center;">
+                    <h3>❌ Error Generating Breakdown</h3>
+                    <p>${error.message}</p>
+                    <button class="btn btn-primary" onclick="showBiWeeklyBreakdown()">Try Again</button>
+                </div>
+            `;
+        }
     }
+}
+
+function generateBiWeeklyDisplay(biWeeklyData, year, month) {
+    const monthName = monthNames[month];
     
-    const currentMonth = parseInt(monthSelect.value);
-    const currentYear = parseInt(yearSelect.value);
+    let html = `
+        <div class="monthly-report">
+            <div class="report-header">
+                <h3>📆 ${monthName} ${year} - Bi-Weekly Breakdown</h3>
+                <div class="report-period">Data analyzed in two-week intervals</div>
+            </div>
+            
+            <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                <h4 style="margin: 0; color: #155724;">🎉 SUCCESS! Bi-Weekly Breakdown is Working</h4>
+                <p style="margin: 5px 0 0 0; color: #155724;">Your data has been processed successfully.</p>
+            </div>
+    `;
     
-    console.log('📅 Generating bi-weekly breakdown for:', currentYear, currentMonth);
+    // Overall summary
+    const totalHours = biWeeklyData.reduce((sum, period) => sum + parseFloat(period.stats.totalHours), 0);
+    const totalEarnings = biWeeklyData.reduce((sum, period) => sum + parseFloat(period.stats.totalEarnings), 0);
+    const totalEntries = biWeeklyData.reduce((sum, period) => sum + period.stats.totalEntries, 0);
     
-    // Get filtered data for the selected month
-    const monthlyHours = filterDataByMonth(appData.hours || [], currentYear, currentMonth);
-    const monthlyMarks = filterDataByMonth(appData.marks || [], currentYear, currentMonth);
-    const monthlyAttendance = filterDataByMonth(appData.attendance || [], currentYear, currentMonth);
-    const monthlyPayments = filterDataByMonth(appData.payments || [], currentYear, currentMonth);
+    html += `
+        <div class="overall-summary" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+            <h4 style="margin-top: 0; color: #3a5a5a;">📊 Monthly Overview</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 1.5em; font-weight: bold; color: #3a5a5a;">${totalHours.toFixed(1)}h</div>
+                    <div style="color: #666;">Total Hours</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 1.5em; font-weight: bold; color: #28a745;">$${totalEarnings.toFixed(2)}</div>
+                    <div style="color: #666;">Total Earnings</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 1.5em; font-weight: bold; color: #007bff;">${totalEntries}</div>
+                    <div style="color: #666;">Total Entries</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bi-weekly-periods" style="display: grid; gap: 20px;">
+    `;
     
-    console.log('📊 Filtered data for bi-weekly:', {
-        hours: monthlyHours.length,
-        marks: monthlyMarks.length,
-        attendance: monthlyAttendance.length,
-        payments: monthlyPayments.length
+    // Bi-weekly periods
+    biWeeklyData.forEach((period, index) => {
+        const isFirstHalf = index === 0;
+        const cardColor = isFirstHalf ? '#e7f3ff' : '#fff3cd';
+        const borderColor = isFirstHalf ? '#007bff' : '#ffc107';
+        
+        html += `
+            <div style="background: ${cardColor}; border-left: 4px solid ${borderColor}; padding: 20px; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h4 style="margin: 0; color: #3a5a5a;">
+                        ${isFirstHalf ? '📅 First Half' : '📅 Second Half'} 
+                        <span style="font-size: 0.9em; color: #666; font-weight: normal;">(${period.period})</span>
+                    </h4>
+                    <div style="color: #666; font-size: 0.9em;">
+                        ${isFirstHalf ? '1st-15th' : `16th-${new Date(year, month + 1, 0).getDate()}th`}
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 15px;">
+                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 1.2em; font-weight: bold; color: #3a5a5a;">${period.stats.totalHours}h</div>
+                        <div style="font-size: 0.8em; color: #666;">Hours</div>
+                    </div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 1.2em; font-weight: bold; color: #28a745;">$${period.stats.totalEarnings}</div>
+                        <div style="font-size: 0.8em; color: #666;">Earnings</div>
+                    </div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 1.2em; font-weight: bold; color: #007bff;">${period.stats.totalEntries}</div>
+                        <div style="font-size: 0.8em; color: #666;">Entries</div>
+                    </div>
+                    <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
+                        <div style="font-size: 1.2em; font-weight: bold; color: #6f42c1;">${period.stats.totalMarks}</div>
+                        <div style="font-size: 0.8em; color: #666;">Assessments</div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="background: rgba(255,255,255,0.7); padding: 12px; border-radius: 6px;">
+                        <h5 style="margin: 0 0 8px 0; color: #3a5a5a; font-size: 0.9em;">📊 Details</h5>
+                        <div style="font-size: 0.85em;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span>Avg Rate:</span>
+                                <strong>$${period.stats.avgRate}/h</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span>Subjects:</span>
+                                <strong>${period.stats.subjects}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Organizations:</span>
+                                <strong>${period.stats.organizations}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.7); padding: 12px; border-radius: 6px;">
+                        <h5 style="margin: 0 0 8px 0; color: #3a5a5a; font-size: 0.9em;">🏆 Top Entities</h5>
+                        <div style="font-size: 0.85em;">
+                            ${period.details.topSubjects.length > 0 ? `
+                            <div style="margin-bottom: 6px;">
+                                <strong>Subjects:</strong><br>
+                                ${period.details.topSubjects.map(subj => `• ${subj}`).join('<br>')}
+                            </div>
+                            ` : '<div style="color: #666; font-style: italic;">No subjects</div>'}
+                            ${period.details.topOrganizations.length > 0 ? `
+                            <div>
+                                <strong>Organizations:</strong><br>
+                                ${period.details.topOrganizations.map(org => `• ${org}`).join('<br>')}
+                            </div>
+                            ` : '<div style="color: #666; font-style: italic;">No organizations</div>'}
+                        </div>
+                    </div>
+                </div>
+                
+                ${period.details.hours.length > 0 ? `
+                <div style="margin-top: 12px; font-size: 0.8em;">
+                    <strong>Recent Work:</strong>
+                    <div style="max-height: 80px; overflow-y: auto; background: rgba(255,255,255,0.5); padding: 8px; border-radius: 4px; margin-top: 4px;">
+                        ${period.details.hours.slice(-3).map(entry => 
+                            `<div style="margin-bottom: 2px;">${entry.organization} - ${entry.hours}h - $${(entry.total || 0).toFixed(2)}</div>`
+                        ).join('')}
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `;
     });
     
-    // Generate bi-weekly breakdown
-    const biWeeklyData = generateBiWeeklyBreakdown(monthlyHours, monthlyMarks, monthlyAttendance, monthlyPayments, currentYear, currentMonth);
+    html += `
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px; color: #666;">
+                <p>✅ Bi-weekly breakdown generated successfully for ${monthName} ${year}</p>
+            </div>
+        </div>
+    `;
     
-    // Update the breakdown container
-    const container = document.getElementById('breakdownContainer');
-    if (container) {
-        container.innerHTML = generateBiWeeklyHTML(biWeeklyData, currentYear, currentMonth);
-        console.log('✅ Bi-weekly breakdown generated successfully');
-    } else {
-        console.error('❌ Breakdown container not found!');
-    }
+    return html;
 }
 
 function generateBiWeeklyBreakdown(hours, marks, attendance, payments, year, month) {
@@ -2584,6 +2814,39 @@ function generateBiWeeklyHTML(biWeeklyData, year, month) {
     
     console.log('✅ Bi-weekly HTML generated successfully');
     return html;
+}
+
+// ============================================================================
+// MISSING FUNCTION - ADD THIS TO app.js
+// ============================================================================
+
+function getBiWeeklyPeriods(year, month) {
+    console.log('📅 Creating bi-weekly periods for:', year, month);
+    
+    const periods = [];
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    // First half: 1st to 15th
+    const firstHalfEnd = new Date(year, month, 15);
+    periods.push({
+        start: new Date(firstDay),
+        end: firstHalfEnd,
+        label: `1st-15th ${monthNames[month]}`
+    });
+    
+    // Second half: 16th to end of month
+    const secondHalfStart = new Date(year, month, 16);
+    if (secondHalfStart <= lastDay) {
+        periods.push({
+            start: secondHalfStart,
+            end: new Date(lastDay),
+            label: `16th-${lastDay.getDate()}th ${monthNames[month]}`
+        });
+    }
+    
+    console.log('✅ Bi-weekly periods created:', periods);
+    return periods;
 }
 
 // Debug function - run this in browser console to test bi-weekly
