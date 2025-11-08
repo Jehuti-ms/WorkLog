@@ -1,4 +1,4 @@
-// app.js - COMPLETE REWRITE WITH WORKING TABS AND CONSISTENT REPORTS
+// app.js - COMPLETE REWRITE WITH ALL FIXES
 console.log('📦 App.js loaded');
 
 // Global data storage with proper initialization
@@ -744,6 +744,484 @@ function loadHoursFromStorage() {
 }
 
 // ============================================================================
+// MARKS MANAGEMENT
+// ============================================================================
+
+function loadMarks() {
+    try {
+        const container = document.getElementById('marksContainer');
+        if (!container) {
+            console.error('❌ Marks container not found');
+            return;
+        }
+        
+        // Populate student dropdown
+        const studentSelect = document.getElementById('marksStudent');
+        if (studentSelect) {
+            studentSelect.innerHTML = '<option value="">Select student...</option>';
+            if (appData.students) {
+                appData.students.forEach(student => {
+                    studentSelect.innerHTML += `<option value="${student.id}">${student.name}</option>`;
+                });
+            }
+        }
+        
+        if (!appData.marks || appData.marks.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📝</div><h4>No Marks</h4><p>No marks recorded yet.</p></div>';
+            return;
+        }
+        
+        let html = '<div class="marks-list">';
+        
+        const recentMarks = appData.marks.slice(-10).reverse();
+        recentMarks.forEach((mark, index) => {
+            const student = appData.students ? appData.students.find(s => s.id === mark.studentId) : null;
+            const percentage = mark.percentage || ((mark.score / mark.maxScore) * 100).toFixed(1);
+            const grade = getGrade(percentage);
+            
+            html += `
+                <div class="mark-entry">
+                    <div class="mark-header">
+                        <h4>${student ? student.name : 'Unknown Student'} - ${mark.subject || 'No Subject'}</h4>
+                        <span class="mark-percentage ${grade.toLowerCase()}">${percentage}%</span>
+                    </div>
+                    <div class="mark-details">
+                        <p><strong>Topic:</strong> ${mark.topic || 'No Topic'}</p>
+                        <p><strong>Score:</strong> ${mark.score || 0}/${mark.maxScore || 0}</p>
+                        <p><strong>Grade:</strong> ${grade}</p>
+                        <p><strong>Date:</strong> ${mark.date ? new Date(mark.date).toLocaleDateString() : 'No Date'}</p>
+                        ${mark.comments ? `<p><strong>Comments:</strong> ${mark.comments}</p>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+        updateMarksStats();
+        
+    } catch (error) {
+        console.error('❌ Error loading marks:', error);
+        const container = document.getElementById('marksContainer');
+        if (container) {
+            container.innerHTML = '<div class="error-state">Error loading marks</div>';
+        }
+    }
+}
+
+function addMark() {
+    try {
+        const studentId = document.getElementById('marksStudent').value;
+        const subject = document.getElementById('markSubject').value;
+        const topic = document.getElementById('markTopic').value;
+        const date = document.getElementById('markDate').value;
+        const score = parseFloat(document.getElementById('score').value) || 0;
+        const maxScore = parseFloat(document.getElementById('maxScore').value) || 1;
+        const comments = document.getElementById('markComments').value;
+        
+        if (!studentId || !subject || !topic || !date || !score || !maxScore) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        const percentage = (score / maxScore) * 100;
+        const grade = getGrade(percentage);
+        
+        const newMark = {
+            studentId,
+            subject,
+            topic,
+            date,
+            score,
+            maxScore,
+            percentage,
+            grade,
+            comments,
+            createdAt: new Date().toISOString()
+        };
+        
+        if (!appData.marks) appData.marks = [];
+        appData.marks.push(newMark);
+        saveAllData();
+        loadMarks();
+        document.getElementById('marksForm').reset();
+        
+        alert('✅ Mark added successfully!');
+        
+    } catch (error) {
+        console.error('❌ Error adding mark:', error);
+        alert('Error adding mark: ' + error.message);
+    }
+}
+
+function getGrade(percentage) {
+    if (percentage >= 90) return 'A';
+    if (percentage >= 80) return 'B';
+    if (percentage >= 70) return 'C';
+    if (percentage >= 60) return 'D';
+    return 'F';
+}
+
+function updateMarksStats() {
+    try {
+        if (!appData.marks) appData.marks = [];
+        
+        const marksCount = appData.marks.length;
+        const avgPercentage = marksCount > 0 
+            ? (appData.marks.reduce((sum, mark) => sum + (mark.percentage || 0), 0) / marksCount).toFixed(1)
+            : '0';
+        
+        document.getElementById('marksCount').textContent = marksCount;
+        document.getElementById('avgMarks').textContent = avgPercentage;
+        
+    } catch (error) {
+        console.error('❌ Error updating marks stats:', error);
+    }
+}
+
+// ============================================================================
+// ATTENDANCE MANAGEMENT
+// ============================================================================
+
+function loadAttendance() {
+    try {
+        const container = document.getElementById('attendanceContainer');
+        const attendanceList = document.getElementById('attendanceList');
+        
+        if (!container || !attendanceList) {
+            console.error('❌ Attendance containers not found');
+            return;
+        }
+        
+        // Clear existing content
+        attendanceList.innerHTML = '';
+        
+        if (!appData.students || appData.students.length === 0) {
+            attendanceList.innerHTML = '<div class="empty-state"><div class="icon">👥</div><h4>No Students</h4><p>No students registered. Add students first.</p></div>';
+            
+            if (container) {
+                container.innerHTML = '<div class="empty-state"><div class="icon">📅</div><h4>No Attendance Records</h4><p>No attendance records yet. Add students first.</p></div>';
+            }
+            return;
+        }
+        
+        // Build student checklist with proper styling
+        appData.students.forEach(student => {
+            const div = document.createElement('div');
+            div.className = 'attendance-item';
+            div.innerHTML = `
+                <label class="attendance-label">
+                    <input type="checkbox" id="attend_${student.id}" value="${student.id}" class="attendance-checkbox">
+                    <span class="checkmark"></span>
+                    <span class="student-info">
+                        <strong>${student.name}</strong>
+                        <span class="student-id">(${student.id})</span>
+                    </span>
+                </label>
+            `;
+            attendanceList.appendChild(div);
+        });
+        
+        // Load attendance records if any exist
+        if (!appData.attendance || appData.attendance.length === 0) {
+            if (container) {
+                container.innerHTML = '<div class="empty-state"><div class="icon">📅</div><h4>No Attendance Records</h4><p>No attendance records yet. Track your first session!</p></div>';
+            }
+            return;
+        }
+        
+        let html = '<div class="attendance-list">';
+        
+        // Show last 10 attendance records
+        appData.attendance.slice(-10).reverse().forEach((session, index) => {
+            const presentStudents = session.presentStudents.map(id => {
+                const student = appData.students.find(s => s.id === id);
+                return student ? student.name : 'Unknown';
+            });
+            
+            html += `
+                <div class="attendance-entry">
+                    <div class="attendance-header">
+                        <h4>${session.subject} - ${new Date(session.date).toLocaleDateString()}</h4>
+                        <span class="attendance-count">${session.presentStudents.length} students</span>
+                    </div>
+                    <div class="attendance-details">
+                        <p><strong>Topic:</strong> ${session.topic || 'N/A'}</p>
+                        <p><strong>Present:</strong> ${presentStudents.join(', ')}</p>
+                    </div>
+                    <div class="attendance-actions">
+                        <button class="btn btn-sm" onclick="deleteAttendance(${appData.attendance.length - 1 - index})">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+        updateAttendanceStats();
+        
+    } catch (error) {
+        console.error('❌ Error loading attendance:', error);
+    }
+}
+
+function saveAttendance() {
+    try {
+        const date = document.getElementById('attendanceDate').value;
+        const subject = document.getElementById('attendanceSubject').value;
+        const topic = document.getElementById('attendanceTopic').value;
+        
+        if (!date || !subject) {
+            alert('Please fill in date and subject');
+            return;
+        }
+        
+        const presentStudents = [];
+        
+        // Get all checked students
+        appData.students.forEach(student => {
+            const checkbox = document.getElementById(`attend_${student.id}`);
+            if (checkbox && checkbox.checked) {
+                presentStudents.push(student.id);
+            }
+        });
+        
+        if (presentStudents.length === 0) {
+            alert('Please select at least one student');
+            return;
+        }
+        
+        const newAttendance = {
+            date,
+            subject,
+            topic,
+            presentStudents,
+            createdAt: new Date().toISOString()
+        };
+        
+        if (!appData.attendance) appData.attendance = [];
+        appData.attendance.push(newAttendance);
+        saveAllData();
+        loadAttendance();
+        
+        // Clear form
+        document.getElementById('attendanceDate').value = '';
+        document.getElementById('attendanceSubject').value = '';
+        document.getElementById('attendanceTopic').value = '';
+        
+        // Uncheck all checkboxes
+        appData.students.forEach(student => {
+            const checkbox = document.getElementById(`attend_${student.id}`);
+            if (checkbox) checkbox.checked = false;
+        });
+        
+        alert(`✅ Attendance saved for ${presentStudents.length} students!`);
+        
+    } catch (error) {
+        console.error('❌ Error saving attendance:', error);
+        alert('Error saving attendance: ' + error.message);
+    }
+}
+
+function updateAttendanceStats() {
+    try {
+        if (!appData.attendance) appData.attendance = [];
+        
+        const attendanceCount = appData.attendance.length;
+        const lastSession = attendanceCount > 0 && appData.attendance[appData.attendance.length - 1].date
+            ? new Date(appData.attendance[appData.attendance.length - 1].date).toLocaleDateString()
+            : 'Never';
+        
+        document.getElementById('attendanceCount').textContent = attendanceCount;
+        document.getElementById('lastSessionDate').textContent = lastSession;
+        
+    } catch (error) {
+        console.error('❌ Error updating attendance stats:', error);
+    }
+}
+
+function deleteAttendance(index) {
+    if (confirm('Are you sure you want to delete this attendance record?')) {
+        appData.attendance.splice(index, 1);
+        saveAllData();
+        loadAttendance();
+        alert('✅ Attendance record deleted successfully!');
+    }
+}
+
+function selectAllStudents() {
+    appData.students.forEach(student => {
+        const checkbox = document.getElementById(`attend_${student.id}`);
+        if (checkbox) checkbox.checked = true;
+    });
+}
+
+function deselectAllStudents() {
+    appData.students.forEach(student => {
+        const checkbox = document.getElementById(`attend_${student.id}`);
+        if (checkbox) checkbox.checked = false;
+    });
+}
+
+function clearAttendanceForm() {
+    document.getElementById('attendanceDate').value = '';
+    document.getElementById('attendanceSubject').value = '';
+    document.getElementById('attendanceTopic').value = '';
+    
+    // Deselect all students
+    if (appData.students) {
+        appData.students.forEach(student => {
+            const checkbox = document.getElementById(`attend_${student.id}`);
+            if (checkbox) checkbox.checked = false;
+        });
+    }
+}
+
+// ============================================================================
+// PAYMENTS MANAGEMENT
+// ============================================================================
+
+function loadPayments() {
+    try {
+        const container = document.getElementById('paymentActivityLog');
+        if (!container) {
+            console.error('❌ Payments container not found');
+            return;
+        }
+        
+        // Populate student dropdown
+        const studentSelect = document.getElementById('paymentStudent');
+        if (studentSelect) {
+            studentSelect.innerHTML = '<option value="">Select student...</option>';
+            if (appData.students) {
+                appData.students.forEach(student => {
+                    studentSelect.innerHTML += `<option value="${student.id}">${student.name}</option>`;
+                });
+            }
+        }
+        
+        if (!appData.payments || appData.payments.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">💰</div><h4>No Payments</h4><p>No payment activity recorded yet.</p></div>';
+            return;
+        }
+        
+        let html = '<div class="payments-list">';
+        
+        const recentPayments = appData.payments.slice(-10).reverse();
+        recentPayments.forEach((payment, index) => {
+            const student = appData.students ? appData.students.find(s => s.id === payment.studentId) : null;
+            
+            html += `
+                <div class="payment-entry">
+                    <div class="payment-header">
+                        <h4>${student ? student.name : 'Unknown Student'}</h4>
+                        <span class="payment-amount">$${payment.amount.toFixed(2)}</span>
+                    </div>
+                    <div class="payment-details">
+                        <p><strong>Date:</strong> ${payment.date ? new Date(payment.date).toLocaleDateString() : 'No Date'}</p>
+                        <p><strong>Method:</strong> ${payment.method || 'N/A'}</p>
+                        ${payment.notes ? `<p><strong>Notes:</strong> ${payment.notes}</p>` : ''}
+                    </div>
+                    <div class="payment-actions">
+                        <button class="btn btn-sm" onclick="deletePayment(${appData.payments.length - 1 - index})">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+        updatePaymentStats();
+        
+    } catch (error) {
+        console.error('❌ Error loading payments:', error);
+        const container = document.getElementById('paymentActivityLog');
+        if (container) {
+            container.innerHTML = '<div class="error-state">Error loading payments</div>';
+        }
+    }
+}
+
+function recordPayment() {
+    try {
+        const studentId = document.getElementById('paymentStudent').value;
+        const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+        const date = document.getElementById('paymentDate').value;
+        const method = document.getElementById('paymentMethod').value;
+        const notes = document.getElementById('paymentNotes').value;
+        
+        if (!studentId || !amount || !date) {
+            alert('Please fill in required fields: Student, Amount, and Date');
+            return;
+        }
+        
+        const newPayment = {
+            studentId,
+            amount,
+            date,
+            method,
+            notes,
+            createdAt: new Date().toISOString()
+        };
+        
+        if (!appData.payments) appData.payments = [];
+        appData.payments.push(newPayment);
+        saveAllData();
+        loadPayments();
+        resetPaymentForm();
+        
+        alert('✅ Payment recorded successfully!');
+        
+    } catch (error) {
+        console.error('❌ Error recording payment:', error);
+        alert('Error recording payment: ' + error.message);
+    }
+}
+
+function resetPaymentForm() {
+    document.getElementById('paymentStudent').value = '';
+    document.getElementById('paymentAmount').value = '';
+    document.getElementById('paymentDate').value = '';
+    document.getElementById('paymentMethod').value = 'Cash';
+    document.getElementById('paymentNotes').value = '';
+}
+
+function updatePaymentStats() {
+    try {
+        if (!appData.payments) appData.payments = [];
+        if (!appData.students) appData.students = [];
+        
+        const totalStudents = appData.students.length;
+        const monthlyPayments = appData.payments
+            .filter(p => {
+                if (!p.date) return false;
+                const paymentDate = new Date(p.date);
+                const now = new Date();
+                return paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear();
+            })
+            .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+        
+        document.getElementById('totalStudentsCount').textContent = totalStudents;
+        document.getElementById('monthlyPayments').textContent = monthlyPayments.toFixed(2);
+        
+    } catch (error) {
+        console.error('❌ Error updating payment stats:', error);
+    }
+}
+
+function deletePayment(index) {
+    if (confirm('Are you sure you want to delete this payment record?')) {
+        appData.payments.splice(index, 1);
+        saveAllData();
+        loadPayments();
+        alert('✅ Payment record deleted successfully!');
+    }
+}
+
+// ============================================================================
 // REPORTS SYSTEM - CONSISTENT STYLING
 // ============================================================================
 
@@ -1329,7 +1807,7 @@ function showSubjectBreakdown() {
 }
 
 // ============================================================================
-// UTILITY FUNCTIONS
+// UTILITY FUNCTIONS FOR REPORTS
 // ============================================================================
 
 function renderReportNavigation(activeReport) {
@@ -1694,6 +2172,15 @@ window.updateHoursEntry = updateHoursEntry;
 window.cancelHoursEdit = cancelHoursEdit;
 window.deleteHours = deleteHours;
 window.updateTotalDisplay = updateTotalDisplay;
+window.addMark = addMark;
+window.saveAttendance = saveAttendance;
+window.recordPayment = recordPayment;
+window.resetPaymentForm = resetPaymentForm;
+window.selectAllStudents = selectAllStudents;
+window.deselectAllStudents = deselectAllStudents;
+window.clearAttendanceForm = clearAttendanceForm;
+window.deleteAttendance = deleteAttendance;
+window.deletePayment = deletePayment;
 window.saveDefaultRate = saveDefaultRate;
 window.useDefaultRate = useDefaultRate;
 window.showWeeklyBreakdown = showWeeklyBreakdown;
