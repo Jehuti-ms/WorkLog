@@ -3224,6 +3224,13 @@ window.deleteAttendance = deleteAttendance;
 window.editAttendance = editAttendance;
 window.updateAttendance = updateAttendance;
 window.cancelAttendanceEdit = cancelAttendanceEdit;
+// Add these to your global function exports
+window.formatAttendanceDate = formatAttendanceDate;
+window.formatAttendanceFullDate = formatAttendanceFullDate;
+window.formatDateForAttendanceInput = formatDateForAttendanceInput;
+window.setTodayDate = setTodayDate;
+window.setYesterdayDate = setYesterdayDate;
+window.debugAttendanceDates = debugAttendanceDates;
 
 // Payments Management
 window.recordPayment = recordPayment;
