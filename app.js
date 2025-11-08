@@ -37,17 +37,8 @@ function init() {
     // Load data from localStorage FIRST
     loadAllData();
     
-    // Initialize cloud sync ONLY if not already initialized
-    if (window.cloudSync && typeof window.cloudSync.init === 'function') {
-        if (!window.cloudSync.initialized) {
-            console.log('🔧 Initializing cloud sync...');
-            window.cloudSync.init();
-        } else {
-            console.log('🔧 Cloud sync already initialized - skipping');
-        }
-    } else {
-        console.log('⚠️ Cloud sync not available');
-    }
+    // Cloud sync is now auto-initialized - don't call it here
+    console.log('🔧 Cloud sync auto-initialization enabled');
     
     // Setup tabs
     setupTabs();
