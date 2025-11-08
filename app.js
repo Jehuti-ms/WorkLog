@@ -951,8 +951,9 @@ function loadAttendance() {
         
         let html = '<div class="attendance-list">';
         
-        // Show last 10 attendance records
-        appData.attendance.slice(-10).reverse().forEach((session, index) => {
+        // Show all attendance records with edit functionality
+        appData.attendance.slice().reverse().forEach((session, index) => {
+            const actualIndex = appData.attendance.length - 1 - index;
             const presentStudents = session.presentStudents.map(id => {
                 const student = appData.students.find(s => s.id === id);
                 return student ? student.name : 'Unknown';
@@ -961,15 +962,24 @@ function loadAttendance() {
             html += `
                 <div class="attendance-entry">
                     <div class="attendance-header">
-                        <h4>${session.subject} - ${new Date(session.date).toLocaleDateString()}</h4>
-                        <span class="attendance-count">${session.presentStudents.length} students</span>
+                        <div class="attendance-main">
+                            <h4>${session.subject} - ${new Date(session.date).toLocaleDateString()}</h4>
+                            <span class="attendance-count">${session.presentStudents.length} students</span>
+                        </div>
+                        <div class="attendance-actions">
+                            <button class="btn btn-sm btn-edit" onclick="editAttendance(${actualIndex})">✏️ Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteAttendance(${actualIndex})">🗑️ Delete</button>
+                        </div>
                     </div>
                     <div class="attendance-details">
                         <p><strong>Topic:</strong> ${session.topic || 'N/A'}</p>
                         <p><strong>Present:</strong> ${presentStudents.join(', ')}</p>
-                    </div>
-                    <div class="attendance-actions">
-                        <button class="btn btn-sm" onclick="deleteAttendance(${appData.attendance.length - 1 - index})">🗑️ Delete</button>
+                        <p><strong>Date:</strong> ${new Date(session.date).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        })}</p>
                     </div>
                 </div>
             `;
@@ -1043,6 +1053,117 @@ function saveAttendance() {
     }
 }
 
+function editAttendance(index) {
+    console.log('✏️ Editing attendance record:', index);
+    
+    const session = appData.attendance[index];
+    if (!session) {
+        alert('Attendance record not found!');
+        return;
+    }
+    
+    // Populate the form with existing data
+    document.getElementById('attendanceDate').value = session.date;
+    document.getElementById('attendanceSubject').value = session.subject || '';
+    document.getElementById('attendanceTopic').value = session.topic || '';
+    
+    // Clear all checkboxes first
+    appData.students.forEach(student => {
+        const checkbox = document.getElementById(`attend_${student.id}`);
+        if (checkbox) {
+            checkbox.checked = false;
+        }
+    });
+    
+    // Check the students who were present
+    session.presentStudents.forEach(studentId => {
+        const checkbox = document.getElementById(`attend_${studentId}`);
+        if (checkbox) {
+            checkbox.checked = true;
+        }
+    });
+    
+    // Update the save button to handle editing
+    const saveButton = document.querySelector('#attendance .btn-primary');
+    if (saveButton) {
+        saveButton.innerHTML = '💾 Update Attendance';
+        saveButton.onclick = function() { updateAttendance(index); };
+    }
+    
+    // Add cancel edit button if not exists
+    if (!document.querySelector('.cancel-attendance-edit')) {
+        const cancelButton = document.createElement('button');
+        cancelButton.type = 'button';
+        cancelButton.className = 'btn btn-warning cancel-attendance-edit';
+        cancelButton.innerHTML = '❌ Cancel Edit';
+        cancelButton.onclick = cancelAttendanceEdit;
+        
+        const formActions = document.querySelector('#attendance .form-actions');
+        if (formActions) {
+            formActions.appendChild(cancelButton);
+        }
+    }
+    
+    // Scroll to the form
+    document.querySelector('#attendance .section-card').scrollIntoView({ 
+        behavior: 'smooth' 
+    });
+    
+    // Highlight the form in edit mode
+    const formCard = document.querySelector('#attendance .section-card');
+    formCard.classList.add('edit-mode');
+    
+    console.log('✅ Attendance form ready for editing');
+}
+
+function updateAttendance(index) {
+    try {
+        const date = document.getElementById('attendanceDate').value;
+        const subject = document.getElementById('attendanceSubject').value;
+        const topic = document.getElementById('attendanceTopic').value;
+        
+        if (!date || !subject) {
+            alert('Please fill in date and subject');
+            return;
+        }
+        
+        const presentStudents = [];
+        
+        // Get all checked students
+        appData.students.forEach(student => {
+            const checkbox = document.getElementById(`attend_${student.id}`);
+            if (checkbox && checkbox.checked) {
+                presentStudents.push(student.id);
+            }
+        });
+        
+        if (presentStudents.length === 0) {
+            alert('Please select at least one student');
+            return;
+        }
+        
+        // Update the existing attendance record
+        appData.attendance[index] = {
+            ...appData.attendance[index],
+            date,
+            subject,
+            topic,
+            presentStudents,
+            updatedAt: new Date().toISOString()
+        };
+        
+        saveAllData();
+        loadAttendance();
+        cancelAttendanceEdit();
+        
+        alert(`✅ Attendance updated for ${presentStudents.length} students!`);
+        
+    } catch (error) {
+        console.error('❌ Error updating attendance:', error);
+        alert('Error updating attendance: ' + error.message);
+    }
+}
+
 function updateAttendanceStats() {
     try {
         if (!appData.attendance) appData.attendance = [];
@@ -1095,6 +1216,40 @@ function clearAttendanceForm() {
             if (checkbox) checkbox.checked = false;
         });
     }
+}
+
+function cancelAttendanceEdit() {
+    console.log('❌ Cancelling attendance edit');
+    
+    // Clear form
+    document.getElementById('attendanceDate').value = '';
+    document.getElementById('attendanceSubject').value = '';
+    document.getElementById('attendanceTopic').value = '';
+    
+    // Clear all checkboxes
+    appData.students.forEach(student => {
+        const checkbox = document.getElementById(`attend_${student.id}`);
+        if (checkbox) {
+            checkbox.checked = false;
+        }
+    });
+    
+    // Reset save button
+    const saveButton = document.querySelector('#attendance .btn-primary');
+    if (saveButton) {
+        saveButton.innerHTML = '💾 Save Attendance';
+        saveButton.onclick = saveAttendance;
+    }
+    
+    // Remove cancel button
+    const cancelButton = document.querySelector('.cancel-attendance-edit');
+    if (cancelButton) {
+        cancelButton.remove();
+    }
+    
+    // Remove edit mode styling
+    const formCard = document.querySelector('#attendance .section-card');
+    formCard.classList.remove('edit-mode');
 }
 
 // ============================================================================
