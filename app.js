@@ -541,13 +541,18 @@ function formatDisplayDate(dateString) {
     if (!dateString) return 'No Date';
     
     try {
+        // Parse the date string and create a date object in local timezone
         const date = new Date(dateString);
+        
+        // Use toLocaleDateString with explicit options to ensure correct display
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
-            day: 'numeric'
+            day: 'numeric',
+            timeZone: 'UTC' // Force UTC to avoid timezone conversion issues
         });
     } catch (e) {
+        console.error('Error formatting date:', e, 'Date string:', dateString);
         return dateString;
     }
 }
@@ -565,7 +570,17 @@ function startEditHours(index) {
     document.getElementById('workType').value = entry.workType || 'hourly';
     document.getElementById('subject').value = entry.subject || '';
     document.getElementById('topic').value = entry.topic || '';
-    document.getElementById('workDate').value = entry.date || '';
+    
+    // Fix date display - ensure it shows the correct date
+    let displayDate = entry.date || '';
+    if (displayDate) {
+        // Parse and reformat the date to ensure correct display
+        const dateObj = new Date(displayDate);
+        // Convert to YYYY-MM-DD format for the date input
+        displayDate = dateObj.toISOString().split('T')[0];
+    }
+    
+    document.getElementById('workDate').value = displayDate;
     document.getElementById('hoursWorked').value = entry.hours || '';
     document.getElementById('baseRate').value = entry.rate || '';
     document.getElementById('workNotes').value = entry.notes || '';
