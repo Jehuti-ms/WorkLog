@@ -558,3 +558,10 @@ if (document.readyState === 'loading') {
 } else {
     initAuth();
 }
+// Add click outside to close functionality
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('profileModal');
+    if (modal && event.target === modal) {
+        closeProfileModal();
+    }
+});
