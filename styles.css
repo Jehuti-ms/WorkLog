@@ -2995,3 +2995,74 @@ html {
 body.modal-open {
     overflow: hidden;
 }
+/* Attendance Edit Mode Styling */
+.edit-mode {
+    border-left: 4px solid #ffc107 !important;
+    background: #fffbf0 !important;
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2) !important;
+}
+
+.attendance-main {
+    flex: 1;
+}
+
+.attendance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.attendance-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.attendance-details {
+    margin-top: 12px;
+}
+
+.attendance-details p {
+    margin-bottom: 6px;
+    color: #5a6c7d;
+    font-size: 0.95em;
+}
+
+/* Quick actions for attendance */
+.attendance-quick-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.select-all-btn, .deselect-all-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.select-all-btn {
+    background: #28a745;
+    color: white;
+}
+
+.select-all-btn:hover {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+.deselect-all-btn {
+    background: #6c757d;
+    color: white;
+}
+
+.deselect-all-btn:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+}
