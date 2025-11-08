@@ -51,6 +51,37 @@ function init() {
     
     // Update stats
     updateStats();
+
+    // Add edit protection system
+let isEditingAttendance = false;
+
+// Update the edit functions to use the flag
+function editAttendance(index) {
+    isEditingAttendance = true;
+    // ... your existing editAttendance code ...
+}
+
+function cancelAttendanceEdit() {
+    isEditingAttendance = false;
+    // ... your existing cancelAttendanceEdit code ...
+}
+
+function updateAttendance(index) {
+    isEditingAttendance = false;
+    // ... your existing updateAttendance code ...
+}
+
+// Prevent cloud sync during edits
+if (window.cloudSync) {
+    const originalSyncData = window.cloudSync.syncData;
+    window.cloudSync.syncData = function() {
+        if (isEditingAttendance) {
+            console.log('🛑 Cloud sync skipped - attendance edit in progress');
+            return Promise.resolve();
+        }
+        return originalSyncData.apply(this, arguments);
+    };
+}
     
     console.log('✅ App initialized successfully');
 }
