@@ -3127,6 +3127,9 @@ window.selectAllStudents = selectAllStudents;
 window.deselectAllStudents = deselectAllStudents;
 window.clearAttendanceForm = clearAttendanceForm;
 window.deleteAttendance = deleteAttendance;
+window.editAttendance = editAttendance;
+window.updateAttendance = updateAttendance;
+window.cancelAttendanceEdit = cancelAttendanceEdit;
 
 // Payments Management
 window.recordPayment = recordPayment;
