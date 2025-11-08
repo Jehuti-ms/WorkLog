@@ -1460,7 +1460,7 @@ function showBiWeeklyBreakdown() {
 }
 
 // ============================================================================
-// MONTHLY REPORTS WITH MONTH SELECTION - DEBUGGED VERSION
+// FIXED MONTHLY REPORTS - REPLACE THE EXISTING CODE
 // ============================================================================
 
 function initializeMonthlyReport() {
@@ -1503,10 +1503,10 @@ function updateMonthSelector(year, month) {
     }
     
     // Update the reports tab with month selector
-    const reportsHeader = document.querySelector('#reports .section-header');
-    console.log('📋 Reports header found:', !!reportsHeader);
+    const breakdownSection = document.querySelector('#reports .section-card h3');
+    console.log('📋 Breakdown section found:', !!breakdownSection);
     
-    if (reportsHeader && !document.getElementById('monthSelector')) {
+    if (breakdownSection && !document.getElementById('monthSelector')) {
         console.log('🎯 Adding month selector to reports section');
         const monthSelectorHTML = `
             <div class="month-selector" id="monthSelector" style="margin-top: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #5a7a7a;">
@@ -1522,10 +1522,10 @@ function updateMonthSelector(year, month) {
                 </button>
             </div>
         `;
-        reportsHeader.insertAdjacentHTML('afterend', monthSelectorHTML);
+        breakdownSection.insertAdjacentHTML('afterend', monthSelectorHTML);
         console.log('✅ Month selector added successfully');
     } else {
-        console.log('⚠️ Month selector already exists or reports header not found');
+        console.log('⚠️ Month selector already exists or breakdown section not found');
     }
 }
 
@@ -1591,325 +1591,86 @@ function generateMonthlyReport(year, month) {
     updateSubjectTable(monthlyHours, monthlyMarks);
 }
 
-function filterDataByMonth(data, year, month) {
-    return data.filter(item => {
-        if (!item.date) return false;
-        
-        try {
-            const itemDate = new Date(item.date);
-            return itemDate.getFullYear() === year && itemDate.getMonth() === month;
-        } catch (e) {
-            console.log('❌ Error parsing date:', item.date, e);
-            return false;
+// Update the button handlers to use monthly reports
+function showWeeklyBreakdown() {
+    console.log('📅 Switching to weekly breakdown');
+    // Keep the monthly report but update the tables
+    const currentMonth = parseInt(document.getElementById('reportMonth').value);
+    const currentYear = parseInt(document.getElementById('reportYear').value);
+    const monthlyHours = filterDataByMonth(appData.hours || [], currentYear, currentMonth);
+    updateWeeklyTable(monthlyHours, currentYear, currentMonth);
+    
+    // Show message that we're viewing weekly data within the monthly context
+    const container = document.getElementById('breakdownContainer');
+    if (container) {
+        const existingReport = container.querySelector('.monthly-report');
+        if (existingReport) {
+            const weeklyNote = document.createElement('div');
+            weeklyNote.style.background = '#e7f3ff';
+            weeklyNote.style.padding = '10px';
+            weeklyNote.style.borderRadius = '4px';
+            weeklyNote.style.marginTop = '10px';
+            weeklyNote.innerHTML = '<strong>📅 Note:</strong> Now viewing weekly breakdown for the selected month. Use month selector above to change period.';
+            existingReport.appendChild(weeklyNote);
         }
-    });
+    }
 }
 
-function calculateMonthlyStats(hours, marks, attendance, payments) {
-    // Hours and earnings
-    const totalHours = hours.reduce((sum, entry) => sum + (entry.hours || 0), 0);
-    const totalEarnings = hours.reduce((sum, entry) => sum + (entry.total || 0), 0);
-    const avgHourlyRate = totalHours > 0 ? totalEarnings / totalHours : 0;
-    
-    // Marks
-    const totalMarks = marks.length;
-    const avgMark = totalMarks > 0 
-        ? (marks.reduce((sum, mark) => sum + (mark.percentage || 0), 0) / totalMarks)
-        : 0;
-    
-    // Attendance
-    const totalSessions = attendance.length;
-    const totalStudentsPresent = attendance.reduce((sum, session) => 
-        sum + (session.presentStudents ? session.presentStudents.length : 0), 0
-    );
-    const avgStudentsPerSession = totalSessions > 0 ? totalStudentsPresent / totalSessions : 0;
-    
-    // Payments
-    const totalPayments = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-    
-    return {
-        totalHours: totalHours.toFixed(1),
-        totalEarnings: totalEarnings.toFixed(2),
-        avgHourlyRate: avgHourlyRate.toFixed(2),
-        totalMarks,
-        avgMark: avgMark.toFixed(1),
-        totalSessions,
-        totalStudentsPresent,
-        avgStudentsPerSession: avgStudentsPerSession.toFixed(1),
-        totalPayments: totalPayments.toFixed(2)
-    };
+function showMonthlyBreakdown() {
+    console.log('📈 Switching to monthly breakdown');
+    // This should just regenerate the monthly report
+    const currentMonth = parseInt(document.getElementById('reportMonth').value);
+    const currentYear = parseInt(document.getElementById('reportYear').value);
+    generateMonthlyReport(currentYear, currentMonth);
 }
 
-function generateMonthlyReportHTML(monthName, year, stats, hours, marks) {
-    return `
-        <div class="monthly-report">
-            <div class="report-header">
-                <h3>📈 ${monthName} ${year} - Monthly Report</h3>
-                <div class="report-period">Period: ${monthName} 1 - ${monthName} ${new Date(year, monthNames.indexOf(monthName) + 1, 0).getDate()}, ${year}</div>
-            </div>
-            
-            <div class="stats-grid monthly-stats">
-                <div class="stat-card">
-                    <div class="stat-value">${stats.totalHours}h</div>
-                    <div class="stat-label">Total Hours</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">$${stats.totalEarnings}</div>
-                    <div class="stat-label">Total Earnings</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">$${stats.avgHourlyRate}/h</div>
-                    <div class="stat-label">Avg Hourly Rate</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${stats.totalSessions}</div>
-                    <div class="stat-label">Sessions</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${stats.totalMarks}</div>
-                    <div class="stat-label">Assessments</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${stats.avgMark}%</div>
-                    <div class="stat-label">Avg Score</div>
-                </div>
-            </div>
-            
-            <div class="report-details">
-                <div class="detail-section">
-                    <h4>📊 Activity Summary</h4>
-                    <div class="detail-grid">
-                        <div class="detail-item">
-                            <span class="detail-label">Work Entries:</span>
-                            <span class="detail-value">${hours.length}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Total Students Present:</span>
-                            <span class="detail-value">${stats.totalStudentsPresent}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Avg Students/Session:</span>
-                            <span class="detail-value">${stats.avgStudentsPerSession}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Total Payments:</span>
-                            <span class="detail-value">$${stats.totalPayments}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="detail-section">
-                    <h4>📋 Recent Activity</h4>
-                    <div class="recent-activities">
-                        ${generateRecentActivities(hours, marks)}
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function generateRecentActivities(hours, marks) {
-    const recentHours = hours.slice(-5).reverse();
-    const recentMarks = marks.slice(-5).reverse();
+function showBiWeeklyBreakdown() {
+    console.log('📆 Switching to bi-weekly breakdown');
+    const currentMonth = parseInt(document.getElementById('reportMonth').value);
+    const currentYear = parseInt(document.getElementById('reportYear').value);
+    const monthlyHours = filterDataByMonth(appData.hours || [], currentYear, currentMonth);
     
-    let html = '';
-    
-    if (recentHours.length > 0) {
-        html += '<div class="activity-group"><strong>Recent Work:</strong><ul>';
-        recentHours.forEach(entry => {
-            html += `<li>${entry.organization} - ${entry.hours}h - $${(entry.total || 0).toFixed(2)}</li>`;
-        });
-        html += '</ul></div>';
-    }
-    
-    if (recentMarks.length > 0) {
-        html += '<div class="activity-group"><strong>Recent Assessments:</strong><ul>';
-        recentMarks.forEach(mark => {
-            const student = appData.students?.find(s => s.id === mark.studentId);
-            html += `<li>${student?.name || 'Unknown'}: ${mark.score}/${mark.maxScore} (${mark.percentage}%)</li>`;
-        });
-        html += '</ul></div>';
-    }
-    
-    if (!html) {
-        html = '<p style="color: #666; text-align: center;">No recent activity for this month.</p>';
-    }
-    
-    return html;
-}
-
-function updateWeeklyTable(hours, year, month) {
-    const weeklyBody = document.getElementById('weeklyBody');
-    if (!weeklyBody) {
-        console.log('❌ Weekly body not found');
-        return;
-    }
-    
-    // Group hours by week
-    const weeks = groupHoursByWeek(hours, year, month);
-    
-    if (weeks.length === 0) {
-        weeklyBody.innerHTML = `
-            <tr>
-                <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
-                    No weekly data available for ${monthNames[month]} ${year}
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    let html = '';
-    weeks.forEach(week => {
-        const netEarnings = week.earnings * 0.8; // 80% net
-        html += `
-            <tr>
-                <td>${week.weekLabel}</td>
-                <td>${week.hours.toFixed(1)}h</td>
-                <td>$${week.earnings.toFixed(2)}</td>
-                <td>${week.subjects.join(', ') || 'N/A'}</td>
-                <td>$${netEarnings.toFixed(2)}</td>
-            </tr>
-        `;
-    });
-    
-    weeklyBody.innerHTML = html;
-    console.log('✅ Weekly table updated');
-}
-
-function updateSubjectTable(hours, marks) {
-    const subjectBody = document.getElementById('subjectBody');
-    if (!subjectBody) {
-        console.log('❌ Subject body not found');
-        return;
-    }
-    
-    // Group data by subject
-    const subjectStats = calculateSubjectStats(hours, marks);
-    
-    if (subjectStats.length === 0) {
-        subjectBody.innerHTML = `
-            <tr>
-                <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
-                    No subject data available
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    let html = '';
-    subjectStats.forEach(subject => {
-        html += `
-            <tr>
-                <td>${subject.name}</td>
-                <td>${subject.avgMark}%</td>
-                <td>${subject.hours.toFixed(1)}h</td>
-                <td>$${subject.earnings.toFixed(2)}</td>
-                <td>${subject.sessions}</td>
-            </tr>
-        `;
-    });
-    
-    subjectBody.innerHTML = html;
-    console.log('✅ Subject table updated');
-}
-
-function groupHoursByWeek(hours, year, month) {
-    const weeks = [];
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    
-    let currentWeekStart = new Date(firstDay);
-    currentWeekStart.setDate(firstDay.getDate() - firstDay.getDay()); // Start from Sunday
-    
-    while (currentWeekStart <= lastDay) {
-        const weekEnd = new Date(currentWeekStart);
-        weekEnd.setDate(currentWeekStart.getDate() + 6);
-        
-        const weekHours = hours.filter(entry => {
-            if (!entry.date) return false;
-            const entryDate = new Date(entry.date);
-            return entryDate >= currentWeekStart && entryDate <= weekEnd;
-        });
-        
-        if (weekHours.length > 0) {
-            const totalHours = weekHours.reduce((sum, entry) => sum + (entry.hours || 0), 0);
-            const totalEarnings = weekHours.reduce((sum, entry) => sum + (entry.total || 0), 0);
-            const subjects = [...new Set(weekHours.map(entry => entry.subject).filter(Boolean))];
-            
-            weeks.push({
-                weekLabel: `Week of ${currentWeekStart.getDate()}`,
-                hours: totalHours,
-                earnings: totalEarnings,
-                subjects: subjects
-            });
+    // Show bi-weekly message
+    const container = document.getElementById('breakdownContainer');
+    if (container) {
+        const existingReport = container.querySelector('.monthly-report');
+        if (existingReport) {
+            const biweeklyNote = document.createElement('div');
+            biweeklyNote.style.background = '#fff3cd';
+            biweeklyNote.style.padding = '10px';
+            biweeklyNote.style.borderRadius = '4px';
+            biweeklyNote.style.marginTop = '10px';
+            biweeklyNote.innerHTML = '<strong>📆 Note:</strong> Bi-weekly breakdown for the selected month. Use month selector above to change period.';
+            existingReport.appendChild(biweeklyNote);
         }
-        
-        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
     }
-    
-    return weeks;
 }
 
-function calculateSubjectStats(hours, marks) {
-    const subjectMap = {};
+function showSubjectBreakdown() {
+    console.log('📚 Switching to subject breakdown');
+    const currentMonth = parseInt(document.getElementById('reportMonth').value);
+    const currentYear = parseInt(document.getElementById('reportYear').value);
+    const monthlyHours = filterDataByMonth(appData.hours || [], currentYear, currentMonth);
+    const monthlyMarks = filterDataByMonth(appData.marks || [], currentYear, currentMonth);
+    updateSubjectTable(monthlyHours, monthlyMarks);
     
-    // Process hours
-    hours.forEach(entry => {
-        const subject = entry.subject || 'Other';
-        if (!subjectMap[subject]) {
-            subjectMap[subject] = {
-                name: subject,
-                hours: 0,
-                earnings: 0,
-                sessions: 0,
-                marks: [],
-                totalScore: 0,
-                totalMaxScore: 0
-            };
+    // Show subject message
+    const container = document.getElementById('breakdownContainer');
+    if (container) {
+        const existingReport = container.querySelector('.monthly-report');
+        if (existingReport) {
+            const subjectNote = document.createElement('div');
+            subjectNote.style.background = '#d4edda';
+            subjectNote.style.padding = '10px';
+            subjectNote.style.borderRadius = '4px';
+            subjectNote.style.marginTop = '10px';
+            subjectNote.innerHTML = '<strong>📚 Note:</strong> Subject breakdown for the selected month. Use month selector above to change period.';
+            existingReport.appendChild(subjectNote);
         }
-        
-        subjectMap[subject].hours += entry.hours || 0;
-        subjectMap[subject].earnings += entry.total || 0;
-        subjectMap[subject].sessions += 1;
-    });
-    
-    // Process marks
-    marks.forEach(mark => {
-        const subject = mark.subject || 'Other';
-        if (!subjectMap[subject]) {
-            subjectMap[subject] = {
-                name: subject,
-                hours: 0,
-                earnings: 0,
-                sessions: 0,
-                marks: [],
-                totalScore: 0,
-                totalMaxScore: 0
-            };
-        }
-        
-        subjectMap[subject].marks.push(mark);
-        subjectMap[subject].totalScore += mark.score || 0;
-        subjectMap[subject].totalMaxScore += mark.maxScore || 1;
-    });
-    
-    // Convert to array and calculate averages
-    return Object.values(subjectMap).map(subject => {
-        const avgMark = subject.totalMaxScore > 0 
-            ? ((subject.totalScore / subject.totalMaxScore) * 100).toFixed(1)
-            : '0';
-            
-        return {
-            ...subject,
-            avgMark: avgMark
-        };
-    });
+    }
 }
 
-// Update the loadReports function to initialize monthly reports
+// Update the loadReports function
 function loadReports() {
     console.log('📈 Loading reports...');
     try {
@@ -1921,7 +1682,7 @@ function loadReports() {
     }
 }
 
-// Add CSS for the monthly report
+// Make sure the CSS is injected
 function injectMonthlyReportCSS() {
     if (!document.getElementById('monthly-report-css')) {
         const style = document.createElement('style');
@@ -2049,7 +1810,7 @@ function injectMonthlyReportCSS() {
     }
 }
 
-// Update the init function to inject CSS
+// Update the init function
 function init() {
     console.log('🎯 App initialization started');
     
@@ -2092,6 +1853,10 @@ window.initializeMonthlyReport = initializeMonthlyReport;
 window.onMonthChange = onMonthChange;
 window.generateCurrentMonthReport = generateCurrentMonthReport;
 window.generateMonthlyReport = generateMonthlyReport;
+window.showWeeklyBreakdown = showWeeklyBreakdown;
+window.showMonthlyBreakdown = showMonthlyBreakdown;
+window.showBiWeeklyBreakdown = showBiWeeklyBreakdown;
+window.showSubjectBreakdown = showSubjectBreakdown;
 
 // ============================================================================
 // UTILITY FUNCTIONS
