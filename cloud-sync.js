@@ -1,4 +1,4 @@
-// cloud-sync.js - UPDATED WITH CORRECT ANON KEY
+// cloud-sync.js - UPDATED WITH INITIALIZATION GUARDS
 console.log('☁️ Cloud Sync loaded');
 
 class CloudSync {
@@ -10,6 +10,7 @@ class CloudSync {
         this.userId = null;
         this.syncInterval = null;
         this.initialized = false;
+        this.initializing = false; // Add initialization lock
         
         // Supabase configuration - UPDATED WITH YOUR CORRECT ANON KEY
         this.supabaseConfig = {
@@ -19,23 +20,32 @@ class CloudSync {
     }
 
     async init() {
+        // Prevent multiple initializations
         if (this.initialized) {
-            console.log('🔄 Cloud sync already initialized');
+            console.log('🔧 Cloud sync already initialized');
             return;
         }
-
+        
+        // Prevent concurrent initialization
+        if (this.initializing) {
+            console.log('⏳ Cloud sync initialization in progress...');
+            return;
+        }
+        
+        this.initializing = true;
         console.log('🔄 Initializing cloud sync...');
         
-        // Check if user is authenticated
-        if (!window.Auth || !window.Auth.isAuthenticated()) {
-            console.log('❌ User not authenticated, sync disabled');
-            this.updateSyncStatus('Not authenticated', false);
-            return;
-        }
-
-        this.userId = window.Auth.getCurrentUserId();
-        
         try {
+            // Check if user is authenticated
+            if (!window.Auth || !window.Auth.isAuthenticated()) {
+                console.log('❌ User not authenticated, sync disabled');
+                this.updateSyncStatus('Not authenticated', false);
+                this.initializing = false;
+                return;
+            }
+
+            this.userId = window.Auth.getCurrentUserId();
+            
             // Validate Supabase configuration
             if (!this.supabaseConfig.url || !this.supabaseConfig.anonKey) {
                 throw new Error('Supabase configuration missing');
@@ -99,6 +109,8 @@ class CloudSync {
         } catch (error) {
             console.error('❌ Cloud sync initialization failed:', error);
             this.handleSyncError(error);
+        } finally {
+            this.initializing = false;
         }
     }
 
@@ -234,7 +246,7 @@ class CloudSync {
         };
     }
 
-        async uploadToSupabase(data) {
+    async uploadToSupabase(data) {
         if (!this.supabase) throw new Error('Supabase not initialized');
 
         console.log('📤 Uploading data to Supabase...');
@@ -566,28 +578,47 @@ class CloudSync {
     }
 }
 
-// Create global instance
-window.cloudSync = new CloudSync();
-
-// Initialize when auth is ready
-function initCloudSync() {
-    setTimeout(() => {
-        window.cloudSync.init();
-    }, 1000);
+// Create global instance with singleton pattern
+if (!window.cloudSync) {
+    window.cloudSync = new CloudSync();
+} else {
+    console.log('ℹ️ Cloud sync instance already exists');
 }
 
-// Auto-initialize when auth is ready
-if (window.Auth && window.Auth.isAuthenticated()) {
-    initCloudSync();
-} else {
-    // Wait for auth to initialize
-    const checkAuth = setInterval(() => {
-        if (window.Auth && window.Auth.isAuthenticated()) {
-            clearInterval(checkAuth);
+// Smart initialization function
+function initCloudSync() {
+    // Don't initialize if already initialized or initializing
+    if (window.cloudSync.initialized || window.cloudSync.initializing) {
+        console.log('🔧 Cloud sync already initialized or initializing - skipping');
+        return;
+    }
+    
+    // Check if user is authenticated
+    if (!window.Auth || !window.Auth.isAuthenticated()) {
+        console.log('❌ User not authenticated - delaying cloud sync init');
+        return;
+    }
+    
+    console.log('🚀 Starting cloud sync initialization...');
+    window.cloudSync.init();
+}
+
+// Auto-initialize when conditions are met
+function autoInitCloudSync() {
+    // Wait a bit for everything to load
+    setTimeout(() => {
+        if (window.Auth && window.Auth.isAuthenticated() && window.supabase) {
             initCloudSync();
+        } else {
+            console.log('⏳ Waiting for dependencies...');
+            // Try again in a second
+            setTimeout(initCloudSync, 1000);
         }
     }, 500);
 }
+
+// Start auto-initialization
+autoInitCloudSync();
 
 // Ensure global functions are available immediately
 window.toggleAutoSync = function() {
