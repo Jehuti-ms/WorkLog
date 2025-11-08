@@ -3323,3 +3323,18 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 console.log('✅ App.js completely loaded');
+
+// Debug the saveAllData function
+const originalSaveAllData = saveAllData;
+saveAllData = function() {
+    console.log('💾 saveAllData called - Stack trace:');
+    console.trace();
+    
+    // Check if we're in edit mode
+    const isEditing = document.querySelector('#attendance .edit-mode');
+    if (isEditing) {
+        console.log('⚠️ saveAllData called while in attendance edit mode!');
+    }
+    
+    return originalSaveAllData.apply(this, arguments);
+};
