@@ -34,13 +34,16 @@ function init() {
     
     console.log('✅ User authenticated, setting up app...');
     
-    // Initialize cloud sync
-    if (window.cloudSync && !window.cloudSync.initialized) {
-        window.cloudSync.init();
-    }
-    
-    // Load data from localStorage
+    // Load data from localStorage FIRST
     loadAllData();
+    
+    // Initialize cloud sync ONLY if not already initialized
+    if (window.cloudSync && typeof window.cloudSync.init === 'function' && !window.cloudSync.initialized) {
+        console.log('🔧 Initializing cloud sync...');
+        window.cloudSync.init();
+    } else if (window.cloudSync && window.cloudSync.initialized) {
+        console.log('🔧 Cloud sync already initialized');
+    }
     
     // Setup tabs
     setupTabs();
@@ -744,7 +747,7 @@ function loadHoursFromStorage() {
 }
 
 // ============================================================================
-// MARKS MANAGEMENT
+// MARKS MANAGEMENT - FIXED WITH MISSING FUNCTIONS
 // ============================================================================
 
 function loadMarks() {
@@ -1080,7 +1083,7 @@ function clearAttendanceForm() {
 }
 
 // ============================================================================
-// PAYMENTS MANAGEMENT
+// PAYMENTS MANAGEMENT - FIXED WITH MISSING FUNCTIONS
 // ============================================================================
 
 function loadPayments() {
@@ -1222,7 +1225,7 @@ function deletePayment(index) {
 }
 
 // ============================================================================
-// REPORTS SYSTEM - CONSISTENT STYLING
+// REPORTS SYSTEM - FIXED VERSION
 // ============================================================================
 
 function loadReports() {
@@ -1239,13 +1242,13 @@ function loadReports() {
 function updateReportStats() {
     try {
         if (!appData.students) appData.students = [];
-        if (!appData.hours) appData.hours = [];
+        if (!window.hoursEntries) window.hoursEntries = [];
         if (!appData.marks) appData.marks = [];
         if (!appData.payments) appData.payments = [];
         
         const totalStudents = appData.students.length;
-        const totalHours = appData.hours.reduce((sum, entry) => sum + (entry.hours || 0), 0);
-        const totalEarnings = appData.hours.reduce((sum, entry) => sum + (entry.total || 0), 0);
+        const totalHours = window.hoursEntries.reduce((sum, entry) => sum + (entry.hours || 0), 0);
+        const totalEarnings = window.hoursEntries.reduce((sum, entry) => sum + (entry.total || 0), 0);
         const totalPayments = appData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
         
         const avgMark = appData.marks.length > 0 
@@ -1263,89 +1266,39 @@ function updateReportStats() {
     }
 }
 
-function initializeMonthlyReport() {
-    console.log('📊 Initializing monthly report...');
-    
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth();
-    const currentYear = currentDate.getFullYear();
-    
-    updateMonthSelector(currentYear, currentMonth);
-    showMonthlyBreakdown();
+// ============================================================================
+// NEW UTILITY FUNCTIONS FOR HOURS DATA COMPATIBILITY
+// ============================================================================
+
+function getHoursDataForReports() {
+    // Convert window.hoursEntries to format expected by reports
+    return (window.hoursEntries || []).map(entry => ({
+        ...entry,
+        // Ensure all required fields exist
+        hours: entry.hours || 0,
+        rate: entry.rate || 0,
+        total: entry.total || (entry.hours || 0) * (entry.rate || 0),
+        organization: entry.organization || 'Unknown',
+        subject: entry.subject || 'Other',
+        workType: entry.workType || 'hourly',
+        date: entry.date || new Date().toISOString().split('T')[0]
+    }));
 }
 
-function updateMonthSelector(year, month) {
-    console.log('🔄 Updating month selector for:', year, month);
-    
-    let monthOptions = '';
-    monthNames.forEach((monthName, index) => {
-        const selected = index === month ? 'selected' : '';
-        monthOptions += `<option value="${index}" ${selected}>${monthName}</option>`;
-    });
-    
-    let yearOptions = '';
-    for (let i = year - 2; i <= year + 1; i++) {
-        const selected = i === year ? 'selected' : '';
-        yearOptions += `<option value="${i}" ${selected}>${i}</option>`;
-    }
-    
-    const existingSelector = document.getElementById('monthSelector');
-    if (existingSelector) {
-        existingSelector.remove();
-    }
-    
-    const breakdownCard = document.querySelector('#breakdownContainer')?.closest('.section-card');
-    if (breakdownCard) {
-        const monthSelectorHTML = `
-            <div class="month-selector" id="monthSelector">
-                <label for="reportMonth">Select Month:</label>
-                <select id="reportMonth" onchange="onMonthChange()">
-                    ${monthOptions}
-                </select>
-                <select id="reportYear" onchange="onMonthChange()">
-                    ${yearOptions}
-                </select>
-                <button class="btn btn-sm" onclick="generateCurrentMonthReport()">
-                    📅 Current Month
-                </button>
-            </div>
-        `;
-        breakdownCard.insertAdjacentHTML('afterbegin', monthSelectorHTML);
-    }
-}
-
-function onMonthChange() {
-    const selectedMonth = parseInt(document.getElementById('reportMonth').value);
-    const selectedYear = parseInt(document.getElementById('reportYear').value);
-    
-    const container = document.getElementById('breakdownContainer');
-    if (container.querySelector('.report-container')) {
-        const activeButton = container.querySelector('.btn-report.active');
-        if (activeButton) {
-            const reportType = activeButton.textContent.trim();
-            switch(reportType) {
-                case '📅 Weekly': showWeeklyBreakdown(); break;
-                case '📆 Bi-Weekly': showBiWeeklyBreakdown(); break;
-                case '📈 Monthly': showMonthlyBreakdown(); break;
-                case '📚 Subject': showSubjectBreakdown(); break;
-                default: showMonthlyBreakdown();
-            }
-        } else {
-            showMonthlyBreakdown();
+function filterHoursByMonth(year, month) {
+    const hoursData = getHoursDataForReports();
+    return hoursData.filter(entry => {
+        if (!entry.date) return false;
+        try {
+            const entryDate = new Date(entry.date);
+            return entryDate.getFullYear() === year && entryDate.getMonth() === month;
+        } catch (e) {
+            return false;
         }
-    }
+    });
 }
 
-function generateCurrentMonthReport() {
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth();
-    const currentYear = currentDate.getFullYear();
-    
-    document.getElementById('reportMonth').value = currentMonth;
-    document.getElementById('reportYear').value = currentYear;
-    
-    showMonthlyBreakdown();
-}
+// Update all report functions to use filterHoursByMonth instead of filterDataByMonth(appData.hours)
 
 // ============================================================================
 // REPORT TYPES - CONSISTENT STYLING
