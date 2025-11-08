@@ -2263,19 +2263,38 @@ function updateMonthSelector(year, month) {
 }
 
 // ============================================================================
-// BI-WEEKLY BREAKDOWN IMPLEMENTATION
+// FIXED BI-WEEKLY BREAKDOWN - REPLACE EXISTING FUNCTION
 // ============================================================================
 
 function showBiWeeklyBreakdown() {
     console.log('📆 Switching to bi-weekly breakdown');
-    const currentMonth = parseInt(document.getElementById('reportMonth').value);
-    const currentYear = parseInt(document.getElementById('reportYear').value);
+    
+    // Get current selected month and year
+    const monthSelect = document.getElementById('reportMonth');
+    const yearSelect = document.getElementById('reportYear');
+    
+    if (!monthSelect || !yearSelect) {
+        console.error('❌ Month or year selector not found');
+        return;
+    }
+    
+    const currentMonth = parseInt(monthSelect.value);
+    const currentYear = parseInt(yearSelect.value);
+    
+    console.log('📅 Generating bi-weekly breakdown for:', currentYear, currentMonth);
     
     // Get filtered data for the selected month
     const monthlyHours = filterDataByMonth(appData.hours || [], currentYear, currentMonth);
     const monthlyMarks = filterDataByMonth(appData.marks || [], currentYear, currentMonth);
     const monthlyAttendance = filterDataByMonth(appData.attendance || [], currentYear, currentMonth);
     const monthlyPayments = filterDataByMonth(appData.payments || [], currentYear, currentMonth);
+    
+    console.log('📊 Filtered data for bi-weekly:', {
+        hours: monthlyHours.length,
+        marks: monthlyMarks.length,
+        attendance: monthlyAttendance.length,
+        payments: monthlyPayments.length
+    });
     
     // Generate bi-weekly breakdown
     const biWeeklyData = generateBiWeeklyBreakdown(monthlyHours, monthlyMarks, monthlyAttendance, monthlyPayments, currentYear, currentMonth);
@@ -2284,38 +2303,67 @@ function showBiWeeklyBreakdown() {
     const container = document.getElementById('breakdownContainer');
     if (container) {
         container.innerHTML = generateBiWeeklyHTML(biWeeklyData, currentYear, currentMonth);
-        console.log('✅ Bi-weekly breakdown generated');
+        console.log('✅ Bi-weekly breakdown generated successfully');
+    } else {
+        console.error('❌ Breakdown container not found!');
     }
 }
 
 function generateBiWeeklyBreakdown(hours, marks, attendance, payments, year, month) {
+    console.log('🔄 Generating bi-weekly data for:', year, month);
+    
     const biWeeklyPeriods = getBiWeeklyPeriods(year, month);
     const periods = [];
     
     biWeeklyPeriods.forEach((period, index) => {
+        console.log(`📅 Processing period ${index + 1}:`, period.label);
+        
         // Filter data for this bi-weekly period
         const periodHours = hours.filter(entry => {
             if (!entry.date) return false;
-            const entryDate = new Date(entry.date);
-            return entryDate >= period.start && entryDate <= period.end;
+            try {
+                const entryDate = new Date(entry.date);
+                return entryDate >= period.start && entryDate <= period.end;
+            } catch (e) {
+                return false;
+            }
         });
         
         const periodMarks = marks.filter(mark => {
             if (!mark.date) return false;
-            const markDate = new Date(mark.date);
-            return markDate >= period.start && markDate <= period.end;
+            try {
+                const markDate = new Date(mark.date);
+                return markDate >= period.start && markDate <= period.end;
+            } catch (e) {
+                return false;
+            }
         });
         
         const periodAttendance = attendance.filter(session => {
             if (!session.date) return false;
-            const sessionDate = new Date(session.date);
-            return sessionDate >= period.start && sessionDate <= period.end;
+            try {
+                const sessionDate = new Date(session.date);
+                return sessionDate >= period.start && sessionDate <= period.end;
+            } catch (e) {
+                return false;
+            }
         });
         
         const periodPayments = payments.filter(payment => {
             if (!payment.date) return false;
-            const paymentDate = new Date(payment.date);
-            return paymentDate >= period.start && paymentDate <= period.end;
+            try {
+                const paymentDate = new Date(payment.date);
+                return paymentDate >= period.start && paymentDate <= period.end;
+            } catch (e) {
+                return false;
+            }
+        });
+        
+        console.log(`📊 Period ${index + 1} data:`, {
+            hours: periodHours.length,
+            marks: periodMarks.length,
+            attendance: periodAttendance.length,
+            payments: periodPayments.length
         });
         
         // Calculate statistics
@@ -2360,47 +2408,23 @@ function generateBiWeeklyBreakdown(hours, marks, attendance, payments, year, mon
                 marks: periodMarks,
                 attendance: periodAttendance,
                 payments: periodPayments,
-                topSubjects: subjects.slice(0, 3), // Top 3 subjects
-                topOrganizations: organizations.slice(0, 3) // Top 3 organizations
+                topSubjects: subjects.slice(0, 3),
+                topOrganizations: organizations.slice(0, 3)
             }
         });
     });
     
-    return periods;
-}
-
-function getBiWeeklyPeriods(year, month) {
-    const periods = [];
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    
-    let currentStart = new Date(firstDay);
-    
-    // First half of the month (1st to 15th)
-    const firstHalfEnd = new Date(year, month, 15);
-    periods.push({
-        start: new Date(currentStart),
-        end: firstHalfEnd,
-        label: `1st-15th ${monthNames[month]}`
-    });
-    
-    // Second half of the month (16th to end of month)
-    const secondHalfStart = new Date(year, month, 16);
-    if (secondHalfStart <= lastDay) {
-        periods.push({
-            start: secondHalfStart,
-            end: new Date(lastDay),
-            label: `16th-${lastDay.getDate()}th ${monthNames[month]}`
-        });
-    }
-    
+    console.log('✅ Bi-weekly periods generated:', periods.length);
     return periods;
 }
 
 function generateBiWeeklyHTML(biWeeklyData, year, month) {
     const monthName = monthNames[month];
     
-    if (biWeeklyData.length === 0) {
+    console.log('🎨 Generating bi-weekly HTML for:', monthName, year);
+    console.log('📊 Bi-weekly data:', biWeeklyData);
+    
+    if (!biWeeklyData || biWeeklyData.length === 0) {
         return `
             <div class="monthly-report">
                 <div class="report-header">
@@ -2421,8 +2445,6 @@ function generateBiWeeklyHTML(biWeeklyData, year, month) {
                 <h3>📆 ${monthName} ${year} - Bi-Weekly Breakdown</h3>
                 <div class="report-period">Data analyzed in two-week intervals</div>
             </div>
-            
-            <div class="bi-weekly-stats">
     `;
     
     // Overall summary for the month
@@ -2449,6 +2471,8 @@ function generateBiWeeklyHTML(biWeeklyData, year, month) {
                 </div>
             </div>
         </div>
+        
+        <div class="bi-weekly-periods">
     `;
     
     // Bi-weekly periods
@@ -2459,7 +2483,7 @@ function generateBiWeeklyHTML(biWeeklyData, year, month) {
         
         html += `
             <div class="bi-weekly-period" style="background: ${cardColor}; border-left: 4px solid ${borderColor}; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <div class="period-header" style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px;">
+                <div class="period-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h4 style="margin: 0; color: #3a5a5a;">
                         ${isFirstHalf ? '📅 First Half' : '📅 Second Half'} 
                         <span style="font-size: 0.9em; color: #666; font-weight: normal;">(${period.period})</span>
@@ -2522,13 +2546,13 @@ function generateBiWeeklyHTML(biWeeklyData, year, month) {
                                     <strong>Subjects:</strong><br>
                                     ${period.details.topSubjects.map(subj => `• ${subj}`).join('<br>')}
                                 </div>
-                                ` : ''}
+                                ` : '<div style="color: #666; font-style: italic;">No subjects</div>'}
                                 ${period.details.topOrganizations.length > 0 ? `
                                 <div>
                                     <strong>Organizations:</strong><br>
                                     ${period.details.topOrganizations.map(org => `• ${org}`).join('<br>')}
                                 </div>
-                                ` : ''}
+                                ` : '<div style="color: #666; font-style: italic;">No organizations</div>'}
                             </div>
                         </div>
                     </div>
@@ -2548,133 +2572,45 @@ function generateBiWeeklyHTML(biWeeklyData, year, month) {
         `;
     });
     
-    // Comparison section
+    html += `</div>`; // Close bi-weekly-periods
+    
+    // Comparison section (only if we have both periods)
     if (biWeeklyData.length === 2) {
         const comparison = compareBiWeeklyPeriods(biWeeklyData[0], biWeeklyData[1]);
         html += generateComparisonHTML(comparison);
     }
     
-    html += `</div></div>`;
+    html += `</div>`; // Close monthly-report
     
+    console.log('✅ Bi-weekly HTML generated successfully');
     return html;
 }
 
-function calculateOverallBiWeeklyStats(biWeeklyData) {
-    const overall = {
-        totalHours: 0,
-        totalEarnings: 0,
-        totalSessions: 0,
-        totalMarks: 0
-    };
+// Debug function - run this in browser console to test bi-weekly
+function testBiWeekly() {
+    console.log('🧪 Testing bi-weekly breakdown...');
     
-    biWeeklyData.forEach(period => {
-        overall.totalHours += parseFloat(period.stats.totalHours);
-        overall.totalEarnings += parseFloat(period.stats.totalEarnings);
-        overall.totalSessions += period.stats.totalSessions;
-        overall.totalMarks += period.stats.totalMarks;
+    // Check if required functions exist
+    console.log('Functions check:', {
+        showBiWeeklyBreakdown: typeof showBiWeeklyBreakdown,
+        generateBiWeeklyBreakdown: typeof generateBiWeeklyBreakdown,
+        filterDataByMonth: typeof filterDataByMonth,
+        getBiWeeklyPeriods: typeof getBiWeeklyPeriods
     });
     
-    return {
-        totalHours: overall.totalHours.toFixed(1),
-        totalEarnings: overall.totalEarnings.toFixed(2),
-        totalSessions: overall.totalSessions,
-        totalMarks: overall.totalMarks
-    };
-}
-
-function compareBiWeeklyPeriods(firstHalf, secondHalf) {
-    const firstHours = parseFloat(firstHalf.stats.totalHours);
-    const secondHours = parseFloat(secondHalf.stats.totalHours);
-    const firstEarnings = parseFloat(firstHalf.stats.totalEarnings);
-    const secondEarnings = parseFloat(secondHalf.stats.totalEarnings);
+    // Check current data
+    console.log('Current app data:', {
+        hours: appData.hours?.length || 0,
+        marks: appData.marks?.length || 0,
+        attendance: appData.attendance?.length || 0,
+        payments: appData.payments?.length || 0
+    });
     
-    return {
-        hours: {
-            first: firstHours,
-            second: secondHours,
-            difference: secondHours - firstHours,
-            trend: secondHours > firstHours ? 'up' : secondHours < firstHours ? 'down' : 'same'
-        },
-        earnings: {
-            first: firstEarnings,
-            second: secondEarnings,
-            difference: secondEarnings - firstEarnings,
-            trend: secondEarnings > firstEarnings ? 'up' : secondEarnings < firstEarnings ? 'down' : 'same'
-        },
-        sessions: {
-            first: firstHalf.stats.totalSessions,
-            second: secondHalf.stats.totalSessions,
-            difference: secondHalf.stats.totalSessions - firstHalf.stats.totalSessions,
-            trend: secondHalf.stats.totalSessions > firstHalf.stats.totalSessions ? 'up' : secondHalf.stats.totalSessions < firstHalf.stats.totalSessions ? 'down' : 'same'
-        },
-        marks: {
-            first: firstHalf.stats.totalMarks,
-            second: secondHalf.stats.totalMarks,
-            difference: secondHalf.stats.totalMarks - firstHalf.stats.totalMarks,
-            trend: secondHalf.stats.totalMarks > firstHalf.stats.totalMarks ? 'up' : secondHalf.stats.totalMarks < firstHalf.stats.totalMarks ? 'down' : 'same'
-        }
-    };
-}
-
-function generateComparisonHTML(comparison) {
-    const getTrendIcon = (trend) => {
-        if (trend === 'up') return '📈';
-        if (trend === 'down') return '📉';
-        return '➡️';
-    };
-    
-    const getTrendColor = (trend) => {
-        if (trend === 'up') return '#28a745';
-        if (trend === 'down') return '#dc3545';
-        return '#6c757d';
-    };
-    
-    return `
-        <div class="comparison-section" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px;">
-            <h4 style="margin-top: 0; color: #3a5a5a;">📊 Period Comparison</h4>
-            <div class="comparison-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                <div class="comparison-item" style="background: white; padding: 15px; border-radius: 6px;">
-                    <div style="font-weight: bold; margin-bottom: 8px;">Hours</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span>${comparison.hours.first}h → ${comparison.hours.second}h</span>
-                        <span style="color: ${getTrendColor(comparison.hours.trend)}; font-weight: bold;">
-                            ${getTrendIcon(comparison.hours.trend)} ${comparison.hours.difference > 0 ? '+' : ''}${comparison.hours.difference.toFixed(1)}h
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="comparison-item" style="background: white; padding: 15px; border-radius: 6px;">
-                    <div style="font-weight: bold; margin-bottom: 8px;">Earnings</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span>$${comparison.earnings.first} → $${comparison.earnings.second}</span>
-                        <span style="color: ${getTrendColor(comparison.earnings.trend)}; font-weight: bold;">
-                            ${getTrendIcon(comparison.earnings.trend)} $${comparison.earnings.difference > 0 ? '+' : ''}${comparison.earnings.difference.toFixed(2)}
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="comparison-item" style="background: white; padding: 15px; border-radius: 6px;">
-                    <div style="font-weight: bold; margin-bottom: 8px;">Sessions</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span>${comparison.sessions.first} → ${comparison.sessions.second}</span>
-                        <span style="color: ${getTrendColor(comparison.sessions.trend)}; font-weight: bold;">
-                            ${getTrendIcon(comparison.sessions.trend)} ${comparison.sessions.difference > 0 ? '+' : ''}${comparison.sessions.difference}
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="comparison-item" style="background: white; padding: 15px; border-radius: 6px;">
-                    <div style="font-weight: bold; margin-bottom: 8px;">Assessments</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span>${comparison.marks.first} → ${comparison.marks.second}</span>
-                        <span style="color: ${getTrendColor(comparison.marks.trend)}; font-weight: bold;">
-                            ${getTrendIcon(comparison.marks.trend)} ${comparison.marks.difference > 0 ? '+' : ''}${comparison.marks.difference}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+    // Test the bi-weekly function directly
+    if (typeof showBiWeeklyBreakdown === 'function') {
+        console.log('🚀 Running bi-weekly breakdown...');
+        showBiWeeklyBreakdown();
+    }
 }
 
 function formatDate(date) {
