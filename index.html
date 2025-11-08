@@ -709,33 +709,20 @@
         console.log('🚀 Starting app...');
         
         // Auth will auto-initialize
-        // Cloud sync will auto-initialize after auth
-        // Main app will initialize after auth check
-        
-        setTimeout(() => {
-            if (window.Auth && window.Auth.isAuthenticated()) {
-                console.log('✅ User authenticated');
-                
-                // Initialize cloud sync if not already done
-                if (window.cloudSync && typeof window.cloudSync.init === 'function') {
-                    window.cloudSync.init();
-                }
-                
-                // Initialize main app
-                if (typeof init === 'function') {
-                    init();
-                }
-            } else {
-                console.log('❌ User not authenticated');
-                const authBtn = document.getElementById('authButton');
-                if (authBtn) {
-                    authBtn.textContent = '🔐 Login Required';
-                    authBtn.style.background = '#ffc107';
-                    authBtn.style.color = '#212529';
-                }
+          setTimeout(() => {
+        console.log('🚀 Starting app...');
+        if (window.Auth && window.Auth.isAuthenticated()) {
+            console.log('✅ User authenticated');
+            // Only initialize the main app, let app.js handle cloud sync
+            if (window.init) {
+                window.init();
             }
-        }, 100);
-
+        } else {
+            console.log('❌ User not authenticated');
+            window.location.href = 'auth.html';
+        }
+    }, 100);
+              
         // Close user menu when clicking outside
         document.addEventListener('click', function(event) {
             const userMenu = document.getElementById('userMenu');
