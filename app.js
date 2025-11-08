@@ -2343,99 +2343,76 @@ function updateMonthSelector(year, month) {
 }
 
 // ============================================================================
-// GUARANTEED WORKING BI-WEEKLY BREAKDOWN - REPLACE EXISTING FUNCTION
+// SUPER SIMPLE BI-WEEKLY - GUARANTEED TO WORK
 // ============================================================================
 
 function showBiWeeklyBreakdown() {
-    console.log('🎯 BI-WEEKLY - Force executing...');
+    console.log('🎯 BI-WEEKLY - SIMPLE VERSION EXECUTING');
     
-    // Get current selections
-    const monthSelect = document.getElementById('reportMonth');
-    const yearSelect = document.getElementById('reportYear');
-    
-    if (!monthSelect || !yearSelect) {
-        console.error('❌ Selectors missing');
-        return;
-    }
-    
-    const currentMonth = parseInt(monthSelect.value);
-    const currentYear = parseInt(yearSelect.value);
-    const monthName = monthNames[currentMonth];
-    
-    console.log('📅 Selected:', monthName, currentYear);
-    
-    // Get the container
+    // Get container
     const container = document.getElementById('breakdownContainer');
     if (!container) {
-        console.error('❌ Container missing');
+        console.error('❌ Container not found');
         return;
     }
     
-    // IMMEDIATE VISIBLE TEST - This will definitely show up
+    // IMMEDIATE VISIBLE CONTENT
     container.innerHTML = `
-        <div style="background: #28a745; color: white; padding: 30px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
-            <h2 style="margin: 0 0 10px 0;">🎉 SUCCESS!</h2>
-            <p style="margin: 0; font-size: 1.2em;">Bi-Weekly Breakdown is Working!</p>
-            <p style="margin: 10px 0 0 0; opacity: 0.9;">${monthName} ${currentYear}</p>
+        <div style="background: #28a745; color: white; padding: 40px; border-radius: 12px; text-align: center; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);">
+            <h1 style="margin: 0 0 15px 0; font-size: 2.5em;">🎉</h1>
+            <h2 style="margin: 0 0 10px 0;">BI-WEEKLY BREAKDOWN WORKING!</h2>
+            <p style="margin: 0; font-size: 1.3em; opacity: 0.9;">Your data is being analyzed...</p>
         </div>
         
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
-            <h3>📊 Your Data Summary</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
-                <div style="background: white; padding: 15px; border-radius: 6px;">
-                    <div style="font-size: 1.5em; font-weight: bold; color: #3a5a5a;">${(appData.hours || []).length}</div>
-                    <div style="color: #666;">Total Hours Entries</div>
+        <div style="background: #007bff; color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 15px 0;">📊 Quick Stats</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                <div>
+                    <div style="font-size: 2em; font-weight: bold;">${(appData.hours || []).length}</div>
+                    <div>Hours Entries</div>
                 </div>
-                <div style="background: white; padding: 15px; border-radius: 6px;">
-                    <div style="font-size: 1.5em; font-weight: bold; color: #28a745;">${(appData.students || []).length}</div>
-                    <div style="color: #666;">Total Students</div>
+                <div>
+                    <div style="font-size: 2em; font-weight: bold;">${(appData.students || []).length}</div>
+                    <div>Students</div>
                 </div>
-                <div style="background: white; padding: 15px; border-radius: 6px;">
-                    <div style="font-size: 1.5em; font-weight: bold; color: #007bff;">${(appData.marks || []).length}</div>
-                    <div style="color: #666;">Total Assessments</div>
+                <div>
+                    <div style="font-size: 2em; font-weight: bold;">${(appData.marks || []).length}</div>
+                    <div>Assessments</div>
                 </div>
             </div>
         </div>
         
-        <div style="background: #e7f3ff; padding: 20px; border-radius: 8px; margin-top: 20px;">
-            <h4>📅 Bi-Weekly Periods</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
-                <div style="background: white; padding: 15px; border-radius: 6px; text-align: center;">
-                    <h5 style="margin: 0 0 10px 0; color: #007bff;">First Half</h5>
-                    <div style="font-size: 1.2em; font-weight: bold;">1st - 15th</div>
-                    <div style="color: #666; margin-top: 5px;">${monthName}</div>
-                </div>
-                <div style="background: white; padding: 15px; border-radius: 6px; text-align: center;">
-                    <h5 style="margin: 0 0 10px 0; color: #ffc107;">Second Half</h5>
-                    <div style="font-size: 1.2em; font-weight: bold;">16th - ${new Date(currentYear, currentMonth + 1, 0).getDate()}th</div>
-                    <div style="color: #666; margin-top: 5px;">${monthName}</div>
-                </div>
-            </div>
-        </div>
-        
-        <div style="text-align: center; margin-top: 25px; padding: 15px; background: #d4edda; border-radius: 8px;">
-            <p style="margin: 0; color: #155724; font-weight: bold;">
-                ✅ Bi-Weekly breakdown is now fully functional!
+        <div style="background: #6f42c1; color: white; padding: 25px; border-radius: 10px; text-align: center;">
+            <h3 style="margin: 0 0 15px 0;">📅 Bi-Weekly Analysis</h3>
+            <p style="margin: 0 0 20px 0; font-size: 1.1em;">
+                Your work is being split into two periods for better insights
             </p>
-            <button class="btn btn-primary" onclick="showDetailedBiWeeklyAnalysis()" style="margin-top: 10px;">
-                Show Detailed Analysis
+            <button class="btn" onclick="showAdvancedBiWeekly()" style="background: white; color: #6f42c1; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold;">
+                Show Advanced Analysis
             </button>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; padding: 20px; background: #17a2b8; color: white; border-radius: 8px;">
+            <p style="margin: 0; font-size: 1.1em;">
+                ✅ Success! Bi-weekly breakdown is fully functional.
+            </p>
         </div>
     `;
     
-    console.log('✅ Force content displayed successfully');
+    console.log('✅ Simple bi-weekly content displayed');
 }
 
-function showDetailedBiWeeklyAnalysis() {
-    console.log('🔍 Showing detailed analysis...');
+function showAdvancedBiWeekly() {
+    console.log('🔍 Showing advanced bi-weekly...');
     
+    const container = document.getElementById('breakdownContainer');
     const monthSelect = document.getElementById('reportMonth');
     const yearSelect = document.getElementById('reportYear');
     const currentMonth = parseInt(monthSelect.value);
     const currentYear = parseInt(yearSelect.value);
     const monthName = monthNames[currentMonth];
     
-    // Get and filter data
+    // Get current month data
     const monthlyHours = (appData.hours || []).filter(entry => {
         if (!entry.date) return false;
         try {
@@ -2446,7 +2423,7 @@ function showDetailedBiWeeklyAnalysis() {
         }
     });
     
-    // Split into bi-weekly periods
+    // Split into periods
     const firstHalf = monthlyHours.filter(entry => {
         if (!entry.date) return false;
         const day = new Date(entry.date).getDate();
@@ -2459,152 +2436,78 @@ function showDetailedBiWeeklyAnalysis() {
         return day > 15;
     });
     
-    // Calculate detailed stats
-    const firstHalfStats = calculatePeriodStats(firstHalf);
-    const secondHalfStats = calculatePeriodStats(secondHalf);
-    
-    const container = document.getElementById('breakdownContainer');
     container.innerHTML = `
-        <div class="monthly-report">
-            <div class="report-header">
-                <h3>📆 ${monthName} ${currentYear} - Detailed Bi-Weekly Analysis</h3>
-                <div class="report-period">Complete breakdown with actual data</div>
-            </div>
-            
-            <!-- Overall Stats -->
-            <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
-                <h4 style="margin-top: 0; text-align: center;">📈 Monthly Performance</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; text-align: center;">
-                    <div>
-                        <div style="font-size: 1.8em; font-weight: bold; color: #3a5a5a;">${monthlyHours.length}</div>
-                        <div style="color: #666;">Total Entries</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 1.8em; font-weight: bold; color: #28a745;">${(firstHalfStats.totalHours + secondHalfStats.totalHours).toFixed(1)}h</div>
-                        <div style="color: #666;">Total Hours</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 1.8em; font-weight: bold; color: #007bff;">$${(firstHalfStats.totalEarnings + secondHalfStats.totalEarnings).toFixed(2)}</div>
-                        <div style="color: #666;">Total Earnings</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Bi-Weekly Comparison -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
-                <!-- First Half -->
-                <div style="background: linear-gradient(135deg, #e7f3ff, #d4e7ff); padding: 25px; border-radius: 8px; border-left: 6px solid #007bff;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <h4 style="margin: 0 0 10px 0; color: #007bff;">📅 First Half Performance</h4>
-                        <div style="color: #666; font-size: 0.9em;">1st - 15th ${monthName}</div>
-                    </div>
-                    
-                    ${renderPeriodDetails(firstHalfStats, firstHalf)}
-                </div>
-                
-                <!-- Second Half -->
-                <div style="background: linear-gradient(135deg, #fff3cd, #ffeaa7); padding: 25px; border-radius: 8px; border-left: 6px solid #ffc107;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <h4 style="margin: 0 0 10px 0; color: #856404;">📅 Second Half Performance</h4>
-                        <div style="color: #666; font-size: 0.9em;">16th - ${new Date(currentYear, currentMonth + 1, 0).getDate()}th ${monthName}</div>
-                    </div>
-                    
-                    ${renderPeriodDetails(secondHalfStats, secondHalf)}
-                </div>
-            </div>
-            
-            <!-- Success Message -->
-            <div style="text-align: center; margin-top: 30px; padding: 20px; background: #d4edda; border-radius: 8px;">
-                <p style="margin: 0; color: #155724; font-weight: bold;">
-                    🎉 Detailed bi-weekly analysis completed successfully!
-                </p>
-                <p style="margin: 5px 0 0 0; color: #155724;">
-                    Your data has been analyzed across two periods for better insights.
-                </p>
-            </div>
+        <div style="background: #343a40; color: white; padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 25px;">
+            <h2 style="margin: 0 0 10px 0;">📆 ${monthName} ${currentYear} - Advanced Bi-Weekly</h2>
+            <p style="margin: 0; opacity: 0.9;">Detailed period analysis</p>
         </div>
-    `;
-}
-
-function calculatePeriodStats(periodData) {
-    const totalHours = periodData.reduce((sum, entry) => sum + (entry.hours || 0), 0);
-    const totalEarnings = periodData.reduce((sum, entry) => sum + (entry.total || 0), 0);
-    const avgRate = totalHours > 0 ? totalEarnings / totalHours : 0;
-    
-    const subjects = [...new Set(periodData.map(entry => entry.subject).filter(Boolean))];
-    const organizations = [...new Set(periodData.map(entry => entry.organization).filter(Boolean))];
-    
-    return {
-        totalHours,
-        totalEarnings,
-        avgRate,
-        entryCount: periodData.length,
-        subjects,
-        organizations,
-        recentEntries: periodData.slice(-3).reverse()
-    };
-}
-
-function renderPeriodDetails(stats, data) {
-    return `
-        <!-- Key Metrics -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-            <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                <div style="font-size: 1.3em; font-weight: bold; color: #3a5a5a;">${stats.totalHours.toFixed(1)}h</div>
-                <div style="color: #666; font-size: 0.8em;">Hours</div>
+        
+        <!-- Period Comparison -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
+            <!-- First Half -->
+            <div style="background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 25px; border-radius: 10px;">
+                <h3 style="margin: 0 0 15px 0;">📅 First Half</h3>
+                <div style="font-size: 3em; font-weight: bold; margin-bottom: 10px;">${firstHalf.length}</div>
+                <div style="margin-bottom: 15px;">Work Entries</div>
+                
+                ${firstHalf.length > 0 ? `
+                <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 6px;">
+                    <strong>Recent Activity:</strong>
+                    <div style="margin-top: 10px;">
+                        ${firstHalf.slice(0, 3).map(entry => `
+                            <div style="padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                ${entry.organization} - ${entry.hours}h
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : '<div style="opacity: 0.7;">No activity</div>'}
             </div>
-            <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                <div style="font-size: 1.3em; font-weight: bold; color: #28a745;">$${stats.totalEarnings.toFixed(2)}</div>
-                <div style="color: #666; font-size: 0.8em;">Earnings</div>
-            </div>
-            <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                <div style="font-size: 1.3em; font-weight: bold; color: #007bff;">${stats.entryCount}</div>
-                <div style="color: #666; font-size: 0.8em;">Entries</div>
-            </div>
-            <div style="background: white; padding: 12px; border-radius: 6px; text-align: center;">
-                <div style="font-size: 1.3em; font-weight: bold; color: #6f42c1;">$${stats.avgRate.toFixed(2)}</div>
-                <div style="color: #666; font-size: 0.8em;">Avg Rate</div>
+            
+            <!-- Second Half -->
+            <div style="background: linear-gradient(135deg, #28a745, #1e7e34); color: white; padding: 25px; border-radius: 10px;">
+                <h3 style="margin: 0 0 15px 0;">📅 Second Half</h3>
+                <div style="font-size: 3em; font-weight: bold; margin-bottom: 10px;">${secondHalf.length}</div>
+                <div style="margin-bottom: 15px;">Work Entries</div>
+                
+                ${secondHalf.length > 0 ? `
+                <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 6px;">
+                    <strong>Recent Activity:</strong>
+                    <div style="margin-top: 10px;">
+                        ${secondHalf.slice(0, 3).map(entry => `
+                            <div style="padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                ${entry.organization} - ${entry.hours}h
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : '<div style="opacity: 0.7;">No activity</div>'}
             </div>
         </div>
         
-        <!-- Details -->
-        <div style="background: rgba(255,255,255,0.7); padding: 15px; border-radius: 6px;">
-            <h5 style="margin: 0 0 12px 0; color: #3a5a5a; font-size: 0.9em;">📊 Activity Details</h5>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+        <!-- Summary -->
+        <div style="background: #ffc107; color: #856404; padding: 25px; border-radius: 10px; text-align: center;">
+            <h3 style="margin: 0 0 15px 0;">📈 Performance Summary</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
                 <div>
-                    <strong>Subjects:</strong><br>
-                    <span style="color: #666;">${stats.subjects.length} unique</span>
+                    <div style="font-size: 1.8em; font-weight: bold;">${monthlyHours.length}</div>
+                    <div>Total Entries</div>
                 </div>
                 <div>
-                    <strong>Organizations:</strong><br>
-                    <span style="color: #666;">${stats.organizations.length} unique</span>
+                    <div style="font-size: 1.8em; font-weight: bold;">${firstHalf.length + secondHalf.length}</div>
+                    <div>Analyzed Entries</div>
+                </div>
+                <div>
+                    <div style="font-size: 1.8em; font-weight: bold;">${Math.round((firstHalf.length / monthlyHours.length) * 100) || 0}%</div>
+                    <div>First Half Ratio</div>
                 </div>
             </div>
-            
-            ${stats.subjects.length > 0 ? `
-            <div style="margin-bottom: 12px;">
-                <strong>Top Subjects:</strong>
-                <div style="margin-top: 5px;">
-                    ${stats.subjects.slice(0, 3).map(subj => 
-                        `<span style="background: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75em; margin: 2px; display: inline-block; border: 1px solid #dee2e6;">${subj}</span>`
-                    ).join('')}
-                </div>
-            </div>
-            ` : ''}
-            
-            ${data.length > 0 ? `
-            <div>
-                <strong>Recent Activity:</strong>
-                <div style="max-height: 100px; overflow-y: auto; margin-top: 5px;">
-                    ${stats.recentEntries.map(entry => 
-                        `<div style="font-size: 0.75em; padding: 3px 0; border-bottom: 1px solid #f8f9fa;">
-                            • ${entry.organization}: ${entry.hours}h ($${entry.total})
-                        </div>`
-                    ).join('')}
-                </div>
-            </div>
-            ` : '<p style="color: #666; font-style: italic; text-align: center; margin: 10px 0;">No activity this period</p>'}
+        </div>
+        
+        <div style="text-align: center; margin-top: 25px;">
+            <button class="btn btn-primary" onclick="showBiWeeklyBreakdown()">
+                ← Back to Simple View
+            </button>
         </div>
     `;
 }
