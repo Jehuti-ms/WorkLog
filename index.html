@@ -433,75 +433,75 @@
             </div>
 
          <!-- Attendance Tab -->
-            <div id="attendance" class="tab-content">
-                <div class="section-header">
-                    <h2>✅ Attendance Tracking</h2>
-                    <div class="student-stats">
-                        <span class="stat-badge" id="attendanceCount">0</span>
-                        <span class="stat-divider">|</span>
-                        <span class="stat-text">Last Session: <span id="lastSessionDate">Never</span></span>
-                    </div>
+        <div id="attendance" class="tab-content">
+            <div class="section-header">
+                <h2>✅ Attendance Tracking</h2>
+                <div class="student-stats">
+                    <span class="stat-badge" id="attendanceCount">0</span>
+                    <span class="stat-divider">|</span>
+                    <span class="stat-text">Last Session: <span id="lastSessionDate">Never</span></span>
                 </div>
-            
-                <div class="form-grid">
-                    <div class="section-card">
-                        <h3>📅 Quick Attendance</h3>
-                        
-                        <div class="form-group">
-                            <label for="attendanceDate">Date *</label>
-                            <input type="date" id="attendanceDate" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="attendanceSubject">Subject *</label>
-                            <input type="text" id="attendanceSubject" placeholder="e.g., Mathematics" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="attendanceTopic">Topic</label>
-                            <input type="text" id="attendanceTopic" placeholder="Specific topic covered">
-                        </div>
-                        
-                        <div class="attendance-container">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                                <h4 style="margin: 0;">Select Present Students:</h4>
-                                <div class="attendance-quick-actions">
-                                    <button type="button" class="btn btn-sm select-all-btn">
-                                        ✅ Select All
-                                    </button>
-                                    <button type="button" class="btn btn-sm deselect-all-btn">
-                                        ❌ Deselect All
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div id="attendanceList">
-                                <p style="color: #666; text-align: center; padding: 20px;">
-                                    No students registered. Add students first.
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-primary save-attendance-btn">
-                                💾 Save Attendance
-                            </button>
-                            <button type="button" class="btn btn-secondary clear-attendance-btn">
-                                🗑️ Clear Form
-                            </button>
-                        </div>
+            </div>
+        
+            <div class="form-grid">
+                <div class="section-card">
+                    <h3>📅 Quick Attendance</h3>
+                    
+                    <div class="form-group">
+                        <label for="attendanceDate">Date *</label>
+                        <input type="date" id="attendanceDate" required>
                     </div>
-            
-                    <div class="section-card">
-                        <h3>📋 Recent Attendance</h3>
-                        <div class="attendance-history" id="attendanceContainer">
-                            <p style="color: #666; text-align: center; padding: 40px;">
-                                No attendance records yet. Track your first session!
+                    
+                    <div class="form-group">
+                        <label for="attendanceSubject">Subject *</label>
+                        <input type="text" id="attendanceSubject" placeholder="e.g., Mathematics" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="attendanceTopic">Topic</label>
+                        <input type="text" id="attendanceTopic" placeholder="Specific topic covered">
+                    </div>
+                    
+                    <div class="attendance-container">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="margin: 0;">Select Present Students:</h4>
+                            <div class="attendance-quick-actions">
+                                <button type="button" class="btn btn-sm select-all-btn">
+                                    ✅ Select All
+                                </button>
+                                <button type="button" class="btn btn-sm deselect-all-btn">
+                                    ❌ Deselect All
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="attendanceList">
+                            <p style="color: #666; text-align: center; padding: 20px;">
+                                No students registered. Add students first.
                             </p>
                         </div>
                     </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary save-attendance-btn">
+                            💾 Save Attendance
+                        </button>
+                        <button type="button" class="btn btn-secondary clear-attendance-btn">
+                            🗑️ Clear Form
+                        </button>
+                    </div>
+                </div>
+        
+                <div class="section-card">
+                    <h3>📋 Recent Attendance</h3>
+                    <div class="attendance-history" id="attendanceContainer">
+                        <p style="color: #666; text-align: center; padding: 40px;">
+                            No attendance records yet. Track your first session!
+                        </p>
+                    </div>
                 </div>
             </div>
+        </div>
             
             <!-- Payments Tab -->
             <div id="payments" class="tab-content">
