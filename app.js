@@ -38,11 +38,15 @@ function init() {
     loadAllData();
     
     // Initialize cloud sync ONLY if not already initialized
-    if (window.cloudSync && typeof window.cloudSync.init === 'function' && !window.cloudSync.initialized) {
-        console.log('🔧 Initializing cloud sync...');
-        window.cloudSync.init();
-    } else if (window.cloudSync && window.cloudSync.initialized) {
-        console.log('🔧 Cloud sync already initialized');
+    if (window.cloudSync && typeof window.cloudSync.init === 'function') {
+        if (!window.cloudSync.initialized) {
+            console.log('🔧 Initializing cloud sync...');
+            window.cloudSync.init();
+        } else {
+            console.log('🔧 Cloud sync already initialized - skipping');
+        }
+    } else {
+        console.log('⚠️ Cloud sync not available');
     }
     
     // Setup tabs
