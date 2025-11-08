@@ -432,7 +432,7 @@
                 </div>
             </div>
 
-          <!-- Attendance Tab -->
+         <!-- Attendance Tab -->
             <div id="attendance" class="tab-content">
                 <div class="section-header">
                     <h2>✅ Attendance Tracking</h2>
@@ -466,10 +466,10 @@
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                                 <h4 style="margin: 0;">Select Present Students:</h4>
                                 <div class="attendance-quick-actions">
-                                    <button type="button" class="select-all-btn" onclick="selectAllStudents()">
+                                    <button type="button" class="btn btn-sm select-all-btn">
                                         ✅ Select All
                                     </button>
-                                    <button type="button" class="deselect-all-btn" onclick="deselectAllStudents()">
+                                    <button type="button" class="btn btn-sm deselect-all-btn">
                                         ❌ Deselect All
                                     </button>
                                 </div>
@@ -483,10 +483,10 @@
                         </div>
                         
                         <div class="form-actions">
-                            <button type="button" class="btn btn-primary" onclick="saveAttendance()">
+                            <button type="button" class="btn btn-primary save-attendance-btn">
                                 💾 Save Attendance
                             </button>
-                            <button type="button" class="btn btn-secondary" onclick="clearAttendanceForm()">
+                            <button type="button" class="btn btn-secondary clear-attendance-btn">
                                 🗑️ Clear Form
                             </button>
                         </div>
@@ -701,19 +701,19 @@
         console.log('🚀 Starting app...');
         
         // Auth will auto-initialize
-          setTimeout(() => {
-        console.log('🚀 Starting app...');
-        if (window.Auth && window.Auth.isAuthenticated()) {
-            console.log('✅ User authenticated');
-            // Only initialize the main app, let app.js handle cloud sync
-            if (window.init) {
-                window.init();
+        setTimeout(() => {
+            console.log('🚀 Starting app...');
+            if (window.Auth && window.Auth.isAuthenticated()) {
+                console.log('✅ User authenticated');
+                // Only initialize the main app, let app.js handle cloud sync
+                if (window.init) {
+                    window.init();
+                }
+            } else {
+                console.log('❌ User not authenticated');
+                window.location.href = 'auth.html';
             }
-        } else {
-            console.log('❌ User not authenticated');
-            window.location.href = 'auth.html';
-        }
-    }, 100);
+        }, 100);
               
         // Close user menu when clicking outside
         document.addEventListener('click', function(event) {
@@ -726,29 +726,94 @@
                 userMenu.style.display = 'none';
             }
         });
+
+        // Comprehensive Event Delegation for ALL buttons
+        document.addEventListener('click', function(e) {
+            const button = e.target;
+            
+            // Attendance buttons
+            if (button.classList.contains('edit-btn')) {
+                console.log('Edit button clicked via delegation');
+                editAttendance(button);
+            }
+            
+            if (button.classList.contains('update-btn')) {
+                console.log('Update button clicked via delegation');
+                const row = button.closest('tr');
+                const originalValues = JSON.parse(row.dataset.originalValues || '[]');
+                updateAttendance(button, originalValues);
+            }
+            
+            if (button.classList.contains('cancel-btn')) {
+                console.log('Cancel button clicked via delegation');
+                const row = button.closest('tr');
+                const originalValues = JSON.parse(row.dataset.originalValues || '[]');
+                cancelEdit(button, originalValues);
+            }
+            
+            // Quick action buttons
+            if (button.classList.contains('select-all-btn')) {
+                selectAllStudents();
+            }
+            
+            if (button.classList.contains('deselect-all-btn')) {
+                deselectAllStudents();
+            }
+            
+            // Form action buttons
+            if (button.classList.contains('save-attendance-btn')) {
+                saveAttendance();
+            }
+            
+            if (button.classList.contains('clear-attendance-btn')) {
+                clearAttendanceForm();
+            }
+        });
+
+        // Also handle form submissions properly
+        document.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (e.target.id === 'studentForm') {
+                addStudent();
+            }
+            
+            if (e.target.id === 'marksForm') {
+                addMark();
+            }
+        });
     });
 
-    // Event Delegation for Attendance Buttons - FIXED VERSION
-    document.addEventListener('click', function(e) {
-        const button = e.target;
-        
-        if (button.classList.contains('edit-btn')) {
-            editAttendance(button);
-        }
-        
-        if (button.classList.contains('update-btn')) {
-            const row = button.closest('tr');
-            const originalValues = JSON.parse(row.dataset.originalValues || '[]');
-            updateAttendance(button, originalValues);
-        }
-        
-        if (button.classList.contains('cancel-btn')) {
-            const row = button.closest('tr');
-            const originalValues = JSON.parse(row.dataset.originalValues || '[]');
-            cancelEdit(button, originalValues);
-        }
-    });
+    // Make sure these functions are available globally
+    function selectAllStudents() {
+        console.log('Select All clicked');
+        // Your selectAllStudents implementation
+        const checkboxes = document.querySelectorAll('.student-attendance-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    }
+
+    function deselectAllStudents() {
+        console.log('Deselect All clicked');
+        // Your deselectAllStudents implementation
+        const checkboxes = document.querySelectorAll('.student-attendance-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
+
+    function saveAttendance() {
+        console.log('Save Attendance clicked');
+        // Your saveAttendance implementation
+    }
+
+    function clearAttendanceForm() {
+        console.log('Clear Attendance Form clicked');
+        // Your clearAttendanceForm implementation
+    }
 </script>
+    
     <!-- Sync Stats Modal -->
     <div id="syncStatsModal" class="sync-stats-modal">
         <div class="sync-stats-content">
