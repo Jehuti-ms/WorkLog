@@ -1080,26 +1080,41 @@ function editAttendance(index) {
         }
     });
     
-    // Update the save button to handle editing - CRITICAL FIX
+    // FIXED: Update the save button properly
     const saveButton = document.querySelector('#attendance .btn-primary');
     if (saveButton) {
-        saveButton.innerHTML = '💾 Update Attendance';
-        saveButton.type = 'button'; // ← THIS IS THE KEY FIX
-        saveButton.onclick = function(e) { 
+        // Remove any existing event listeners
+        saveButton.replaceWith(saveButton.cloneNode(true));
+        
+        // Get the fresh button reference
+        const freshSaveButton = document.querySelector('#attendance .btn-primary');
+        
+        // Update the button
+        freshSaveButton.innerHTML = '💾 Update Attendance';
+        freshSaveButton.onclick = function(e) {
+            console.log('🔄 Update button clicked for index:', index);
             e.preventDefault();
-            updateAttendance(index); 
+            e.stopPropagation();
+            updateAttendance(index);
+            return false;
         };
+        
+        // Add a data attribute to track edit mode
+        freshSaveButton.setAttribute('data-editing', 'true');
+        freshSaveButton.setAttribute('data-edit-index', index);
     }
     
     // Add cancel edit button if not exists
     if (!document.querySelector('.cancel-attendance-edit')) {
         const cancelButton = document.createElement('button');
-        cancelButton.type = 'button'; // ← Make sure this is also type="button"
+        cancelButton.type = 'button';
         cancelButton.className = 'btn btn-warning cancel-attendance-edit';
         cancelButton.innerHTML = '❌ Cancel Edit';
         cancelButton.onclick = function(e) {
             e.preventDefault();
+            e.stopPropagation();
             cancelAttendanceEdit();
+            return false;
         };
         
         const formActions = document.querySelector('#attendance .form-actions');
@@ -1119,6 +1134,25 @@ function editAttendance(index) {
     
     console.log('✅ Attendance form ready for editing');
 }
+
+function debugButtonClick() {
+    const saveButton = document.querySelector('#attendance .btn-primary');
+    if (saveButton) {
+        // Add click listener to see what's happening
+        saveButton.addEventListener('click', function(e) {
+            console.log('🔍 Button click detected:', {
+                innerHTML: this.innerHTML,
+                onclick: this.onclick,
+                dataEditing: this.getAttribute('data-editing'),
+                dataIndex: this.getAttribute('data-edit-index'),
+                eventType: e.type
+            });
+        }, true); // Use capture phase to catch all clicks
+    }
+}
+
+// Call this after editAttendance to debug
+// debugButtonClick();
 
 function updateAttendance(index) {
     try {
