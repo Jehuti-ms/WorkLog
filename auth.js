@@ -1,21 +1,19 @@
-// auth.js - COMPLETE AUTH SYSTEM WITH PROFILE MODAL
+// ============================================================================
+// AUTH CONFIGURATION - SINGLE DEFINITION
+// ============================================================================
+
 const AUTH_CONFIG = {
     storageKey: 'worklog_auth_v2',
-    sessionTimeout: 7 * 24 * 60 * 60 * 1000 // 7 days
+    sessionTimeout: 7 * 24 * 60 * 60 * 1000, // 7 days
+    googleClientId: '919764968127-fi882r3rsgcnukm65pq14t1qdd4pr8ot.apps.googleusercontent.com',
+    googleScope: 'profile email'
 };
 
+// Global auth state
 let authState = {
     isAuthenticated: false,
     currentUser: null,
     users: []
-};
-
-// Add this to your AUTH_CONFIG section
-const AUTH_CONFIG = {
-    storageKey: 'worklog_auth_v2',
-    sessionTimeout: 7 * 24 * 60 * 60 * 1000, // 7 days
-    googleClientId: '919764968127-fi882r3rsgcnukm65pq14t1qdd4pr8ot.apps.googleusercontent.com', // You'll get this from Google Cloud Console
-    googleScope: 'profile email'
 };
 
 // Google OAuth state management
