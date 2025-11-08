@@ -134,18 +134,11 @@ function loadTabData(tabName) {
                 break;
             case 'attendance':
                 // Use the new attendance system
-                if (typeof initAttendance === 'function') {
-                    initAttendance();
-                } else if (window.Attendance && window.Attendance.refresh) {
+                if (window.Attendance && window.Attendance.refresh) {
                     window.Attendance.refresh();
                 } else {
-                    // Fallback: try to initialize attendance
-                    console.log('🔄 Initializing attendance on tab open...');
-                    setTimeout(() => {
-                        if (typeof initAttendance === 'function') {
-                            initAttendance();
-                        }
-                    }, 100);
+                    // Fallback to direct initialization
+                    initAttendance();
                 }
                 break;
             case 'payments':
