@@ -1,6 +1,6 @@
-// auth.js - FIXED AUTH SYSTEM
+// auth.js - COMPLETE AUTH SYSTEM WITH PROFILE MODAL
 const AUTH_CONFIG = {
-    storageKey: 'worklog_auth_v2', // Changed to avoid conflicts with old data
+    storageKey: 'worklog_auth_v2',
     sessionTimeout: 7 * 24 * 60 * 60 * 1000 // 7 days
 };
 
@@ -21,14 +21,12 @@ function initAuth() {
     
     if (window.location.pathname.includes('auth.html')) {
         setupAuthEventListeners();
-        // If already logged in, redirect to app
         if (authState.isAuthenticated) {
             console.log('Already logged in, redirecting to app...');
             setTimeout(() => window.location.href = 'index.html', 1000);
         }
     } else {
         setupMainAppAuthUI();
-        // If not logged in, redirect to auth page
         if (!authState.isAuthenticated) {
             console.log('Not logged in, redirecting to auth page...');
             setTimeout(() => window.location.href = 'auth.html', 1000);
@@ -78,14 +76,14 @@ function checkExistingSession() {
             return true;
         } else {
             console.log('❌ Session exists but user not found');
-            localStorage.removeItem('worklog_session'); // Clean up invalid session
+            localStorage.removeItem('worklog_session');
         }
     }
     return false;
 }
 
 // ============================================================================
-// AUTH OPERATIONS - FIXED VERSION
+// AUTH OPERATIONS
 // ============================================================================
 
 async function registerUser(name, email, password) {
@@ -96,7 +94,6 @@ async function registerUser(name, email, password) {
             throw new Error('Please fill in all fields');
         }
 
-        // Check if user already exists (case insensitive)
         const existingUser = authState.users.find(u => 
             u.email.toLowerCase() === email.toLowerCase()
         );
@@ -110,8 +107,9 @@ async function registerUser(name, email, password) {
             id: 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
             name: name.trim(),
             email: email.toLowerCase().trim(),
-            password: password, // Store plain text for demo (NOT for production!)
-            createdAt: new Date().toISOString()
+            password: password,
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString()
         };
 
         console.log('Creating new user:', user);
@@ -145,24 +143,23 @@ async function loginUser(email, password) {
             throw new Error('Please fill in all fields');
         }
 
-        // Find user (case insensitive)
         const user = authState.users.find(u => 
             u.email.toLowerCase() === email.toLowerCase()
         );
 
         console.log('Found user:', user);
-        console.log('All users:', authState.users);
 
         if (!user) {
             throw new Error('No account found with this email');
         }
 
-        // Check password (plain text comparison for demo)
         if (user.password !== password) {
-            console.log('Password mismatch. Expected:', user.password, 'Got:', password);
             throw new Error('Invalid password');
         }
 
+        // Update last login
+        user.lastLogin = new Date().toISOString();
+        
         authState.isAuthenticated = true;
         authState.currentUser = user;
 
@@ -191,6 +188,14 @@ function logoutUser() {
     window.location.href = 'auth.html';
 }
 
+function getCurrentUser() {
+    return authState.currentUser;
+}
+
+function getCurrentUserId() {
+    return authState.currentUser ? authState.currentUser.id : null;
+}
+
 // ============================================================================
 // UI MANAGEMENT
 // ============================================================================
@@ -198,7 +203,6 @@ function logoutUser() {
 function setupAuthEventListeners() {
     console.log('Setting up auth event listeners');
     
-    // Login form
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -216,7 +220,6 @@ function setupAuthEventListeners() {
         });
     }
 
-    // Register form
     const registerForm = document.getElementById('registerForm');
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
@@ -228,7 +231,6 @@ function setupAuthEventListeners() {
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('registerConfirmPassword').value;
             
-            // Check if passwords match
             if (password !== confirmPassword) {
                 showNotification('Passwords do not match', 'error');
                 return;
@@ -242,7 +244,6 @@ function setupAuthEventListeners() {
         });
     }
 
-    // Tab switching
     document.querySelectorAll('.auth-tab').forEach(tab => {
         tab.addEventListener('click', function() {
             const tabName = this.getAttribute('data-tab');
@@ -263,11 +264,8 @@ function setupMainAppAuthUI() {
     }
 
     console.log('Auth state:', authState);
-    console.log('Current user:', authState.currentUser);
 
     if (authState.isAuthenticated && authState.currentUser) {
-        // User is logged in
-        console.log('User is logged in, setting up user menu');
         authButton.innerHTML = `👤 ${authState.currentUser.name}`;
         authButton.onclick = function() {
             if (userMenu) {
@@ -282,15 +280,12 @@ function setupMainAppAuthUI() {
             }
         }
         
-        // Close menu when clicking outside
         document.addEventListener('click', function(event) {
             if (userMenu && !authButton.contains(event.target) && !userMenu.contains(event.target)) {
                 userMenu.style.display = 'none';
             }
         });
     } else {
-        // User is not logged in
-        console.log('User is not logged in, showing login button');
         authButton.innerHTML = '🔐 Login';
         authButton.onclick = function() {
             window.location.href = 'auth.html';
@@ -302,13 +297,11 @@ function setupMainAppAuthUI() {
 }
 
 function switchAuthTab(tabName) {
-    // Update tabs
     document.querySelectorAll('.auth-tab').forEach(tab => {
         tab.classList.remove('active');
     });
     document.querySelector(`.auth-tab[data-tab="${tabName}"]`).classList.add('active');
     
-    // Update content
     document.querySelectorAll('.auth-tab-content').forEach(content => {
         content.classList.remove('active');
         content.style.display = 'none';
@@ -318,194 +311,151 @@ function switchAuthTab(tabName) {
 }
 
 function showNotification(message, type = 'info') {
-    // Simple alert for now
     alert(`${type.toUpperCase()}: ${message}`);
 }
 
-// Add this to your auth.js in the UTILITY FUNCTIONS section
-function signInWithGoogle() {
-    showNotification('🔐 Google authentication would be implemented here', 'info');
-    // In real app, integrate with Google OAuth
-}
-
-function signInWithGitHub() {
-    showNotification('💻 GitHub authentication would be implemented here', 'info'); 
-    // In real app, integrate with GitHub OAuth
-}
-
-// Make them available globally
-window.signInWithGoogle = signInWithGoogle;
-window.signInWithGitHub = signInWithGitHub;
-
 // ============================================================================
-// PROFILE MODAL FUNCTION
+// PROFILE MODAL SYSTEM
 // ============================================================================
 
 function showProfileModal() {
-    if (!authState.isAuthenticated || !authState.currentUser) {
-        showNotification('Please sign in to view your profile', 'error');
+    console.log('👤 Opening profile modal...');
+    
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        alert('Please log in to view profile');
         return;
     }
-
-    const user = authState.currentUser;
     
-    // Create profile modal HTML
     const modalHTML = `
-        <div id="profileModal" class="modal" style="display: block;">
-            <div class="modal-content" style="max-width: 500px;">
-                <span class="close" onclick="closeProfileModal()">&times;</span>
-                <h2>👤 User Profile</h2>
-                
-                <div class="profile-info" style="margin: 20px 0;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="width: 80px; height: 80px; background: #667eea; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold;">
-                            ${user.name.charAt(0).toUpperCase()}
-                        </div>
-                    </div>
-                    
-                    <div class="profile-details">
+        <div class="modal-overlay" id="profileModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>👤 User Profile</h3>
+                    <button class="modal-close" onclick="closeProfileModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="profile-info">
                         <div class="profile-field">
                             <label>Name:</label>
-                            <span>${user.name}</span>
+                            <span>${currentUser.name || 'N/A'}</span>
                         </div>
                         <div class="profile-field">
                             <label>Email:</label>
-                            <span>${user.email}</span>
-                        </div>
-                        <div class="profile-field">
-                            <label>Account Created:</label>
-                            <span>${new Date(user.createdAt).toLocaleDateString()}</span>
+                            <span>${currentUser.email || 'N/A'}</span>
                         </div>
                         <div class="profile-field">
                             <label>User ID:</label>
-                            <span style="font-size: 12px; color: #666;">${user.id}</span>
+                            <span class="user-id">${currentUser.id}</span>
+                        </div>
+                        <div class="profile-field">
+                            <label>Account Created:</label>
+                            <span>${currentUser.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'Unknown'}</span>
+                        </div>
+                        <div class="profile-field">
+                            <label>Last Login:</label>
+                            <span>${currentUser.lastLogin ? new Date(currentUser.lastLogin).toLocaleDateString() : 'Unknown'}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-stats">
+                        <h4>📊 Data Summary</h4>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-number">${window.appData?.students?.length || 0}</span>
+                                <span class="stat-label">Students</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">${window.hoursEntries?.length || 0}</span>
+                                <span class="stat-label">Hours Logged</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">${window.appData?.marks?.length || 0}</span>
+                                <span class="stat-label">Assessments</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                
-                <div class="profile-actions" style="border-top: 1px solid #eee; padding-top: 20px;">
-                    <button class="btn btn-secondary" onclick="closeProfileModal()" style="margin-right: 10px;">
-                        Close
-                    </button>
-                    <button class="btn btn-primary" onclick="showNotification('Profile editing would be implemented here', 'info')">
-                        ✏️ Edit Profile
-                    </button>
-                    <button class="btn" onclick="exportUserData()" style="margin-left: 10px;">
-                        📤 Export My Data
-                    </button>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeProfileModal()">Close</button>
+                    <button class="btn btn-warning" onclick="showResetDataConfirm()">Reset Data</button>
+                    <button class="btn btn-danger" onclick="showLogoutConfirm()">Logout</button>
                 </div>
             </div>
         </div>
     `;
     
-    // Remove existing modal if any
-    const existingModal = document.getElementById('profileModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // Add modal to page
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // Add CSS for modal if not already present
-    addModalStyles();
+    document.addEventListener('keydown', handleProfileModalEscape);
 }
 
 function closeProfileModal() {
+    console.log('👤 Closing profile modal...');
+    
     const modal = document.getElementById('profileModal');
     if (modal) {
         modal.remove();
     }
+    
+    document.removeEventListener('keydown', handleProfileModalEscape);
 }
 
-function addModalStyles() {
-    // Check if styles already added
-    if (document.getElementById('profileModalStyles')) {
-        return;
+function handleProfileModalEscape(event) {
+    if (event.key === 'Escape') {
+        closeProfileModal();
+    }
+}
+
+function showResetDataConfirm() {
+    if (confirm('⚠️ ARE YOU SURE?\n\nThis will delete ALL your local data including:\n• Students\n• Hours entries\n• Marks & assessments\n• Attendance records\n• Payment history\n\nThis action cannot be undone!')) {
+        resetAllData();
+        closeProfileModal();
+    }
+}
+
+function resetAllData() {
+    console.log('🗑️ Resetting all data...');
+    
+    if (window.appData && window.resetAppData) {
+        window.resetAppData();
     }
     
-    const styles = `
-        <style id="profileModalStyles">
-            .modal {
-                display: none;
-                position: fixed;
-                z-index: 1000;
-                left: 0;
-                top: 0;
-                width: 100%;
-                height: 100%;
-                background-color: rgba(0,0,0,0.5);
-            }
-            
-            .modal-content {
-                background-color: white;
-                margin: 5% auto;
-                padding: 25px;
-                border-radius: 12px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                animation: modalSlideIn 0.3s ease;
-            }
-            
-            @keyframes modalSlideIn {
-                from { transform: translateY(-50px); opacity: 0; }
-                to { transform: translateY(0); opacity: 1; }
-            }
-            
-            .close {
-                color: #aaa;
-                float: right;
-                font-size: 28px;
-                font-weight: bold;
-                cursor: pointer;
-                line-height: 1;
-            }
-            
-            .close:hover {
-                color: #000;
-            }
-            
-            .profile-field {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 10px 0;
-                border-bottom: 1px solid #f0f0f0;
-            }
-            
-            .profile-field label {
-                font-weight: 600;
-                color: #333;
-                min-width: 120px;
-            }
-            
-            .profile-field span {
-                color: #666;
-                text-align: right;
-            }
-            
-            .profile-actions {
-                display: flex;
-                justify-content: flex-end;
-                flex-wrap: wrap;
-                gap: 10px;
-            }
-        </style>
-    `;
+    if (window.hoursEntries) {
+        window.hoursEntries = [];
+    }
     
-    document.head.insertAdjacentHTML('beforeend', styles);
+    const userId = getCurrentUserId();
+    localStorage.removeItem(`worklog_data_${userId}`);
+    localStorage.removeItem('worklog_hours');
+    
+    if (window.saveAllData) {
+        window.saveAllData();
+    }
+    
+    alert('✅ All data has been reset! The page will reload.');
+    window.location.reload();
+}
+
+function showLogoutConfirm() {
+    if (confirm('Are you sure you want to logout?')) {
+        logoutUser();
+        closeProfileModal();
+    }
 }
 
 function exportUserData() {
-    if (!authState.currentUser) {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
         showNotification('No user data to export', 'error');
         return;
     }
     
     try {
-        const userId = authState.currentUser.id;
+        const userId = currentUser.id;
         const userData = {
-            profile: authState.currentUser,
+            profile: currentUser,
             appData: JSON.parse(localStorage.getItem(`worklog_data_${userId}`) || '{}'),
+            hoursData: window.hoursEntries || [],
             exportDate: new Date().toISOString(),
             exportVersion: '1.0'
         };
@@ -515,7 +465,7 @@ function exportUserData() {
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `worklog_backup_${authState.currentUser.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+        link.download = `worklog_backup_${currentUser.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
         URL.revokeObjectURL(url);
         
@@ -529,81 +479,16 @@ function exportUserData() {
 }
 
 // ============================================================================
-// DEBUG AND RESET FUNCTIONS
+// SOCIAL AUTH PLACEHOLDERS
 // ============================================================================
 
-function resetAuthData() {
-    localStorage.removeItem(AUTH_CONFIG.storageKey);
-    localStorage.removeItem('worklog_session');
-    authState = {
-        isAuthenticated: false,
-        currentUser: null,
-        users: []
-    };
-    console.log('✅ Auth data reset complete');
-    showNotification('Auth data reset complete', 'success');
+function signInWithGoogle() {
+    showNotification('🔐 Google authentication would be implemented here', 'info');
 }
 
-function debugAuth() {
-    console.log('=== AUTH DEBUG INFO ===');
-    console.log('Storage key:', AUTH_CONFIG.storageKey);
-    console.log('Auth state:', authState);
-    console.log('Session in localStorage:', localStorage.getItem('worklog_session'));
-    console.log('All users:', authState.users);
+function signInWithGitHub() {
+    showNotification('💻 GitHub authentication would be implemented here', 'info'); 
 }
-
-// ============================================================================
-// GLOBAL ACCESS - COMPLETE VERSION
-// ============================================================================
-
-// Make sure all functions are defined before adding to window.Auth
-window.Auth = {
-    isAuthenticated: () => authState.isAuthenticated,
-    getCurrentUser: () => authState.currentUser,
-    getCurrentUserId: () => authState.currentUser ? authState.currentUser.id : null,
-    logoutUser: logoutUser,
-    showAuthModal: () => window.location.href = 'auth.html',
-    showProfileModal: showProfileModal,
-    resetAuthData: resetAuthData,
-    debugAuth: debugAuth
-};
-
-// Also make the functions available directly on window for backup
-window.showProfileModal = showProfileModal;
-window.closeProfileModal = closeProfileModal;
-window.exportUserData = exportUserData;
-
-// Initialize auth when DOM is loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAuth);
-} else {
-    initAuth();
-}
-
-window.Auth = {
-    isAuthenticated: () => authState.isAuthenticated,
-    getCurrentUser: () => authState.currentUser,
-    getCurrentUserId: () => authState.currentUser ? authState.currentUser.id : null, // ADD THIS LINE
-    logoutUser: logoutUser,
-    showAuthModal: () => window.location.href = 'auth.html',
-    resetAuthData: resetAuthData,
-    debugAuth: debugAuth
-};
-
-// Add to your auth.js initialization or event listeners
-document.addEventListener('click', function(event) {
-    const modal = document.getElementById('profileModal');
-    if (modal && event.target === modal) {
-        closeProfileModal();
-    }
-});
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeProfileModal();
-    }
-});
 
 // ============================================================================
 // DEBUG AND UTILITY FUNCTIONS
@@ -632,7 +517,6 @@ function debugAuth() {
     console.log('All users:', authState.users);
     console.log('Current user:', authState.currentUser);
     
-    // Show in alert for easy viewing
     const debugInfo = `
 Auth State:
 - Authenticated: ${authState.isAuthenticated}
@@ -644,4 +528,33 @@ Auth State:
     alert(debugInfo);
 }
 
+// ============================================================================
+// GLOBAL EXPORTS
+// ============================================================================
 
+window.Auth = {
+    isAuthenticated: () => authState.isAuthenticated,
+    getCurrentUser: getCurrentUser,
+    getCurrentUserId: getCurrentUserId,
+    logoutUser: logoutUser,
+    showAuthModal: () => window.location.href = 'auth.html',
+    showProfileModal: showProfileModal,
+    resetAuthData: resetAuthData,
+    debugAuth: debugAuth
+};
+
+window.signInWithGoogle = signInWithGoogle;
+window.signInWithGitHub = signInWithGitHub;
+window.showProfileModal = showProfileModal;
+window.closeProfileModal = closeProfileModal;
+window.exportUserData = exportUserData;
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAuth);
+} else {
+    initAuth();
+}
