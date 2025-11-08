@@ -925,120 +925,106 @@ function updateMarksStats() {
 }
 
 // ============================================================================
-// ATTENDANCE MANAGEMENT - COMPLETE REWRITE WITH EVENT DELEGATION
+// ATTENDANCE MANAGEMENT - COMPATIBLE WITH EXISTING DATA
 // ============================================================================
 
-// Global attendance data
-let attendanceRecords = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
-
-// Initialize attendance system
+// Initialize attendance - COMPATIBLE VERSION
 function initAttendance() {
-    loadAttendanceRecords();
-    setupEventDelegation();
-    renderAttendanceList();
-    renderAttendanceHistory();
-    updateAttendanceStats();
+    console.log('🚀 Initializing attendance system...');
     
-    // Set default date to today
+    // Ensure appData.attendance exists
+    if (!appData.attendance) {
+        appData.attendance = [];
+    }
+    
+    setupAttendanceEvents();
+    renderAttendanceUI();
+    
+    // Set default date
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('attendanceDate').value = today;
+    const dateInput = document.getElementById('attendanceDate');
+    if (dateInput) dateInput.value = today;
 }
 
-// Event delegation for all attendance interactions
-function setupEventDelegation() {
+// ONE event listener to rule them all
+function setupAttendanceEvents() {
+    console.log('🔧 Setting up attendance event delegation...');
+    
     document.addEventListener('click', function(e) {
-        const button = e.target;
+        const target = e.target;
+        console.log('Click detected on:', target.className);
         
-        // Attendance form actions
-        if (button.classList.contains('save-attendance-btn')) {
-            saveAttendance();
-        }
-        
-        if (button.classList.contains('clear-attendance-form-btn')) {
-            clearAttendanceForm();
-        }
-        
-        if (button.classList.contains('select-all-students-btn')) {
+        // Quick actions
+        if (target.classList.contains('select-all-students-btn')) {
             selectAllStudents();
+            return;
         }
         
-        if (button.classList.contains('deselect-all-students-btn')) {
+        if (target.classList.contains('deselect-all-students-btn')) {
             deselectAllStudents();
+            return;
         }
         
-        // Attendance record actions
-        if (button.classList.contains('edit-attendance-btn')) {
-            editAttendanceRecord(button);
+        if (target.classList.contains('save-attendance-btn')) {
+            saveNewAttendance();
+            return;
         }
         
-        if (button.classList.contains('update-attendance-btn')) {
-            updateAttendanceRecord(button);
+        if (target.classList.contains('clear-attendance-form-btn')) {
+            clearAttendanceForm();
+            return;
         }
         
-        if (button.classList.contains('cancel-attendance-btn')) {
-            cancelAttendanceEdit(button);
+        // Record actions (delegated through parent)
+        if (target.classList.contains('edit-attendance-btn')) {
+            console.log('Edit button clicked');
+            editAttendanceRecord(target);
+            return;
         }
         
-        if (button.classList.contains('delete-attendance-btn')) {
-            deleteAttendanceRecord(button);
+        if (target.classList.contains('update-attendance-btn')) {
+            console.log('Update button clicked');
+            updateAttendanceRecord(target);
+            return;
         }
         
-        // Quick date buttons
-        if (button.classList.contains('set-today-btn')) {
-            setTodayDate();
+        if (target.classList.contains('cancel-attendance-btn')) {
+            console.log('Cancel button clicked');
+            cancelAttendanceEdit(target);
+            return;
         }
         
-        if (button.classList.contains('set-yesterday-btn')) {
-            setYesterdayDate();
+        if (target.classList.contains('delete-attendance-btn')) {
+            console.log('Delete button clicked');
+            deleteAttendanceRecord(target);
+            return;
         }
     });
 }
 
-// Load attendance records from localStorage
-function loadAttendanceRecords() {
-    try {
-        const stored = localStorage.getItem('attendanceRecords');
-        attendanceRecords = stored ? JSON.parse(stored) : [];
-        console.log(`📊 Loaded ${attendanceRecords.length} attendance records`);
-    } catch (error) {
-        console.error('❌ Error loading attendance records:', error);
-        attendanceRecords = [];
-    }
+// Render everything - COMPATIBLE VERSION
+function renderAttendanceUI() {
+    renderStudentChecklist();
+    renderAttendanceHistory();
+    updateAttendanceStats();
 }
 
-// Save attendance records to localStorage
-function saveAttendanceRecords() {
-    try {
-        localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
-        updateAttendanceStats();
-        
-        // Sync with cloud if available
-        if (window.cloudSync) {
-            window.cloudSync.syncAttendance();
-        }
-        
-        console.log('💾 Attendance records saved');
-    } catch (error) {
-        console.error('❌ Error saving attendance records:', error);
-    }
-}
-
-// Render student list for attendance selection
-function renderAttendanceList() {
-    const students = JSON.parse(localStorage.getItem('students')) || [];
+// Render student checklist - COMPATIBLE VERSION
+function renderStudentChecklist() {
     const container = document.getElementById('attendanceList');
-    
     if (!container) {
-        console.error('❌ Attendance list container not found');
+        console.error('❌ attendanceList container not found');
         return;
     }
+    
+    // Use appData.students instead of localStorage
+    const students = appData.students || [];
     
     if (students.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="icon">👥</div>
-                <h4>No Students</h4>
-                <p>No students registered. Add students first.</p>
+                <p>No students registered yet.</p>
             </div>
         `;
         return;
@@ -1061,21 +1047,21 @@ function renderAttendanceList() {
     `).join('');
 }
 
-// Render attendance history
+// Render attendance history - COMPATIBLE VERSION
 function renderAttendanceHistory() {
     const container = document.getElementById('attendanceContainer');
-    
     if (!container) {
-        console.error('❌ Attendance container not found');
+        console.error('❌ attendanceContainer not found');
         return;
     }
+    
+    const attendanceRecords = appData.attendance || [];
     
     if (attendanceRecords.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="icon">📅</div>
-                <h4>No Attendance Records</h4>
-                <p>No attendance records yet. Track your first session!</p>
+                <p>No attendance records yet.</p>
             </div>
         `;
         return;
@@ -1086,322 +1072,270 @@ function renderAttendanceHistory() {
         new Date(b.date) - new Date(a.date)
     );
     
-    container.innerHTML = sortedRecords.map(record => `
-        <div class="attendance-record-card" data-record-id="${record.id}">
+    container.innerHTML = sortedRecords.map((record, index) => {
+        const presentStudentNames = (record.presentStudents || []).map(studentId => {
+            const student = appData.students.find(s => s.id === studentId);
+            return student ? student.name : 'Unknown Student';
+        });
+        
+        return `
+        <div class="attendance-record-card" data-record-index="${index}">
             <div class="attendance-record-header">
-                <div class="attendance-record-info">
-                    <h4>${record.subject}${record.topic ? ` - ${record.topic}` : ''}</h4>
-                    <span class="attendance-date">${formatAttendanceDate(record.date)}</span>
-                    <span class="attendance-count">${record.presentStudents.length} students</span>
+                <div class="attendance-info">
+                    <h4>${record.subject || 'No Subject'}</h4>
+                    <span class="attendance-meta">
+                        ${formatDate(record.date)} • ${presentStudentNames.length} students
+                    </span>
                 </div>
-                <div class="attendance-record-actions">
-                    <button class="btn btn-sm edit-attendance-btn" title="Edit attendance">
-                        ✏️ Edit
-                    </button>
-                    <button class="btn btn-sm btn-danger delete-attendance-btn" title="Delete attendance">
-                        🗑️ Delete
-                    </button>
+                <div class="attendance-actions">
+                    <button class="btn btn-sm edit-attendance-btn">✏️ Edit</button>
+                    <button class="btn btn-sm btn-danger delete-attendance-btn">🗑️ Delete</button>
                 </div>
             </div>
             <div class="attendance-record-body">
                 <div class="present-students">
-                    <strong>Present Students:</strong>
-                    <div class="student-tags">
-                        ${record.presentStudents.map(student => `
-                            <span class="student-tag">${student.name}</span>
-                        `).join('')}
-                    </div>
+                    <strong>Present:</strong>
+                    ${presentStudentNames.join(', ')}
                 </div>
-                ${record.topic ? `<p class="attendance-topic"><strong>Topic:</strong> ${record.topic}</p>` : ''}
-                <p class="attendance-full-date"><strong>Date:</strong> ${formatAttendanceFullDate(record.date)}</p>
+                ${record.topic ? `<div class="attendance-topic"><strong>Topic:</strong> ${record.topic}</div>` : ''}
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
-// Save new attendance record
-function saveAttendance() {
+// Save new attendance - COMPATIBLE VERSION
+function saveNewAttendance() {
+    console.log('💾 Saving new attendance...');
+    
     try {
+        // Get form values
         const date = document.getElementById('attendanceDate').value;
         const subject = document.getElementById('attendanceSubject').value.trim();
         const topic = document.getElementById('attendanceTopic').value.trim();
         
-        // Validation
-        if (!date) {
-            showNotification('❌ Please select a date', 'error');
+        // Validate
+        if (!date || !subject) {
+            alert('❌ Please fill in date and subject');
             return;
         }
         
-        if (!subject) {
-            showNotification('❌ Please enter a subject', 'error');
+        // Get present students (store IDs only for compatibility)
+        const presentStudentIds = [];
+        document.querySelectorAll('.student-attendance-checkbox:checked').forEach(checkbox => {
+            presentStudentIds.push(checkbox.value);
+        });
+        
+        if (presentStudentIds.length === 0) {
+            alert('❌ Please select at least one student');
             return;
         }
         
-        const presentStudents = Array.from(document.querySelectorAll('.student-attendance-checkbox:checked'))
-            .map(checkbox => ({
-                id: checkbox.value,
-                name: checkbox.dataset.studentName
-            }));
-        
-        if (presentStudents.length === 0) {
-            showNotification('❌ Please select at least one student', 'error');
-            return;
-        }
-        
-        // Create new attendance record
-        const attendanceRecord = {
-            id: generateId(),
+        // Create record (compatible with existing structure)
+        const record = {
             date: date,
             subject: subject,
             topic: topic,
-            presentStudents: presentStudents,
-            totalStudents: presentStudents.length,
+            presentStudents: presentStudentIds, // Store IDs for compatibility
             createdAt: new Date().toISOString()
         };
         
-        // Add to records and save
-        attendanceRecords.unshift(attendanceRecord);
-        saveAttendanceRecords();
-        renderAttendanceHistory();
+        // Save to appData
+        if (!appData.attendance) {
+            appData.attendance = [];
+        }
+        appData.attendance.unshift(record);
+        saveAllData(); // Use your existing save function
+        renderAttendanceUI();
         clearAttendanceForm();
         
-        showNotification(`✅ Attendance recorded for ${presentStudents.length} student(s)`);
+        alert(`✅ Attendance saved for ${presentStudentIds.length} students!`);
         
     } catch (error) {
         console.error('❌ Error saving attendance:', error);
-        showNotification('❌ Error saving attendance', 'error');
+        alert('❌ Error saving attendance');
     }
 }
 
-// Edit attendance record
+// Edit attendance record - COMPATIBLE VERSION
 function editAttendanceRecord(button) {
-    console.log('✏️ Edit attendance triggered');
+    console.log('✏️ Starting edit...');
     
-    const recordCard = button.closest('.attendance-record-card');
-    const recordId = recordCard.dataset.recordId;
-    const record = attendanceRecords.find(r => r.id === recordId);
+    const card = button.closest('.attendance-record-card');
+    const recordIndex = parseInt(card.dataset.recordIndex);
+    const record = appData.attendance[recordIndex];
     
     if (!record) {
-        console.error('Attendance record not found');
+        console.error('Record not found at index:', recordIndex);
         return;
     }
-
-    // If already in edit mode, do nothing
-    if (recordCard.classList.contains('edit-mode')) {
-        return;
-    }
-
-    // Enter edit mode
-    recordCard.classList.add('edit-mode');
     
     // Store original values
-    const originalValues = {
-        subject: record.subject,
-        topic: record.topic || '',
-        date: record.date,
-        presentStudents: [...record.presentStudents]
-    };
-    recordCard.dataset.originalValues = JSON.stringify(originalValues);
-
-    // Replace content with edit form
-    const recordBody = recordCard.querySelector('.attendance-record-body');
-    const students = JSON.parse(localStorage.getItem('students')) || [];
+    card.dataset.originalValues = JSON.stringify(record);
     
-    recordBody.innerHTML = `
+    // Switch to edit mode
+    const body = card.querySelector('.attendance-record-body');
+    const students = appData.students || [];
+    
+    body.innerHTML = `
         <div class="attendance-edit-form">
             <div class="form-group">
-                <label>Subject *</label>
-                <input type="text" class="edit-subject" value="${record.subject}" required>
+                <input type="text" class="edit-subject" value="${record.subject || ''}" placeholder="Subject" required>
             </div>
             <div class="form-group">
-                <label>Topic</label>
-                <input type="text" class="edit-topic" value="${record.topic || ''}">
+                <input type="text" class="edit-topic" value="${record.topic || ''}" placeholder="Topic">
             </div>
             <div class="form-group">
-                <label>Date *</label>
                 <input type="date" class="edit-date" value="${record.date}" required>
             </div>
             <div class="form-group">
-                <label>Present Students *</label>
-                <div class="attendance-edit-students">
+                <label>Select Present Students:</label>
+                <div class="student-checkboxes">
                     ${students.map(student => `
-                        <label class="attendance-checkbox-label">
+                        <label style="display: block; margin: 5px 0;">
                             <input type="checkbox" 
-                                   class="edit-student-checkbox" 
                                    value="${student.id}"
-                                   ${record.presentStudents.some(s => s.id === student.id) ? 'checked' : ''}>
-                            <span class="custom-checkbox"></span>
-                            <span class="student-name">${student.name}</span>
-                            <span class="student-id">(${student.id})</span>
+                                   ${(record.presentStudents || []).includes(student.id) ? 'checked' : ''}>
+                            ${student.name}
                         </label>
                     `).join('')}
                 </div>
             </div>
             <div class="edit-actions">
-                <button class="btn btn-success update-attendance-btn">
-                    💾 Update
-                </button>
-                <button class="btn btn-secondary cancel-attendance-btn">
-                    ❌ Cancel
-                </button>
+                <button class="btn btn-success update-attendance-btn">💾 Update</button>
+                <button class="btn btn-secondary cancel-attendance-btn">❌ Cancel</button>
             </div>
         </div>
     `;
-
-    // Hide edit button while in edit mode
+    
+    // Hide edit button
     button.style.display = 'none';
 }
 
-// Update attendance record
+// Update attendance record - COMPATIBLE VERSION
 function updateAttendanceRecord(button) {
-    console.log('💾 Update attendance triggered');
+    console.log('💾 Updating record...');
     
-    const recordCard = button.closest('.attendance-record-card');
-    const recordId = recordCard.dataset.recordId;
-    const recordIndex = attendanceRecords.findIndex(r => r.id === recordId);
+    const card = button.closest('.attendance-record-card');
+    const recordIndex = parseInt(card.dataset.recordIndex);
     
-    if (recordIndex === -1) {
-        console.error('Attendance record not found');
-        showNotification('❌ Attendance record not found', 'error');
+    if (!appData.attendance[recordIndex]) {
+        alert('❌ Record not found');
         return;
     }
-
-    // Get updated values from form
-    const subjectInput = recordCard.querySelector('.edit-subject');
-    const topicInput = recordCard.querySelector('.edit-topic');
-    const dateInput = recordCard.querySelector('.edit-date');
-    const studentCheckboxes = recordCard.querySelectorAll('.edit-student-checkbox:checked');
-
-    const subject = subjectInput.value.trim();
-    const date = dateInput.value;
-
-    // Validation
-    if (!subject) {
-        showNotification('❌ Please enter a subject', 'error');
+    
+    // Get updated values
+    const subject = card.querySelector('.edit-subject').value.trim();
+    const topic = card.querySelector('.edit-topic').value.trim();
+    const date = card.querySelector('.edit-date').value;
+    
+    if (!subject || !date) {
+        alert('❌ Please fill in subject and date');
         return;
     }
-
-    if (!date) {
-        showNotification('❌ Please select a date', 'error');
-        return;
-    }
-
-    const presentStudents = Array.from(studentCheckboxes).map(checkbox => {
-        const studentId = checkbox.value;
-        const studentName = checkbox.closest('label').querySelector('.student-name').textContent;
-        return { id: studentId, name: studentName };
+    
+    // Get present students (IDs only for compatibility)
+    const presentStudentIds = [];
+    card.querySelectorAll('.student-checkboxes input:checked').forEach(checkbox => {
+        presentStudentIds.push(checkbox.value);
     });
-
-    if (presentStudents.length === 0) {
-        showNotification('❌ Please select at least one student', 'error');
+    
+    if (presentStudentIds.length === 0) {
+        alert('❌ Please select at least one student');
         return;
     }
-
-    // Update the record
-    attendanceRecords[recordIndex] = {
-        ...attendanceRecords[recordIndex],
+    
+    // Update record in appData
+    appData.attendance[recordIndex] = {
+        ...appData.attendance[recordIndex],
         subject: subject,
-        topic: topicInput.value.trim(),
+        topic: topic,
         date: date,
-        presentStudents: presentStudents,
-        totalStudents: presentStudents.length,
+        presentStudents: presentStudentIds,
         updatedAt: new Date().toISOString()
     };
-
+    
     // Save and refresh
-    saveAttendanceRecords();
+    saveAllData();
     renderAttendanceHistory();
-    
-    showNotification('✅ Attendance record updated successfully');
+    alert('✅ Attendance updated!');
 }
 
-// Cancel attendance edit
+// Cancel edit - COMPATIBLE VERSION
 function cancelAttendanceEdit(button) {
-    console.log('❌ Cancel attendance edit triggered');
-    
-    const recordCard = button.closest('.attendance-record-card');
-    const recordId = recordCard.dataset.recordId;
-    
-    // Exit edit mode
-    recordCard.classList.remove('edit-mode');
-    
-    // Re-render the record to show original state
-    renderAttendanceHistory();
-    
-    showNotification('❌ Edit cancelled');
+    console.log('❌ Cancelling edit...');
+    renderAttendanceHistory(); // Just re-render everything
 }
 
-// Delete attendance record
+// Delete record - COMPATIBLE VERSION
 function deleteAttendanceRecord(button) {
-    const recordCard = button.closest('.attendance-record-card');
-    const recordId = recordCard.dataset.recordId;
-    const record = attendanceRecords.find(r => r.id === recordId);
+    const card = button.closest('.attendance-record-card');
+    const recordIndex = parseInt(card.dataset.recordIndex);
     
-    if (!record) {
-        showNotification('❌ Attendance record not found', 'error');
-        return;
-    }
-    
-    if (confirm(`Are you sure you want to delete this attendance record for ${record.subject} on ${formatAttendanceDate(record.date)}?`)) {
-        attendanceRecords = attendanceRecords.filter(r => r.id !== recordId);
-        saveAttendanceRecords();
+    if (confirm('Are you sure you want to delete this attendance record?')) {
+        appData.attendance.splice(recordIndex, 1);
+        saveAllData();
         renderAttendanceHistory();
-        showNotification('🗑️ Attendance record deleted');
+        alert('🗑️ Record deleted!');
     }
 }
 
-// Select all students for attendance
+// Helper functions
 function selectAllStudents() {
-    const checkboxes = document.querySelectorAll('.student-attendance-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = true;
-    });
-    showNotification('✅ All students selected');
+    document.querySelectorAll('.student-attendance-checkbox').forEach(cb => cb.checked = true);
 }
 
-// Deselect all students
 function deselectAllStudents() {
-    const checkboxes = document.querySelectorAll('.student-attendance-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    showNotification('❌ All students deselected');
+    document.querySelectorAll('.student-attendance-checkbox').forEach(cb => cb.checked = false);
 }
 
-// Clear attendance form
 function clearAttendanceForm() {
     document.getElementById('attendanceDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('attendanceSubject').value = '';
     document.getElementById('attendanceTopic').value = '';
-    
-    // Deselect all students
-    const checkboxes = document.querySelectorAll('.student-attendance-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    
-    showNotification('📝 Form cleared');
+    deselectAllStudents();
 }
 
-// Update attendance statistics
 function updateAttendanceStats() {
-    try {
-        const attendanceCount = attendanceRecords.length;
-        
-        let lastSessionDate = 'Never';
-        if (attendanceRecords.length > 0) {
-            const latestRecord = attendanceRecords.reduce((latest, record) => {
-                return new Date(record.date) > new Date(latest.date) ? record : latest;
-            });
-            lastSessionDate = formatAttendanceDate(latestRecord.date);
-        }
-        
-        document.getElementById('attendanceCount').textContent = attendanceCount;
-        document.getElementById('lastSessionDate').textContent = lastSessionDate;
-        
-    } catch (error) {
-        console.error('❌ Error updating attendance stats:', error);
+    const countElement = document.getElementById('attendanceCount');
+    const lastSessionElement = document.getElementById('lastSessionDate');
+    
+    if (countElement) {
+        countElement.textContent = (appData.attendance || []).length;
     }
+    
+    if (lastSessionElement) {
+        const attendance = appData.attendance || [];
+        if (attendance.length > 0) {
+            const latest = attendance.reduce((a, b) => 
+                new Date(a.date) > new Date(b.date) ? a : b
+            );
+            lastSessionElement.textContent = formatDate(latest.date);
+        } else {
+            lastSessionElement.textContent = 'Never';
+        }
+    }
+}
+
+function formatDate(dateString) {
+    try {
+        return new Date(dateString).toLocaleDateString();
+    } catch (e) {
+        return dateString;
+    }
+}
+
+// Export for global access
+window.Attendance = {
+    init: initAttendance,
+    save: saveNewAttendance,
+    refresh: renderAttendanceUI
+};
+
+// Initialize when tab is shown
+function loadAttendanceTab() {
+    console.log('📱 Loading attendance tab...');
+    initAttendance();
 }
 
 // ============================================================================
