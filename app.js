@@ -3016,22 +3016,42 @@ document.addEventListener('DOMContentLoaded', function() {
     if (dateInput && !dateInput.value) {
         dateInput.value = new Date().toISOString().split('T')[0];
     }
-        // Setup student search filter
-    const searchBox = document.getElementById('studentSearch');
-    const container = document.getElementById('studentsContainer');
+      // Student search filter + clear button
+const searchBox = document.getElementById('studentSearch');
+const container = document.getElementById('studentsContainer');
 
-    if (searchBox && container) {
-        searchBox.addEventListener('input', function (e) {
-            const query = e.target.value.toLowerCase();
-            const items = container.querySelectorAll('.student-card.searchable');
+if (searchBox && container) {
+    searchBox.addEventListener('input', function (e) {
+        const query = e.target.value.toLowerCase();
+        const items = container.querySelectorAll('.student-card.searchable');
 
-            items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                item.style.display = text.includes(query) ? '' : 'none';
-            });
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(query) ? '' : 'none';
         });
-    }
 
+        // Toggle clear button
+        if (searchBox.value.length > 0) {
+            searchBox.classList.add('clearable');
+        } else {
+            searchBox.classList.remove('clearable');
+        }
+    });
+
+    // Clear search when clicking the clear button
+    searchBox.addEventListener('click', function (e) {
+        if (searchBox.classList.contains('clearable')) {
+            // If clicked near the right side (where the X is)
+            const boxWidth = searchBox.offsetWidth;
+            const clickX = e.offsetX;
+            if (clickX > boxWidth - 30) {
+                searchBox.value = '';
+                searchBox.dispatchEvent(new Event('input')); // re-run filter
+            }
+        }
+    });
+}
+ 
     console.log('✅ App ready');
 });
 
