@@ -432,19 +432,12 @@ function updateStudentStats() {
             ? (appData.students.reduce((sum, s) => sum + (s.rate || 0), 0) / totalStudents).toFixed(2)
             : 0;
 
-        // Total owed across all students
-        const totalOwed = appData.students.reduce((sum, s) => sum + (s.owed || 0), 0);
+        // Update UI elements (match IDs in Students tab header)
+        const countEl = document.getElementById('studentsCount');
+        if (countEl) countEl.textContent = totalStudents;
 
-        // Update UI elements (make sure these exist in your Students tab header)
-        const totalEl = document.getElementById('studentsTotalCount');
-        if (totalEl) totalEl.textContent = totalStudents;
-
-        const avgRateEl = document.getElementById('studentsAvgRate');
+        const avgRateEl = document.getElementById('avgRate');
         if (avgRateEl) avgRateEl.textContent = `$${avgRate}`;
-
-        const owedEl = document.getElementById('studentsTotalOwed');
-        if (owedEl) owedEl.textContent = `$${totalOwed.toFixed(2)}`;
-
     } catch (error) {
         console.error('❌ Error updating student stats:', error);
     }
