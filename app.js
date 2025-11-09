@@ -1014,7 +1014,8 @@ function loadAttendance() {
         container.innerHTML = html;
         
         updateAttendanceStats();
-        
+        setupAttendanceButtons();
+
     } catch (error) {
         console.error('❌ Error loading attendance:', error);
     }
