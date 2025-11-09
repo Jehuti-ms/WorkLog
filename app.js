@@ -1240,17 +1240,29 @@ function updateAttendance(index) {
 }
 
 function updateAttendanceStats() {
-   try {
+    try {
         if (!appData.attendance) appData.attendance = [];
-        
+
         const attendanceCount = appData.attendance.length;
-        const lastSession = attendanceCount > 0 && appData.attendance[appData.attendance.length - 1].date
-            ? new Date(appData.attendance[appData.attendance.length - 1].date).toLocaleDateString()
-            : 'Never';
-        
-        document.getElementById('attendanceCount').textContent = attendanceCount;
-        document.getElementById('lastSessionDate').textContent = lastSession;
-        
+
+        let lastSession = 'Never';
+        if (attendanceCount > 0) {
+            // Sort by date to ensure we get the latest session
+            const sorted = [...appData.attendance].sort(
+                (a, b) => new Date(a.date) - new Date(b.date)
+            );
+            const latest = sorted[sorted.length - 1];
+
+            // Use our fixed formatter to avoid timezone issues
+            lastSession = formatAttendanceDate(latest.date);
+        }
+
+        const countEl = document.getElementById('attendanceCount');
+        if (countEl) countEl.textContent = attendanceCount;
+
+        const lastSessionEl = document.getElementById('lastSessionDate');
+        if (lastSessionEl) lastSessionEl.textContent = lastSession;
+
     } catch (error) {
         console.error('❌ Error updating attendance stats:', error);
     }
