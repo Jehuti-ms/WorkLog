@@ -277,9 +277,9 @@ function loadStudents() {
                         ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''}
                         ${student.createdAt ? `<p><small>Added: ${new Date(student.createdAt).toLocaleDateString()}</small></p>` : ''}
                     </div>
-                    <div class="student-actions">
-                        <button class="btn btn-sm btn-edit" onclick="editStudent(${index})">✏️ Edit</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteStudent(${index})">🗑️ Delete</button>
+                    <div class="student-actions" style="display: flex; gap: 8px; justify-content: space-between; margin-top: 15px;">
+                        <button class="btn btn-sm btn-edit" onclick="editStudent(${index})" style="flex: 1;">✏️ Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteStudent(${index})" style="flex: 1;">🗑️ Delete</button>
                     </div>
                 </div>
             `;
