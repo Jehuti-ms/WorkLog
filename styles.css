@@ -3333,3 +3333,28 @@ input[type="search"]::-webkit-search-results-decoration {
     from {opacity: 0; transform: translateY(-10px);}
     to {opacity: 1; transform: translateY(0);}
 }
+
+/* Base layout for sync bar */
+.sync-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-start;
+    margin-bottom: 20px;
+}
+
+/* Responsive grid on smaller screens */
+@media (max-width: 768px) {
+    .sync-bar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        justify-items: center;
+    }
+
+    .sync-bar .btn {
+        width: 100%;
+        font-size: 14px;
+        padding: 8px 10px;
+    }
+}
