@@ -13,6 +13,8 @@ let appData = {
     }
 };
 
+let isEditingAttendance = false;
+
 // Global variables
 let editingHoursIndex = null;
 window.hoursEntries = [];
@@ -52,10 +54,7 @@ function init() {
     // Update stats
     updateStats();
 
-    // Add edit protection system
-let isEditingAttendance = false;
-
-// Update the edit functions to use the flag
+  // Update the edit functions to use the flag
 function editAttendance(index) {
     isEditingAttendance = true;
     // ... your existing editAttendance code ...
