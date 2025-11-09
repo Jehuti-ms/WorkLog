@@ -1080,6 +1080,8 @@ function saveAttendance() {
 function editAttendance(index) {
     console.log('✏️ Editing attendance record:', index);
     
+    isEditingAttendance = true;  
+    
     const session = appData.attendance[index];
     if (!session) {
         alert('Attendance record not found!');
@@ -1222,6 +1224,9 @@ function updateAttendance(index) {
         
         saveAllData();
         loadAttendance();
+        
+        // ✅ Only clear edit mode after successful update
+        isEditingAttendance = false;
         cancelAttendanceEdit();
         
         alert(`✅ Attendance updated for ${presentStudents.length} students!`);
@@ -1233,7 +1238,7 @@ function updateAttendance(index) {
 }
 
 function updateAttendanceStats() {
-    try {
+   try {
         if (!appData.attendance) appData.attendance = [];
         
         const attendanceCount = appData.attendance.length;
@@ -1287,8 +1292,14 @@ function clearAttendanceForm() {
 }
 
 function cancelAttendanceEdit() {
+    if (!isEditingAttendance) {
+        console.warn('⚠️ Cancel ignored: not in edit mode');
+        return;
+    }
+
     console.log('❌ Cancelling attendance edit');
-    
+    isEditingAttendance = false;
+
     // Clear form
     document.getElementById('attendanceDate').value = '';
     document.getElementById('attendanceSubject').value = '';
@@ -1319,6 +1330,7 @@ function cancelAttendanceEdit() {
     const formCard = document.querySelector('#attendance .section-card');
     formCard.classList.remove('edit-mode');
 }
+
 
 
 // ============================================================================
