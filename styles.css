@@ -1570,7 +1570,7 @@ tr:hover {
     border-top: 1px solid #f1f3f4;
 }
 
-.student-actions .btn {
+/*.student-actions .btn {
     flex: 1;
 }
 
@@ -1584,7 +1584,8 @@ tr:hover {
 .student-actions-side-by-side .btn {
     flex: 1;
     min-width: 0; /* Prevents buttons from overflowing */
-}
+/*}
+*/
 
 /* ============================================================================
    FORM ACTIONS
