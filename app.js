@@ -286,16 +286,11 @@ function loadStudents() {
         
     html += '</div>';
     container.innerHTML = html;
+
+    // 🔽 Keep stats in sync
+    updateStudentStats();
 }
-       
-    } catch (error) {
-        console.error('❌ Error loading students:', error);
-        const container = document.getElementById('studentsContainer');
-        if (container) {
-            container.innerHTML = '<div class="error-state">Error loading students</div>';
-        }
-    }
-}
+
 
 function addStudent() {
     try {
