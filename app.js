@@ -249,8 +249,8 @@ function saveAllData() {
     try {
         const userId = window.Auth ? window.Auth.getCurrentUserId() : 'default';
         
-        // Prevent save during attendance editing
-        if (isEditingAttendance) {
+        // Only block saves during active form editing, not during update operations
+        if (isEditingAttendance && document.querySelector('#attendance .edit-mode')) {
             console.log('🛑 Save blocked - attendance edit in progress');
             return;
         }
@@ -910,6 +910,8 @@ function displayAttendanceRecords() {
 }
 
 function saveAttendance() {
+    console.log('💾 Saving new attendance record');
+    
     if (isEditingAttendance) {
         console.log('🛑 Save blocked - edit in progress');
         return;
@@ -950,7 +952,13 @@ function saveAttendance() {
         
         if (!appData.attendance) appData.attendance = [];
         appData.attendance.push(newAttendance);
+        
+        // Temporarily disable edit mode for save
+        const wasEditing = isEditingAttendance;
+        isEditingAttendance = false;
         saveAllData();
+        isEditingAttendance = wasEditing;
+        
         loadAttendance();
         clearAttendanceForm();
         
@@ -1072,6 +1080,10 @@ function updateAttendance(index) {
             alert('Please select at least one student');
             return;
         }
+        
+        // TEMPORARILY disable edit mode to allow saving
+        const wasEditing = isEditingAttendance;
+        isEditingAttendance = false;
         
         // Update the existing attendance record
         appData.attendance[index] = {
