@@ -325,7 +325,8 @@ function addStudent() {
         // 🔽 Update stats right here
         updateStudentStats();
         clearStudentForm();
-        
+        document.dispatchEvent(new Event('studentAdded'));
+
         alert('✅ Student added successfully!');
         
     } catch (error) {
