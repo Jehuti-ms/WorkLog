@@ -3360,3 +3360,36 @@ input[type="search"]::-webkit-search-results-decoration {
         box-sizing: border-box;
     }
 }
+
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.toast {
+    background: #333;
+    color: #fff;
+    padding: 12px 18px;
+    margin-top: 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.success {
+    background: #28a745;
+}
+
+.toast.error {
+    background: #dc3545;
+}
+
