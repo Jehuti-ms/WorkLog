@@ -1,4 +1,4 @@
-// app.js - COMPLETE REWRITE WITH ALL FIXES
+// app.js - COMPLETE FIXED VERSION
 console.log('📦 App.js loaded');
 
 // Global data storage with proper initialization
@@ -25,7 +25,7 @@ const monthNames = [
 ];
 
 // ============================================================================
-// CORE APP FUNCTIONS - MOVED TO TOP
+// CORE APP FUNCTIONS
 // ============================================================================
 
 function setupTabs() {
@@ -165,10 +165,6 @@ function updateStats() {
         console.error('❌ Error updating stats:', error);
     }
 }
-
-// ============================================================================
-// INIT FUNCTION
-// ============================================================================
 
 function init() {
     console.log('🎯 App initialization started');
@@ -818,6 +814,746 @@ function loadHoursFromStorage() {
 }
 
 // ============================================================================
+// ATTENDANCE MANAGEMENT
+// ============================================================================
+
+function loadAttendance() {
+    try {
+        const container = document.getElementById('attendanceContainer');
+        const attendanceList = document.getElementById('attendanceList');
+        
+        if (!container || !attendanceList) {
+            console.error('❌ Attendance containers not found');
+            return;
+        }
+        
+        // Clear existing content
+        attendanceList.innerHTML = '';
+        
+        if (!appData.students || appData.students.length === 0) {
+            attendanceList.innerHTML = '<div class="empty-state"><div class="icon">👥</div><h4>No Students</h4><p>No students registered. Add students first.</p></div>';
+            container.innerHTML = '<div class="empty-state"><div class="icon">📅</div><h4>No Attendance Records</h4><p>No attendance records yet. Add students first.</p></div>';
+            return;
+        }
+        
+        // Build student checklist with proper styling
+        appData.students.forEach(student => {
+            const div = document.createElement('div');
+            div.className = 'attendance-item';
+            div.innerHTML = `
+                <label class="attendance-label">
+                    <input type="checkbox" id="attend_${student.id}" value="${student.id}" class="attendance-checkbox">
+                    <span class="checkmark"></span>
+                    <span class="student-info">
+                        <strong>${student.name}</strong>
+                        <span class="student-id">(${student.id})</span>
+                    </span>
+                </label>
+            `;
+            attendanceList.appendChild(div);
+        });
+        
+        // Load attendance records if any exist
+        displayAttendanceRecords();
+        updateAttendanceStats();
+        
+    } catch (error) {
+        console.error('❌ Error loading attendance:', error);
+    }
+}
+
+function displayAttendanceRecords() {
+    const container = document.getElementById('attendanceContainer');
+    if (!container) return;
+    
+    if (!appData.attendance || appData.attendance.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">📅</div><h4>No Attendance Records</h4><p>No attendance records yet. Track your first session!</p></div>';
+        return;
+    }
+    
+    let html = '<div class="attendance-list">';
+    
+    // Show all attendance records with edit functionality
+    appData.attendance.slice().reverse().forEach((session, index) => {
+        const actualIndex = appData.attendance.length - 1 - index;
+        const presentStudents = session.presentStudents.map(id => {
+            const student = appData.students.find(s => s.id === id);
+            return student ? student.name : 'Unknown';
+        });
+        
+        const sessionDate = formatAttendanceDate(session.date);
+        const fullDate = formatAttendanceFullDate(session.date);
+        
+        html += `
+            <div class="attendance-entry">
+                <div class="attendance-header">
+                    <div class="attendance-main">
+                        <h4>${session.subject} - ${sessionDate}</h4>
+                        <span class="attendance-count">${session.presentStudents.length} students</span>
+                    </div>
+                    <div class="attendance-actions">
+                        <button class="btn btn-sm btn-edit" onclick="editAttendance(${actualIndex})">✏️ Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteAttendance(${actualIndex})">🗑️ Delete</button>
+                    </div>
+                </div>
+                <div class="attendance-details">
+                    <p><strong>Topic:</strong> ${session.topic || 'N/A'}</p>
+                    <p><strong>Present:</strong> ${presentStudents.join(', ')}</p>
+                    <p><strong>Date:</strong> ${fullDate}</p>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function saveAttendance() {
+    if (isEditingAttendance) {
+        console.log('🛑 Save blocked - edit in progress');
+        return;
+    }
+    
+    try {
+        const date = document.getElementById('attendanceDate').value;
+        const subject = document.getElementById('attendanceSubject').value;
+        const topic = document.getElementById('attendanceTopic').value;
+        
+        if (!date || !subject) {
+            alert('Please fill in date and subject');
+            return;
+        }
+        
+        const presentStudents = [];
+        
+        // Get all checked students
+        appData.students.forEach(student => {
+            const checkbox = document.getElementById(`attend_${student.id}`);
+            if (checkbox && checkbox.checked) {
+                presentStudents.push(student.id);
+            }
+        });
+        
+        if (presentStudents.length === 0) {
+            alert('Please select at least one student');
+            return;
+        }
+        
+        const newAttendance = {
+            date,
+            subject,
+            topic,
+            presentStudents,
+            createdAt: new Date().toISOString()
+        };
+        
+        if (!appData.attendance) appData.attendance = [];
+        appData.attendance.push(newAttendance);
+        saveAllData();
+        loadAttendance();
+        clearAttendanceForm();
+        
+        alert(`✅ Attendance saved for ${presentStudents.length} students!`);
+        
+    } catch (error) {
+        console.error('❌ Error saving attendance:', error);
+        alert('Error saving attendance: ' + error.message);
+    }
+}
+
+function editAttendance(index) {
+    console.log('✏️ Editing attendance record:', index);
+    isEditingAttendance = true;
+    
+    const session = appData.attendance[index];
+    if (!session) {
+        alert('Attendance record not found!');
+        isEditingAttendance = false;
+        return;
+    }
+    
+    // Populate the form with existing data
+    document.getElementById('attendanceDate').value = formatDateForAttendanceInput(session.date);
+    document.getElementById('attendanceSubject').value = session.subject || '';
+    document.getElementById('attendanceTopic').value = session.topic || '';
+    
+    // Clear all checkboxes first
+    appData.students.forEach(student => {
+        const checkbox = document.getElementById(`attend_${student.id}`);
+        if (checkbox) {
+            checkbox.checked = false;
+        }
+    });
+    
+    // Check the students who were present
+    session.presentStudents.forEach(studentId => {
+        const checkbox = document.getElementById(`attend_${studentId}`);
+        if (checkbox) {
+            checkbox.checked = true;
+        }
+    });
+    
+    // Update the save button
+    const saveButton = document.querySelector('#attendance .btn-primary');
+    if (saveButton) {
+        saveButton.textContent = '💾 Update Attendance';
+        saveButton.onclick = function() { updateAttendance(index); };
+    }
+    
+    // Add cancel edit button if not exists
+    if (!document.querySelector('.cancel-attendance-edit')) {
+        const cancelButton = document.createElement('button');
+        cancelButton.type = 'button';
+        cancelButton.className = 'btn btn-warning cancel-attendance-edit';
+        cancelButton.textContent = '❌ Cancel Edit';
+        cancelButton.onclick = cancelAttendanceEdit;
+        
+        const formActions = document.querySelector('#attendance .form-actions');
+        if (formActions) {
+            formActions.appendChild(cancelButton);
+        }
+    }
+    
+    // Add edit mode styling
+    const formCard = document.querySelector('#attendance .section-card');
+    if (formCard) {
+        formCard.classList.add('edit-mode');
+    }
+    
+    console.log('✅ Attendance form ready for editing');
+}
+
+function updateAttendance(index) {
+    try {
+        const date = document.getElementById('attendanceDate').value;
+        const subject = document.getElementById('attendanceSubject').value;
+        const topic = document.getElementById('attendanceTopic').value;
+        
+        if (!date || !subject) {
+            alert('Please fill in date and subject');
+            return;
+        }
+        
+        const presentStudents = [];
+        
+        // Get all checked students
+        appData.students.forEach(student => {
+            const checkbox = document.getElementById(`attend_${student.id}`);
+            if (checkbox && checkbox.checked) {
+                presentStudents.push(student.id);
+            }
+        });
+        
+        if (presentStudents.length === 0) {
+            alert('Please select at least one student');
+            return;
+        }
+        
+        // Update the existing attendance record
+        appData.attendance[index] = {
+            ...appData.attendance[index],
+            date,
+            subject,
+            topic,
+            presentStudents,
+            updatedAt: new Date().toISOString()
+        };
+        
+        saveAllData();
+        loadAttendance();
+        cancelAttendanceEdit();
+        
+        alert(`✅ Attendance updated for ${presentStudents.length} students!`);
+        
+    } catch (error) {
+        console.error('❌ Error updating attendance:', error);
+        alert('Error updating attendance: ' + error.message);
+    } finally {
+        isEditingAttendance = false;
+    }
+}
+
+function cancelAttendanceEdit() {
+    console.log('❌ Cancelling attendance edit');
+    isEditingAttendance = false;
+    
+    // Clear form
+    clearAttendanceForm();
+    
+    // Reset save button
+    const saveButton = document.querySelector('#attendance .btn-primary');
+    if (saveButton) {
+        saveButton.textContent = '💾 Save Attendance';
+        saveButton.onclick = saveAttendance;
+    }
+    
+    // Remove cancel button
+    const cancelButton = document.querySelector('.cancel-attendance-edit');
+    if (cancelButton) {
+        cancelButton.remove();
+    }
+    
+    // Remove edit mode styling
+    const formCard = document.querySelector('#attendance .section-card');
+    if (formCard) {
+        formCard.classList.remove('edit-mode');
+    }
+}
+
+function clearAttendanceForm() {
+    document.getElementById('attendanceDate').value = '';
+    document.getElementById('attendanceSubject').value = '';
+    document.getElementById('attendanceTopic').value = '';
+    
+    // Deselect all students
+    if (appData.students) {
+        appData.students.forEach(student => {
+            const checkbox = document.getElementById(`attend_${student.id}`);
+            if (checkbox) checkbox.checked = false;
+        });
+    }
+}
+
+function updateAttendanceStats() {
+    try {
+        if (!appData.attendance) appData.attendance = [];
+        
+        const attendanceCount = appData.attendance.length;
+        const lastSession = attendanceCount > 0 && appData.attendance[appData.attendance.length - 1].date
+            ? formatAttendanceDate(appData.attendance[appData.attendance.length - 1].date)
+            : 'Never';
+        
+        const attendanceCountEl = document.getElementById('attendanceCount');
+        const lastSessionEl = document.getElementById('lastSessionDate');
+        
+        if (attendanceCountEl) attendanceCountEl.textContent = attendanceCount;
+        if (lastSessionEl) lastSessionEl.textContent = lastSession;
+        
+    } catch (error) {
+        console.error('❌ Error updating attendance stats:', error);
+    }
+}
+
+function deleteAttendance(index) {
+    if (confirm('Are you sure you want to delete this attendance record?')) {
+        appData.attendance.splice(index, 1);
+        saveAllData();
+        loadAttendance();
+        alert('✅ Attendance record deleted successfully!');
+    }
+}
+
+function selectAllStudents() {
+    appData.students.forEach(student => {
+        const checkbox = document.getElementById(`attend_${student.id}`);
+        if (checkbox) checkbox.checked = true;
+    });
+}
+
+function deselectAllStudents() {
+    appData.students.forEach(student => {
+        const checkbox = document.getElementById(`attend_${student.id}`);
+        if (checkbox) checkbox.checked = false;
+    });
+}
+
+function setTodayDate() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    
+    document.getElementById('attendanceDate').value = `${year}-${month}-${day}`;
+}
+
+function setYesterdayDate() {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const year = yesterday.getFullYear();
+    const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+    const day = String(yesterday.getDate()).padStart(2, '0');
+    
+    document.getElementById('attendanceDate').value = `${year}-${month}-${day}`;
+}
+
+function formatAttendanceDate(dateString) {
+    if (!dateString) return 'No Date';
+    try {
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${month}/${day}/${year}`;
+    } catch (e) {
+        console.error('Error formatting attendance date:', e);
+        return dateString;
+    }
+}
+
+function formatAttendanceFullDate(dateString) {
+    if (!dateString) return 'No Date';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+    } catch (e) {
+        console.error('Error formatting full attendance date:', e);
+        return dateString;
+    }
+}
+
+function formatDateForAttendanceInput(dateString) {
+    if (!dateString) return '';
+    try {
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } catch (e) {
+        console.error('Error formatting date for attendance input:', e);
+        return dateString;
+    }
+}
+
+// ============================================================================
+// MARKS MANAGEMENT
+// ============================================================================
+
+function loadMarks() {
+    try {
+        const container = document.getElementById('marksContainer');
+        if (!container) {
+            console.error('❌ Marks container not found');
+            return;
+        }
+        
+        // Populate student dropdown
+        const studentSelect = document.getElementById('marksStudent');
+        if (studentSelect) {
+            studentSelect.innerHTML = '<option value="">Select student...</option>';
+            if (appData.students) {
+                appData.students.forEach(student => {
+                    studentSelect.innerHTML += `<option value="${student.id}">${student.name}</option>`;
+                });
+            }
+        }
+        
+        if (!appData.marks || appData.marks.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📝</div><h4>No Marks</h4><p>No marks recorded yet.</p></div>';
+            return;
+        }
+        
+        let html = '<div class="marks-list">';
+        
+        const recentMarks = appData.marks.slice(-10).reverse();
+        recentMarks.forEach((mark, index) => {
+            const student = appData.students ? appData.students.find(s => s.id === mark.studentId) : null;
+            const percentage = mark.percentage || ((mark.score / mark.maxScore) * 100).toFixed(1);
+            const grade = getGrade(percentage);
+            
+            html += `
+                <div class="mark-entry">
+                    <div class="mark-header">
+                        <h4>${student ? student.name : 'Unknown Student'} - ${mark.subject || 'No Subject'}</h4>
+                        <span class="mark-percentage ${grade.toLowerCase()}">${percentage}%</span>
+                    </div>
+                    <div class="mark-details">
+                        <p><strong>Topic:</strong> ${mark.topic || 'No Topic'}</p>
+                        <p><strong>Score:</strong> ${mark.score || 0}/${mark.maxScore || 0}</p>
+                        <p><strong>Grade:</strong> ${grade}</p>
+                        <p><strong>Date:</strong> ${mark.date ? new Date(mark.date).toLocaleDateString() : 'No Date'}</p>
+                        ${mark.comments ? `<p><strong>Comments:</strong> ${mark.comments}</p>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+        updateMarksStats();
+        
+    } catch (error) {
+        console.error('❌ Error loading marks:', error);
+        const container = document.getElementById('marksContainer');
+        if (container) {
+            container.innerHTML = '<div class="error-state">Error loading marks</div>';
+        }
+    }
+}
+
+function addMark() {
+    try {
+        const studentId = document.getElementById('marksStudent').value;
+        const subject = document.getElementById('markSubject').value;
+        const topic = document.getElementById('markTopic').value;
+        const date = document.getElementById('markDate').value;
+        const score = parseFloat(document.getElementById('score').value) || 0;
+        const maxScore = parseFloat(document.getElementById('maxScore').value) || 1;
+        const comments = document.getElementById('markComments').value;
+        
+        if (!studentId || !subject || !topic || !date || !score || !maxScore) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        const percentage = (score / maxScore) * 100;
+        const grade = getGrade(percentage);
+        
+        const newMark = {
+            studentId,
+            subject,
+            topic,
+            date,
+            score,
+            maxScore,
+            percentage,
+            grade,
+            comments,
+            createdAt: new Date().toISOString()
+        };
+        
+        if (!appData.marks) appData.marks = [];
+        appData.marks.push(newMark);
+        saveAllData();
+        loadMarks();
+        document.getElementById('marksForm').reset();
+        
+        alert('✅ Mark added successfully!');
+        
+    } catch (error) {
+        console.error('❌ Error adding mark:', error);
+        alert('Error adding mark: ' + error.message);
+    }
+}
+
+function getGrade(percentage) {
+    if (percentage >= 90) return 'A';
+    if (percentage >= 80) return 'B';
+    if (percentage >= 70) return 'C';
+    if (percentage >= 60) return 'D';
+    return 'F';
+}
+
+function updateMarksStats() {
+    try {
+        if (!appData.marks) appData.marks = [];
+        
+        const marksCount = appData.marks.length;
+        const avgPercentage = marksCount > 0 
+            ? (appData.marks.reduce((sum, mark) => sum + (mark.percentage || 0), 0) / marksCount).toFixed(1)
+            : '0';
+        
+        const marksCountEl = document.getElementById('marksCount');
+        const avgMarksEl = document.getElementById('avgMarks');
+        
+        if (marksCountEl) marksCountEl.textContent = marksCount;
+        if (avgMarksEl) avgMarksEl.textContent = avgPercentage;
+        
+    } catch (error) {
+        console.error('❌ Error updating marks stats:', error);
+    }
+}
+
+// ============================================================================
+// PAYMENTS MANAGEMENT
+// ============================================================================
+
+function loadPayments() {
+    try {
+        const container = document.getElementById('paymentActivityLog');
+        if (!container) {
+            console.error('❌ Payments container not found');
+            return;
+        }
+        
+        // Populate student dropdown
+        const studentSelect = document.getElementById('paymentStudent');
+        if (studentSelect) {
+            studentSelect.innerHTML = '<option value="">Select student...</option>';
+            if (appData.students) {
+                appData.students.forEach(student => {
+                    studentSelect.innerHTML += `<option value="${student.id}">${student.name}</option>`;
+                });
+            }
+        }
+        
+        if (!appData.payments || appData.payments.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">💰</div><h4>No Payments</h4><p>No payment activity recorded yet.</p></div>';
+            return;
+        }
+        
+        let html = '<div class="payments-list">';
+        
+        const recentPayments = appData.payments.slice(-10).reverse();
+        recentPayments.forEach((payment, index) => {
+            const student = appData.students ? appData.students.find(s => s.id === payment.studentId) : null;
+            
+            html += `
+                <div class="payment-entry">
+                    <div class="payment-header">
+                        <h4>${student ? student.name : 'Unknown Student'}</h4>
+                        <span class="payment-amount">$${payment.amount.toFixed(2)}</span>
+                    </div>
+                    <div class="payment-details">
+                        <p><strong>Date:</strong> ${payment.date ? new Date(payment.date).toLocaleDateString() : 'No Date'}</p>
+                        <p><strong>Method:</strong> ${payment.method || 'N/A'}</p>
+                        ${payment.notes ? `<p><strong>Notes:</strong> ${payment.notes}</p>` : ''}
+                    </div>
+                    <div class="payment-actions">
+                        <button class="btn btn-sm" onclick="deletePayment(${appData.payments.length - 1 - index})">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+        updatePaymentStats();
+        
+    } catch (error) {
+        console.error('❌ Error loading payments:', error);
+        const container = document.getElementById('paymentActivityLog');
+        if (container) {
+            container.innerHTML = '<div class="error-state">Error loading payments</div>';
+        }
+    }
+}
+
+function recordPayment() {
+    try {
+        const studentId = document.getElementById('paymentStudent').value;
+        const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+        const date = document.getElementById('paymentDate').value;
+        const method = document.getElementById('paymentMethod').value;
+        const notes = document.getElementById('paymentNotes').value;
+        
+        if (!studentId || !amount || !date) {
+            alert('Please fill in required fields: Student, Amount, and Date');
+            return;
+        }
+        
+        const newPayment = {
+            studentId,
+            amount,
+            date,
+            method,
+            notes,
+            createdAt: new Date().toISOString()
+        };
+        
+        if (!appData.payments) appData.payments = [];
+        appData.payments.push(newPayment);
+        saveAllData();
+        loadPayments();
+        resetPaymentForm();
+        
+        alert('✅ Payment recorded successfully!');
+        
+    } catch (error) {
+        console.error('❌ Error recording payment:', error);
+        alert('Error recording payment: ' + error.message);
+    }
+}
+
+function resetPaymentForm() {
+    document.getElementById('paymentStudent').value = '';
+    document.getElementById('paymentAmount').value = '';
+    document.getElementById('paymentDate').value = '';
+    document.getElementById('paymentMethod').value = 'Cash';
+    document.getElementById('paymentNotes').value = '';
+}
+
+function updatePaymentStats() {
+    try {
+        if (!appData.payments) appData.payments = [];
+        if (!appData.students) appData.students = [];
+        
+        const totalStudents = appData.students.length;
+        const monthlyPayments = appData.payments
+            .filter(p => {
+                if (!p.date) return false;
+                const paymentDate = new Date(p.date);
+                const now = new Date();
+                return paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear();
+            })
+            .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+        
+        const totalStudentsEl = document.getElementById('totalStudentsCount');
+        const monthlyPaymentsEl = document.getElementById('monthlyPayments');
+        
+        if (totalStudentsEl) totalStudentsEl.textContent = totalStudents;
+        if (monthlyPaymentsEl) monthlyPaymentsEl.textContent = monthlyPayments.toFixed(2);
+        
+    } catch (error) {
+        console.error('❌ Error updating payment stats:', error);
+    }
+}
+
+function deletePayment(index) {
+    if (confirm('Are you sure you want to delete this payment record?')) {
+        appData.payments.splice(index, 1);
+        saveAllData();
+        loadPayments();
+        alert('✅ Payment record deleted successfully!');
+    }
+}
+
+// ============================================================================
+// REPORTS SYSTEM
+// ============================================================================
+
+function loadReports() {
+    console.log('📈 Loading reports...');
+    try {
+        updateReportStats();
+        console.log('✅ Reports loaded successfully');
+    } catch (error) {
+        console.error('❌ Error loading reports:', error);
+    }
+}
+
+function updateReportStats() {
+    try {
+        if (!appData.students) appData.students = [];
+        if (!window.hoursEntries) window.hoursEntries = [];
+        if (!appData.marks) appData.marks = [];
+        if (!appData.payments) appData.payments = [];
+        
+        const totalStudents = appData.students.length;
+        const totalHours = window.hoursEntries.reduce((sum, entry) => sum + (entry.hours || 0), 0);
+        const totalEarnings = window.hoursEntries.reduce((sum, entry) => sum + (entry.total || 0), 0);
+        const totalPayments = appData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+        
+        const avgMark = appData.marks.length > 0 
+            ? (appData.marks.reduce((sum, mark) => sum + (mark.percentage || 0), 0) / appData.marks.length).toFixed(1)
+            : '0';
+        
+        const totalStudentsEl = document.getElementById('totalStudentsReport');
+        const totalHoursEl = document.getElementById('totalHoursReport');
+        const totalEarningsEl = document.getElementById('totalEarningsReport');
+        const avgMarkEl = document.getElementById('avgMarkReport');
+        const totalPaymentsEl = document.getElementById('totalPaymentsReport');
+        
+        if (totalStudentsEl) totalStudentsEl.textContent = totalStudents;
+        if (totalHoursEl) totalHoursEl.textContent = totalHours.toFixed(1);
+        if (totalEarningsEl) totalEarningsEl.textContent = totalEarnings.toFixed(2);
+        if (avgMarkEl) avgMarkEl.textContent = avgMark + '%';
+        if (totalPaymentsEl) totalPaymentsEl.textContent = totalPayments.toFixed(2);
+        
+    } catch (error) {
+        console.error('❌ Error updating report stats:', error);
+    }
+}
+
+// ============================================================================
 // DEFAULT RATE MANAGEMENT
 // ============================================================================
 
@@ -901,8 +1637,68 @@ window.cancelHoursEdit = cancelHoursEdit;
 window.deleteHours = deleteHours;
 window.updateTotalDisplay = updateTotalDisplay;
 
+// Attendance Management
+window.saveAttendance = saveAttendance;
+window.selectAllStudents = selectAllStudents;
+window.deselectAllStudents = deselectAllStudents;
+window.clearAttendanceForm = clearAttendanceForm;
+window.deleteAttendance = deleteAttendance;
+window.editAttendance = editAttendance;
+window.updateAttendance = updateAttendance;
+window.cancelAttendanceEdit = cancelAttendanceEdit;
+window.setTodayDate = setTodayDate;
+window.setYesterdayDate = setYesterdayDate;
+
+// Marks Management
+window.addMark = addMark;
+
+// Payments Management
+window.recordPayment = recordPayment;
+window.resetPaymentForm = resetPaymentForm;
+window.deletePayment = deletePayment;
+
 // Settings Management
 window.saveDefaultRate = saveDefaultRate;
 window.useDefaultRate = useDefaultRate;
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🏁 DOM fully loaded, initializing app...');
+    
+    // Initialize hours system
+    loadHoursFromStorage();
+    if (typeof displayHours === 'function') {
+        displayHours();
+    }
+    
+    // Setup auto-calculation for hours form
+    const hoursInput = document.getElementById('hoursWorked');
+    const rateInput = document.getElementById('baseRate');
+    
+    if (hoursInput && rateInput) {
+        const calculateTotal = () => {
+            const hours = parseFloat(hoursInput.value) || 0;
+            const rate = parseFloat(rateInput.value) || 0;
+            const totalPayInput = document.getElementById('totalPay');
+            if (totalPayInput) {
+                totalPayInput.value = (hours * rate).toFixed(2);
+            }
+        };
+        
+        hoursInput.addEventListener('input', calculateTotal);
+        rateInput.addEventListener('input', calculateTotal);
+    }
+    
+    // Set default date to today
+    const dateInput = document.getElementById('workDate');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    
+    console.log('✅ App ready');
+});
 
 console.log('✅ App.js completely loaded');
