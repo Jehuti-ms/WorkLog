@@ -620,6 +620,12 @@ function deleteStudent(index) {
     updateStudentStats();
 
     alert("🗑️ Student deleted successfully!");
+ 
+ showToast("💰 Payment recorded successfully", "success"); // ✅ toast
+    } catch (error) {
+        console.error("❌ Error recording payment:", error);
+        showToast("❌ Error recording payment", "error"); // ✅ toast
+    }
 }
 
 // ============================================================================
@@ -1774,6 +1780,9 @@ function recordPayment() {
         resetPaymentForm();
 
         alert('✅ Payment recorded successfully!');
+     
+        // ✅ Toast notification
+        showToast("💰 Payment recorded successfully", "success");
     } catch (error) {
         console.error('❌ Error recording payment:', error);
         alert('Error recording payment: ' + error.message);
@@ -3374,3 +3383,24 @@ saveAllData = function() {
     
     return originalSaveAllData.apply(this, arguments);
 };
+
+// Toast message Add / Delete payment
+function showToast(message, type = "success") {
+    const container = document.getElementById("toastContainer");
+    if (!container) return;
+
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    // Trigger animation
+    setTimeout(() => toast.classList.add("show"), 50);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
