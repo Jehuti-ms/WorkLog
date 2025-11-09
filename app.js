@@ -1225,6 +1225,7 @@ function updateAttendance(index) {
         };
 
         saveAllData();
+        updateStats();
         loadAttendance();
 
         // ✅ Reset edit mode properly
@@ -1259,7 +1260,6 @@ function deleteAttendance(index) {
     if (confirm('Are you sure you want to delete this attendance record?')) {
         appData.attendance.splice(index, 1);
         saveAllData();
-        updateStats();
         loadAttendance();
         alert('✅ Attendance record deleted successfully!');
     }
