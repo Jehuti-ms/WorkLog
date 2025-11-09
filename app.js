@@ -1109,47 +1109,7 @@ function updateAttendance(index) {
     }
 }
 
-function cancelAttendanceEdit() {
-    console.log('❌ Cancelling attendance edit');
-    isEditingAttendance = false;
-    
-    // Clear form
-    clearAttendanceForm();
-    
-    // COMPLETELY REPLACE the save button to remove old event listeners
-    const saveButton = document.querySelector('#attendance .btn-primary');
-    if (saveButton) {
-        const newSaveButton = saveButton.cloneNode(true);
-        newSaveButton.textContent = '💾 Save Attendance';
-        
-        // Remove all existing event listeners by replacing the element
-        saveButton.parentNode.replaceChild(newSaveButton, saveButton);
-        
-        // Add the new click handler
-        newSaveButton.onclick = function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('💾 Save button clicked');
-            saveAttendance();
-            return false;
-        };
-    }
-    
-    // Remove cancel button
-    const cancelButton = document.querySelector('.cancel-attendance-edit');
-    if (cancelButton) {
-        cancelButton.remove();
-    }
-    
-    // Remove edit mode styling
-    const formCard = document.querySelector('#attendance .section-card');
-    if (formCard) {
-        formCard.classList.remove('edit-mode');
-    }
-    
-    console.log('✅ Attendance edit cancelled');
-}
-
+function cancelAttendanceEdit
 function saveAttendance() {
     console.log('💾 Saving new attendance record');
     
