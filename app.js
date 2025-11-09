@@ -994,26 +994,47 @@ function editAttendance(index) {
         }
     });
     
-    // Update the save button
+    // COMPLETELY REPLACE the save button to remove old event listeners
     const saveButton = document.querySelector('#attendance .btn-primary');
     if (saveButton) {
-        saveButton.textContent = '💾 Update Attendance';
-        saveButton.onclick = function() { updateAttendance(index); };
+        const newSaveButton = saveButton.cloneNode(true);
+        newSaveButton.textContent = '💾 Update Attendance';
+        
+        // Remove all existing event listeners by replacing the element
+        saveButton.parentNode.replaceChild(newSaveButton, saveButton);
+        
+        // Add the new click handler
+        newSaveButton.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔄 Update button clicked for index:', index);
+            updateAttendance(index);
+            return false;
+        };
     }
     
     // Add cancel edit button if not exists
-    if (!document.querySelector('.cancel-attendance-edit')) {
-        const cancelButton = document.createElement('button');
+    let cancelButton = document.querySelector('.cancel-attendance-edit');
+    if (!cancelButton) {
+        cancelButton = document.createElement('button');
         cancelButton.type = 'button';
         cancelButton.className = 'btn btn-warning cancel-attendance-edit';
         cancelButton.textContent = '❌ Cancel Edit';
-        cancelButton.onclick = cancelAttendanceEdit;
         
         const formActions = document.querySelector('#attendance .form-actions');
         if (formActions) {
             formActions.appendChild(cancelButton);
         }
     }
+    
+    // Update cancel button handler
+    cancelButton.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('❌ Cancel edit button clicked');
+        cancelAttendanceEdit();
+        return false;
+    };
     
     // Add edit mode styling
     const formCard = document.querySelector('#attendance .section-card');
@@ -1025,6 +1046,8 @@ function editAttendance(index) {
 }
 
 function updateAttendance(index) {
+    console.log('🔄 Updating attendance record:', index);
+    
     try {
         const date = document.getElementById('attendanceDate').value;
         const subject = document.getElementById('attendanceSubject').value;
@@ -1081,6 +1104,102 @@ function cancelAttendanceEdit() {
     // Clear form
     clearAttendanceForm();
     
+    // COMPLETELY REPLACE the save button to remove old event listeners
+    const saveButton = document.querySelector('#attendance .btn-primary');
+    if (saveButton) {
+        const newSaveButton = saveButton.cloneNode(true);
+        newSaveButton.textContent = '💾 Save Attendance';
+        
+        // Remove all existing event listeners by replacing the element
+        saveButton.parentNode.replaceChild(newSaveButton, saveButton);
+        
+        // Add the new click handler
+        newSaveButton.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('💾 Save button clicked');
+            saveAttendance();
+            return false;
+        };
+    }
+    
+    // Remove cancel button
+    const cancelButton = document.querySelector('.cancel-attendance-edit');
+    if (cancelButton) {
+        cancelButton.remove();
+    }
+    
+    // Remove edit mode styling
+    const formCard = document.querySelector('#attendance .section-card');
+    if (formCard) {
+        formCard.classList.remove('edit-mode');
+    }
+    
+    console.log('✅ Attendance edit cancelled');
+}
+
+function saveAttendance() {
+    console.log('💾 Saving new attendance record');
+    
+    if (isEditingAttendance) {
+        console.log('🛑 Save blocked - edit in progress');
+        return;
+    }
+    
+    try {
+        const date = document.getElementById('attendanceDate').value;
+        const subject = document.getElementById('attendanceSubject').value;
+        const topic = document.getElementById('attendanceTopic').value;
+        
+        if (!date || !subject) {
+            alert('Please fill in date and subject');
+            return;
+        }
+        
+        const presentStudents = [];
+        
+        // Get all checked students
+        appData.students.forEach(student => {
+            const checkbox = document.getElementById(`attend_${student.id}`);
+            if (checkbox && checkbox.checked) {
+                presentStudents.push(student.id);
+            }
+        });
+        
+        if (presentStudents.length === 0) {
+            alert('Please select at least one student');
+            return;
+        }
+        
+        const newAttendance = {
+            date,
+            subject,
+            topic,
+            presentStudents,
+            createdAt: new Date().toISOString()
+        };
+        
+        if (!appData.attendance) appData.attendance = [];
+        appData.attendance.push(newAttendance);
+        saveAllData();
+        loadAttendance();
+        clearAttendanceForm();
+        
+        alert(`✅ Attendance saved for ${presentStudents.length} students!`);
+        
+    } catch (error) {
+        console.error('❌ Error saving attendance:', error);
+        alert('Error saving attendance: ' + error.message);
+    }
+}
+
+function cancelAttendanceEdit() {
+    console.log('❌ Cancelling attendance edit');
+    isEditingAttendance = false;
+    
+    // Clear form
+    clearAttendanceForm();
+    
     // Reset save button
     const saveButton = document.querySelector('#attendance .btn-primary');
     if (saveButton) {
@@ -1102,15 +1221,23 @@ function cancelAttendanceEdit() {
 }
 
 function clearAttendanceForm() {
-    document.getElementById('attendanceDate').value = '';
-    document.getElementById('attendanceSubject').value = '';
-    document.getElementById('attendanceTopic').value = '';
+    console.log('🧹 Clearing attendance form');
+    
+    const dateInput = document.getElementById('attendanceDate');
+    const subjectInput = document.getElementById('attendanceSubject');
+    const topicInput = document.getElementById('attendanceTopic');
+    
+    if (dateInput) dateInput.value = '';
+    if (subjectInput) subjectInput.value = '';
+    if (topicInput) topicInput.value = '';
     
     // Deselect all students
     if (appData.students) {
         appData.students.forEach(student => {
             const checkbox = document.getElementById(`attend_${student.id}`);
-            if (checkbox) checkbox.checked = false;
+            if (checkbox) {
+                checkbox.checked = false;
+            }
         });
     }
 }
