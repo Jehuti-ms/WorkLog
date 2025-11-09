@@ -3241,3 +3241,36 @@ input[type="search"]::-webkit-search-results-decoration {
     display: none;
     user-select: none;
 }
+
+/* ============================================================================
+   SEARCH BOX - WRAPPER + CLEAR BUTTON
+   ============================================================================ */
+.search-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    max-width: 400px;
+}
+
+#studentSearch {
+    width: 100%;
+    padding-left: 44px;
+    padding-right: 36px;
+    box-sizing: border-box;
+    background-image: url("data:image/svg+xml,%3Csvg fill='gray' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M15.5 14h-.79l-.28-.27a6.471 6.471 0 001.48-5.34C15.07 5.59 12.47 3 9.25 3S3.43 5.59 3.09 8.39c-.34 2.8 1.48 5.34 4.28 5.34 1.61 0 3.06-.59 4.14-1.56l.27.28v.79l5 4.99L20.49 19l-4.99-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 12px center;
+    background-size: 20px;
+}
+
+#clearSearch {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: gray;
+    cursor: pointer;
+    display: none;
+    user-select: none;
+}
