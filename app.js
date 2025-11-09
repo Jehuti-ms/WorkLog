@@ -1188,7 +1188,9 @@ function debugButtonClick() {
 
 function updateAttendance(index) {
     try {
-        const date = document.getElementById('attendanceDate').value;
+        //const date = document.getElementById('attendanceDate').value;
+        const rawDate = document.getElementById('attendanceDate').value;
+        const date = new Date(rawDate).toISOString(); // Normalize to ISO format
         const subject = document.getElementById('attendanceSubject').value;
         const topic = document.getElementById('attendanceTopic').value;
         
