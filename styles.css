@@ -3366,30 +3366,21 @@ input[type="search"]::-webkit-search-results-decoration {
     background: #dc3545;
 }
 
-/* Sync controls container */
-.sync-controls-container {
-  padding: 1rem;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-/* Sync bar layout */
-.sync-bar {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
+.sync-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* two equal columns */
   gap: 1rem;
+  padding: 1rem;
   background-color: var(--sync-bg, #f9f9f9);
-  padding: 0.75rem 1rem;
   border-radius: 6px;
   box-shadow: 0 0 4px rgba(0,0,0,0.05);
 }
 
-.sync-options,
-.app-controls {
+.sync-col {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.75rem;
 }
+
+
 
