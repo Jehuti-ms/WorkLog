@@ -3016,6 +3016,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (dateInput && !dateInput.value) {
         dateInput.value = new Date().toISOString().split('T')[0];
     }
+ 
      // Student search filter + clear button
      const searchBox = document.getElementById('studentSearch');
 const clearBtn = document.getElementById('clearSearch');
@@ -3048,7 +3049,6 @@ if (searchBox && container && clearBtn) {
         }
     });
 }
-
  
     console.log('✅ App ready');
 });
