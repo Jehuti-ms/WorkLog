@@ -3050,6 +3050,39 @@ if (searchBox && container && clearBtn) {
     });
 }
  
+ // Live percentage + grade calculation in Marks form
+const scoreInput = document.getElementById('score');
+const maxScoreInput = document.getElementById('maxScore');
+const percentageInput = document.getElementById('percentage');
+const gradeInput = document.getElementById('grade');
+
+if (scoreInput && maxScoreInput && percentageInput && gradeInput) {
+    const calculateMarks = () => {
+        const score = parseFloat(scoreInput.value) || 0;
+        const maxScore = parseFloat(maxScoreInput.value) || 0;
+
+        if (maxScore > 0) {
+            const percent = (score / maxScore) * 100;
+            percentageInput.value = percent.toFixed(2) + '%';
+
+            let grade = '';
+            if (percent >= 90) grade = 'A';
+            else if (percent >= 80) grade = 'B';
+            else if (percent >= 70) grade = 'C';
+            else if (percent >= 60) grade = 'D';
+            else grade = 'F';
+
+            gradeInput.value = grade;
+        } else {
+            percentageInput.value = '';
+            gradeInput.value = '';
+        }
+    };
+
+    scoreInput.addEventListener('input', calculateMarks);
+    maxScoreInput.addEventListener('input', calculateMarks);
+}
+
     console.log('✅ App ready');
 });
 
