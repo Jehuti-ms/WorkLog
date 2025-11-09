@@ -3334,33 +3334,6 @@ input[type="search"]::-webkit-search-results-decoration {
     to {opacity: 1; transform: translateY(0);}
 }
 
-/* Responsive grid layout for sync bar */
-.responsive-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-}
-
-/* On smaller screens, switch to grid */
-@media (max-width: 768px) {
-    .responsive-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 10px;
-        justify-items: center;
-        text-align: center;
-    }
-
-    .responsive-grid .btn,
-    .responsive-grid .auto-sync-label {
-        width: 100%;
-        font-size: 14px;
-        padding: 8px 10px;
-        box-sizing: border-box;
-    }
-}
-
 .toast-container {
     position: fixed;
     bottom: 20px;
@@ -3395,14 +3368,21 @@ input[type="search"]::-webkit-search-results-decoration {
 
 .sync-bar {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 10px;
+    grid-template-columns: 1fr 1fr; /* two groups side by side */
+    gap: 20px;
     margin-bottom: 20px;
 }
 
-/* Optional: tweak specifically for smaller screens */
+.sync-options,
+.app-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+/* Responsive tweak for smaller screens */
 @media (max-width: 600px) {
     .sync-bar {
-        grid-template-columns: repeat(2, 1fr); /* 2 buttons per row */
+        grid-template-columns: 1fr; /* stack groups vertically */
     }
 }
