@@ -1191,6 +1191,7 @@ function updateAttendance(index) {
         //const date = document.getElementById('attendanceDate').value;
         const rawDate = document.getElementById('attendanceDate').value;
         const date = new Date(rawDate).toISOString(); // Normalize to ISO format
+        console.log('🧭 Normalized date for saving:', date);
         const subject = document.getElementById('attendanceSubject').value;
         const topic = document.getElementById('attendanceTopic').value;
         
