@@ -3016,13 +3016,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (dateInput && !dateInput.value) {
         dateInput.value = new Date().toISOString().split('T')[0];
     }
-      // Student search filter + clear button
-const searchBox = document.getElementById('studentSearch');
+     // Student search filter + clear button
+     const searchBox = document.getElementById('studentSearch');
+const clearBtn = document.getElementById('clearSearch');
 const container = document.getElementById('studentsContainer');
 
-if (searchBox && container) {
-    searchBox.addEventListener('input', function (e) {
-        const query = e.target.value.toLowerCase();
+if (searchBox && container && clearBtn) {
+    const filterStudents = () => {
+        const query = searchBox.value.toLowerCase();
         const items = container.querySelectorAll('.student-card.searchable');
 
         items.forEach(item => {
@@ -3030,27 +3031,24 @@ if (searchBox && container) {
             item.style.display = text.includes(query) ? '' : 'none';
         });
 
-        // Toggle clear button
-        if (searchBox.value.length > 0) {
-            searchBox.classList.add('clearable');
-        } else {
-            searchBox.classList.remove('clearable');
-        }
+        clearBtn.style.display = query.length > 0 ? 'block' : 'none';
+    };
+
+    searchBox.addEventListener('input', filterStudents);
+
+    clearBtn.addEventListener('click', () => {
+        searchBox.value = '';
+        filterStudents();
+        searchBox.focus();
     });
 
-    // Clear search when clicking the clear button
-    searchBox.addEventListener('click', function (e) {
-        if (searchBox.classList.contains('clearable')) {
-            // If clicked near the right side (where the X is)
-            const boxWidth = searchBox.offsetWidth;
-            const clickX = e.offsetX;
-            if (clickX > boxWidth - 30) {
-                searchBox.value = '';
-                searchBox.dispatchEvent(new Event('input')); // re-run filter
-            }
+    searchBox.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            clearBtn.click();
         }
     });
 }
+
  
     console.log('✅ App ready');
 });
