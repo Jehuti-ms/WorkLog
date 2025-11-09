@@ -291,7 +291,6 @@ function loadStudents() {
     updateStudentStats();
 }
 
-
 function addStudent() {
     try {
         const name = document.getElementById('studentName').value;
