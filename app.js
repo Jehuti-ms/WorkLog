@@ -470,12 +470,16 @@ function cancelStudentEdit() {
 }
 
 function deleteStudent(index) {
-    if (confirm('Are you sure you want to delete this student?')) {
-        appData.students.splice(index, 1);
-        saveAllData();
-        loadStudents();
-        alert('✅ Student deleted successfully!');
-    }
+    if (!confirm("Are you sure you want to delete this student?")) return;
+
+    appData.students.splice(index, 1);
+    saveAllData();
+    loadStudents();
+
+    // 🔽 Refresh stats after deletion
+    updateStudentStats();
+
+    alert("🗑️ Student deleted successfully!");
 }
 
 // ============================================================================
