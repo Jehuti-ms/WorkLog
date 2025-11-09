@@ -1190,34 +1190,31 @@ function debugButtonClick() {
 
 function updateAttendance(index) {
     try {
-        //const date = document.getElementById('attendanceDate').value;
         const rawDate = document.getElementById('attendanceDate').value;
-        const date = new Date(rawDate).toISOString(); // Normalize to ISO format
-        console.log('🧭 Normalized date for saving:', date);
+        const date = rawDate; // store YYYY-MM-DD directly
+
         const subject = document.getElementById('attendanceSubject').value;
         const topic = document.getElementById('attendanceTopic').value;
-        
+
         if (!date || !subject) {
             alert('Please fill in date and subject');
             return;
         }
-        
+
         const presentStudents = [];
-        
-        // Get all checked students
         appData.students.forEach(student => {
             const checkbox = document.getElementById(`attend_${student.id}`);
             if (checkbox && checkbox.checked) {
                 presentStudents.push(student.id);
             }
         });
-        
+
         if (presentStudents.length === 0) {
             alert('Please select at least one student');
             return;
         }
-        
-        // Update the existing attendance record
+
+        // Update record
         appData.attendance[index] = {
             ...appData.attendance[index],
             date,
@@ -1226,18 +1223,15 @@ function updateAttendance(index) {
             presentStudents,
             updatedAt: new Date().toISOString()
         };
-        // ✅ Add this log to confirm what was stored
-console.log('📦 Updated attendance record:', appData.attendance[index]);
-        
+
         saveAllData();
         loadAttendance();
-        
-        // ✅ Only clear edit mode after successful update
-        isEditingAttendance = false;
+
+        // ✅ Reset edit mode properly
         cancelAttendanceEdit();
-        
+
         alert(`✅ Attendance updated for ${presentStudents.length} students!`);
-        
+
     } catch (error) {
         console.error('❌ Error updating attendance:', error);
         alert('Error updating attendance: ' + error.message);
@@ -1299,46 +1293,37 @@ function clearAttendanceForm() {
 }
 
 function cancelAttendanceEdit() {
-    if (!isEditingAttendance) {
-        console.warn('⚠️ Cancel ignored: not in edit mode');
-        return;
-    }
-
     console.log('❌ Cancelling attendance edit');
+
+    // Reset flag here (not skipped)
     isEditingAttendance = false;
 
     // Clear form
     document.getElementById('attendanceDate').value = '';
     document.getElementById('attendanceSubject').value = '';
     document.getElementById('attendanceTopic').value = '';
-    
-    // Clear all checkboxes
+
+    // Clear checkboxes
     appData.students.forEach(student => {
         const checkbox = document.getElementById(`attend_${student.id}`);
-        if (checkbox) {
-            checkbox.checked = false;
-        }
+        if (checkbox) checkbox.checked = false;
     });
-    
+
     // Reset save button
     const saveButton = document.querySelector('#attendance .btn-primary');
     if (saveButton) {
         saveButton.innerHTML = '💾 Save Attendance';
         saveButton.onclick = saveAttendance;
     }
-    
+
     // Remove cancel button
     const cancelButton = document.querySelector('.cancel-attendance-edit');
-    if (cancelButton) {
-        cancelButton.remove();
-    }
-    
+    if (cancelButton) cancelButton.remove();
+
     // Remove edit mode styling
     const formCard = document.querySelector('#attendance .section-card');
     formCard.classList.remove('edit-mode');
 }
-
-
 
 // ============================================================================
 // ATTENDANCE DATE FORMATTING - FIXED LOCAL/UTC ISSUES
