@@ -86,6 +86,46 @@ if (window.cloudSync) {
 }
 
 // ============================================================================
+// Earnings Tracker
+// ============================================================================
+
+function updateEarningsTracker() {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday start
+    startOfWeek.setHours(0,0,0,0);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let weekHours = 0, weekEarnings = 0;
+    let monthHours = 0, monthEarnings = 0;
+
+    if (appData.hours && appData.hours.length > 0) {
+        appData.hours.forEach(entry => {
+            const entryDate = new Date(entry.createdAt);
+            const hours = parseFloat(entry.hours) || 0;
+            const rate = parseFloat(entry.rate) || 0;
+            const earning = hours * rate;
+
+            if (entryDate >= startOfWeek) {
+                weekHours += hours;
+                weekEarnings += earning;
+            }
+            if (entryDate >= startOfMonth) {
+                monthHours += hours;
+                monthEarnings += earning;
+            }
+        });
+    }
+
+    const weekEl = document.getElementById('weekEarnings');
+    const monthEl = document.getElementById('monthEarnings');
+
+    if (weekEl) weekEl.textContent = `${weekHours.toFixed(1)}h / $${weekEarnings.toFixed(2)}`;
+    if (monthEl) monthEl.textContent = `${monthHours.toFixed(1)}h / $${monthEarnings.toFixed(2)}`;
+}
+
+// ============================================================================
 // DATA MANAGEMENT
 // ============================================================================
 
@@ -247,30 +287,49 @@ function loadTabData(tabName) {
 // STUDENTS MANAGEMENT
 // ============================================================================
 // Calculate average student rate
-function updateStudentStats() {
-    const cards = document.querySelectorAll('.student-card');
-    const count = cards.length;
-    let totalRate = 0;
-
-    cards.forEach(card => {
-        const rateText = card.querySelector('.student-rate');
-        if (rateText) {
-            // Extract number from "$82.97/session"
-            const match = rateText.textContent.match(/\$([\d.]+)/);
-            if (match) {
-                totalRate += parseFloat(match[1]);
-            }
+function updateStudent(index) {
+    try {
+        const student = appData.students[index];
+        if (!student) {
+            alert('Student not found!');
+            return;
         }
-    });
 
-    const avgRateElement = document.getElementById('avgRate');
-    const countElement = document.getElementById('studentsCount');
+        // Update fields from form
+        student.name = document.getElementById('studentName').value || '';
+        student.id = document.getElementById('studentId').value || '';
+        student.gender = document.getElementById('studentGender').value || '';
+        student.email = document.getElementById('studentEmail').value || '';
+        student.phone = document.getElementById('studentPhone').value || '';
+        student.rate = parseFloat(document.getElementById('studentBaseRate').value) 
+                       || appData.settings.defaultRate 
+                       || 25.00;
 
-    if (avgRateElement) {
-        avgRateElement.textContent = count > 0 ? `$${(totalRate / count).toFixed(2)}` : '$0';
-    }
-    if (countElement) {
-        countElement.textContent = count;
+        // Save changes
+        saveAllData();
+
+        // Refresh UI
+        loadStudents();
+        updateStudentStats(); // 🔽 keep stats in sync
+
+        // Reset form back to "Add Student"
+        clearStudentForm();
+        const addButton = document.querySelector('#students .btn-primary');
+        if (addButton) {
+            addButton.innerHTML = '➕ Add Student';
+            addButton.onclick = addStudent;
+        }
+
+        // Remove cancel button if present
+        const cancelButton = document.querySelector('.btn-cancel-edit');
+        if (cancelButton) {
+            cancelButton.remove();
+        }
+
+        alert('✅ Student updated successfully!');
+    } catch (error) {
+        console.error('❌ Error updating student:', error);
+        alert('Error updating student: ' + error.message);
     }
 }
 
