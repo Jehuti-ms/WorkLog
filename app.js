@@ -2840,13 +2840,20 @@ function updateStats() {
         if (!appData.students) appData.students = [];
         if (!appData.hours) appData.hours = [];
         if (!appData.attendance) appData.attendance = [];
-        
+
         const totalStudents = appData.students.length;
         const totalHours = appData.hours.reduce((sum, entry) => sum + (entry.hours || 0), 0).toFixed(1);
         const totalSessions = appData.hours.length + appData.attendance.length;
-        
+
         document.getElementById('dataStatus').textContent = `📊 Data: ${totalStudents} Students, ${totalSessions} Sessions`;
-        
+
+        // ✅ Update Last Session badge
+        const badge = document.getElementById('lastSessionBadge');
+        if (badge && appData.attendance.length > 0) {
+            const lastSession = appData.attendance[appData.attendance.length - 1];
+            badge.textContent = `Last Session: ${formatAttendanceDate(lastSession.date)}`;
+        }
+
     } catch (error) {
         console.error('❌ Error updating stats:', error);
     }
