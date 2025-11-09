@@ -795,22 +795,27 @@ function loadHoursFromStorage() {
             const data = JSON.parse(saved);
             window.hoursEntries = data.hours || [];
             console.log('📥 Loaded hours from storage:', window.hoursEntries.length, 'entries');
-            
-            // Sync with appData.hours for backward compatibility
-            appData.hours = [...window.hoursEntries];
             return window.hoursEntries;
         }
     } catch (error) {
         console.error('❌ Error loading hours:', error);
     }
-    
-    // Initialize from appData.hours if hoursEntries is empty
-    if (window.hoursEntries.length === 0 && appData.hours.length > 0) {
-        window.hoursEntries = [...appData.hours];
-        saveHoursToStorage();
-    }
-    
     return [];
+}
+
+function saveHoursToStorage() {
+    try {
+        localStorage.setItem('worklog_hours', JSON.stringify({
+            hours: window.hoursEntries || [],
+            lastUpdated: new Date().toISOString()
+        }));
+        console.log('💾 Hours saved to storage');
+        
+        // Sync with appData.hours for reports compatibility
+        appData.hours = [...window.hoursEntries];
+    } catch (error) {
+        console.error('❌ Error saving hours:', error);
+    }
 }
 
 // ============================================================================
