@@ -978,6 +978,7 @@ function loadAttendance() {
         
         // Show all attendance records with edit functionality
         appData.attendance.slice().reverse().forEach((session, index) => {
+            console.log(`🔍 Rendering session ${index}:`, session);
             const actualIndex = appData.attendance.length - 1 - index;
             const presentStudents = session.presentStudents.map(id => {
                 const student = appData.students.find(s => s.id === id);
@@ -1224,6 +1225,8 @@ function updateAttendance(index) {
             presentStudents,
             updatedAt: new Date().toISOString()
         };
+        // ✅ Add this log to confirm what was stored
+console.log('📦 Updated attendance record:', appData.attendance[index]);
         
         saveAllData();
         loadAttendance();
