@@ -1782,47 +1782,41 @@ function recordPayment() {
 
 function updatePaymentStats() {
     try {
-        if (!appData.payments) appData.payments = [];
         if (!appData.students) appData.students = [];
+        if (!appData.payments) appData.payments = [];
 
+        // Total students
         const totalStudents = appData.students.length;
 
+        // Total owed
+        const totalOwed = appData.students.reduce((sum, s) => sum + (s.owed || 0), 0);
+
+        // Monthly payments (current month only)
         const now = new Date();
-        const monthlyPayments = appData.payments
-            .filter(p => p.date && new Date(p.date).getMonth() === now.getMonth() && new Date(p.date).getFullYear() === now.getFullYear())
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const monthlyTotal = appData.payments
+            .filter(p => {
+                const date = new Date(p.date);
+                return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+            })
             .reduce((sum, p) => sum + (p.amount || 0), 0);
 
-        const balances = {};
-        appData.students.forEach(s => balances[s.id] = parseFloat(s.owed) || 0);
+        // Update UI
+        const studentCountEl = document.getElementById('totalStudentsCount');
+        if (studentCountEl) studentCountEl.textContent = totalStudents;
 
-        appData.payments.forEach(p => {
-            if (balances[p.studentId] !== undefined) {
-                balances[p.studentId] -= (p.amount || 0);
-            }
-        });
+        const owedEl = document.getElementById('totalOwed');
+        if (owedEl) owedEl.textContent = `$${totalOwed.toFixed(2)}`;
 
-        const totalOwed = Object.values(balances).reduce((a, b) => a + b, 0);
-
-        document.getElementById('totalStudentsCount').textContent = totalStudents;
-        document.getElementById('monthlyPayments').textContent = `$${monthlyPayments.toFixed(2)}`;
-        document.getElementById('totalOwed').textContent = `$${totalOwed.toFixed(2)}`;
-
-        const balancesContainer = document.getElementById('studentBalancesContainer');
-        if (balancesContainer) {
-            let html = '<ul class="balance-list">';
-            Object.keys(balances).forEach(id => {
-                const student = appData.students.find(s => s.id === id);
-                if (student) {
-                    html += `<li>${student.name}: $${balances[id].toFixed(2)}</li>`;
-                }
-            });
-            html += '</ul>';
-            balancesContainer.innerHTML = html;
-        }
+        const monthlyEl = document.getElementById('monthlyPayments');
+        if (monthlyEl) monthlyEl.textContent = `$${monthlyTotal.toFixed(2)}`;
     } catch (error) {
         console.error('❌ Error updating payment stats:', error);
     }
 }
+
 
 function deletePayment(index) {
     if (confirm('Are you sure you want to delete this payment record?')) {
