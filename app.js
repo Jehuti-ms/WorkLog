@@ -1295,10 +1295,10 @@ function clearAttendanceForm() {
 function cancelAttendanceEdit() {
     console.log('❌ Cancelling attendance edit');
 
-    // Reset flag here (not skipped)
+    // Always reset the flag
     isEditingAttendance = false;
 
-    // Clear form
+    // Clear form fields
     document.getElementById('attendanceDate').value = '';
     document.getElementById('attendanceSubject').value = '';
     document.getElementById('attendanceTopic').value = '';
@@ -1322,8 +1322,9 @@ function cancelAttendanceEdit() {
 
     // Remove edit mode styling
     const formCard = document.querySelector('#attendance .section-card');
-    formCard.classList.remove('edit-mode');
+    if (formCard) formCard.classList.remove('edit-mode');
 }
+
 
 // ============================================================================
 // ATTENDANCE DATE FORMATTING - FIXED LOCAL/UTC ISSUES
