@@ -265,29 +265,7 @@ function loadStudents() {
 appData.students.forEach((student, index) => {
     const rateValue = student.rate ? parseFloat(student.rate).toFixed(2) : '0.00';
 
-    html += `
-        <div class="student-card searchable">
-            <div class="student-header">
-                <h4 class="student-name">${student.name}</h4>
-                <span class="student-rate">$${rateValue}/session</span>
-            </div>
-            <div class="student-details">
-                <p><strong>ID:</strong> ${student.id}</p>
-                <p><strong>Gender:</strong> ${student.gender}</p>
-                ${student.email ? `<p><strong>Email:</strong> ${student.email}</p>` : ''}
-                ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''}
-                ${student.createdAt ? `<p><small>Added: ${new Date(student.createdAt).toLocaleDateString()}</small></p>` : ''}
-            </div>
-            <div class="student-actions" style="display: flex; gap: 8px; justify-content: space-between; margin-top: 15px;">
-                <button class="btn btn-sm btn-edit" onclick="editStudent(${index})" style="flex: 1;">✏️ Edit</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteStudent(${index})" style="flex: 1;">🗑️ Delete</button>
-            </div>
-        </div>
-    `;
-});
-
-html += '</div>';
-container.innerHTML = html;
+    let html = '<div class="students-grid">'; appData.students.forEach((student, index) => { html += ` <div class="student-card searchable"> <div class="student-header"> <h4 class="student-name">${student.name}</h4> <span class="student-rate">$${student.rate || '0.00'}/session</span> </div> <div class="student-details"> <p><strong>ID:</strong> ${student.id}</p> <p><strong>Gender:</strong> ${student.gender}</p> ${student.email ? `<p><strong>Email:</strong> ${student.email}</p>` : ''} ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''} ${student.createdAt ? `<p><small>Added: ${new Date(student.createdAt).toLocaleDateString()}</small></p>` : ''} </div> <div class="student-actions" style="display: flex; gap: 8px; justify-content: space-between; margin-top: 15px;"> <button class="btn btn-sm btn-edit" onclick="editStudent(${index})" style="flex: 1;">✏️ Edit</button> <button class="btn btn-sm btn-danger" onclick="deleteStudent(${index})" style="flex: 1;">🗑️ Delete</button> </div> </div> `; }); html += '</div>'; container.innerHTML = html;
 
 // 🔽 Make sure stats update after rendering
 updateStudentStats();
