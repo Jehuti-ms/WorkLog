@@ -86,46 +86,6 @@ if (window.cloudSync) {
 }
 
 // ============================================================================
-// Earnings Tracker
-// ============================================================================
-
-function updateEarningsTracker() {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday start
-    startOfWeek.setHours(0,0,0,0);
-
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    let weekHours = 0, weekEarnings = 0;
-    let monthHours = 0, monthEarnings = 0;
-
-    if (appData.hours && appData.hours.length > 0) {
-        appData.hours.forEach(entry => {
-            const entryDate = new Date(entry.createdAt);
-            const hours = parseFloat(entry.hours) || 0;
-            const rate = parseFloat(entry.rate) || 0;
-            const earning = hours * rate;
-
-            if (entryDate >= startOfWeek) {
-                weekHours += hours;
-                weekEarnings += earning;
-            }
-            if (entryDate >= startOfMonth) {
-                monthHours += hours;
-                monthEarnings += earning;
-            }
-        });
-    }
-
-    const weekEl = document.getElementById('weekEarnings');
-    const monthEl = document.getElementById('monthEarnings');
-
-    if (weekEl) weekEl.textContent = `${weekHours.toFixed(1)}h / $${weekEarnings.toFixed(2)}`;
-    if (monthEl) monthEl.textContent = `${monthHours.toFixed(1)}h / $${monthEarnings.toFixed(2)}`;
-}
-
-// ============================================================================
 // DATA MANAGEMENT
 // ============================================================================
 
@@ -1655,16 +1615,16 @@ function loadPayments() {
 function recordPayment() {
     try {
         const studentId = document.getElementById('paymentStudent').value;
-        const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+        const amount = parseFloat(document.getElementById('paymentAmount').value);
         const date = document.getElementById('paymentDate').value;
         const method = document.getElementById('paymentMethod').value;
         const notes = document.getElementById('paymentNotes').value;
-        
-        if (!studentId || !amount || !date) {
+
+        if (!studentId || isNaN(amount) || !date) {
             alert('Please fill in required fields: Student, Amount, and Date');
             return;
         }
-        
+
         const newPayment = {
             studentId,
             amount,
@@ -1673,18 +1633,71 @@ function recordPayment() {
             notes,
             createdAt: new Date().toISOString()
         };
-        
+
         if (!appData.payments) appData.payments = [];
         appData.payments.push(newPayment);
         saveAllData();
         loadPayments();
         resetPaymentForm();
-        
+
         alert('✅ Payment recorded successfully!');
-        
     } catch (error) {
         console.error('❌ Error recording payment:', error);
         alert('Error recording payment: ' + error.message);
+    }
+}
+
+function updatePaymentStats() {
+    try {
+        if (!appData.payments) appData.payments = [];
+        if (!appData.students) appData.students = [];
+
+        const totalStudents = appData.students.length;
+
+        const now = new Date();
+        const monthlyPayments = appData.payments
+            .filter(p => p.date && new Date(p.date).getMonth() === now.getMonth() && new Date(p.date).getFullYear() === now.getFullYear())
+            .reduce((sum, p) => sum + (p.amount || 0), 0);
+
+        const balances = {};
+        appData.students.forEach(s => balances[s.id] = parseFloat(s.owed) || 0);
+
+        appData.payments.forEach(p => {
+            if (balances[p.studentId] !== undefined) {
+                balances[p.studentId] -= (p.amount || 0);
+            }
+        });
+
+        const totalOwed = Object.values(balances).reduce((a, b) => a + b, 0);
+
+        document.getElementById('totalStudentsCount').textContent = totalStudents;
+        document.getElementById('monthlyPayments').textContent = `$${monthlyPayments.toFixed(2)}`;
+        document.getElementById('totalOwed').textContent = `$${totalOwed.toFixed(2)}`;
+
+        const balancesContainer = document.getElementById('studentBalancesContainer');
+        if (balancesContainer) {
+            let html = '<ul class="balance-list">';
+            Object.keys(balances).forEach(id => {
+                const student = appData.students.find(s => s.id === id);
+                if (student) {
+                    html += `<li>${student.name}: $${balances[id].toFixed(2)}</li>`;
+                }
+            });
+            html += '</ul>';
+            balancesContainer.innerHTML = html;
+        }
+    } catch (error) {
+        console.error('❌ Error updating payment stats:', error);
+    }
+}
+
+function deletePayment(index) {
+    if (confirm('Are you sure you want to delete this payment record?')) {
+        appData.payments.splice(index, 1);
+        saveAllData();
+        loadPayments();
+        updatePaymentStats();
+        alert('✅ Payment record deleted successfully!');
     }
 }
 
@@ -1696,36 +1709,40 @@ function resetPaymentForm() {
     document.getElementById('paymentNotes').value = '';
 }
 
-function updatePaymentStats() {
-    try {
-        if (!appData.payments) appData.payments = [];
-        if (!appData.students) appData.students = [];
-        
-        const totalStudents = appData.students.length;
-        const monthlyPayments = appData.payments
-            .filter(p => {
-                if (!p.date) return false;
-                const paymentDate = new Date(p.date);
-                const now = new Date();
-                return paymentDate.getMonth() === now.getMonth() && paymentDate.getFullYear() === now.getFullYear();
-            })
-            .reduce((sum, payment) => sum + (payment.amount || 0), 0);
-        
-        document.getElementById('totalStudentsCount').textContent = totalStudents;
-        document.getElementById('monthlyPayments').textContent = monthlyPayments.toFixed(2);
-        
-    } catch (error) {
-        console.error('❌ Error updating payment stats:', error);
-    }
-}
+function updateEarningsTracker() {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday start
+    startOfWeek.setHours(0,0,0,0);
 
-function deletePayment(index) {
-    if (confirm('Are you sure you want to delete this payment record?')) {
-        appData.payments.splice(index, 1);
-        saveAllData();
-        loadPayments();
-        alert('✅ Payment record deleted successfully!');
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let weekHours = 0, weekEarnings = 0;
+    let monthHours = 0, monthEarnings = 0;
+
+    if (appData.hours && appData.hours.length > 0) {
+        appData.hours.forEach(entry => {
+            const entryDate = new Date(entry.createdAt);
+            const hours = parseFloat(entry.hours) || 0;
+            const rate = parseFloat(entry.rate) || 0;
+            const earning = hours * rate;
+
+            if (entryDate >= startOfWeek) {
+                weekHours += hours;
+                weekEarnings += earning;
+            }
+            if (entryDate >= startOfMonth) {
+                monthHours += hours;
+                monthEarnings += earning;
+            }
+        });
     }
+
+    const weekEl = document.getElementById('weekEarnings');
+    const monthEl = document.getElementById('monthEarnings');
+
+    if (weekEl) weekEl.textContent = `${weekHours.toFixed(1)}h / $${weekEarnings.toFixed(2)}`;
+    if (monthEl) monthEl.textContent = `${monthHours.toFixed(1)}h / $${monthEarnings.toFixed(2)}`;
 }
 
 // ============================================================================
