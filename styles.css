@@ -3393,3 +3393,16 @@ input[type="search"]::-webkit-search-results-decoration {
     background: #dc3545;
 }
 
+.sync-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* Optional: tweak specifically for smaller screens */
+@media (max-width: 600px) {
+    .sync-bar {
+        grid-template-columns: repeat(2, 1fr); /* 2 buttons per row */
+    }
+}
