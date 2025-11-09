@@ -3083,6 +3083,40 @@ if (scoreInput && maxScoreInput && percentageInput && gradeInput) {
     maxScoreInput.addEventListener('input', calculateMarks);
 }
 
+ // Calculate average student rate
+const updateStudentStats = () => {
+    const cards = document.querySelectorAll('.student-card');
+    const count = cards.length;
+    let totalRate = 0;
+
+    cards.forEach(card => {
+        const rateText = card.querySelector('.student-rate');
+        if (rateText) {
+            // Extract number from "$82.97/session"
+            const match = rateText.textContent.match(/\$([\d.]+)/);
+            if (match) {
+                totalRate += parseFloat(match[1]);
+            }
+        }
+    });
+
+    const avgRateElement = document.getElementById('avgRate');
+    const countElement = document.getElementById('studentsCount');
+
+    if (avgRateElement) {
+        avgRateElement.textContent = count > 0 ? `$${(totalRate / count).toFixed(2)}` : '$0';
+    }
+    if (countElement) {
+        countElement.textContent = count;
+    }
+};
+
+// Run once on load
+updateStudentStats();
+
+// Also run whenever a student is added
+document.addEventListener('studentAdded', updateStudentStats);
+
     console.log('✅ App ready');
 });
 
