@@ -326,6 +326,9 @@ function addStudent() {
         appData.students.push(newStudent);
         saveAllData();
         loadStudents();
+
+        // 🔽 Update stats right here
+        updateStudentStats();
         clearStudentForm();
         
         alert('✅ Student added successfully!');
@@ -335,6 +338,7 @@ function addStudent() {
         alert('Error adding student: ' + error.message);
     }
 }
+
 
 function clearStudentForm() {
     document.getElementById('studentName').value = '';
