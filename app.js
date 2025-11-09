@@ -1340,38 +1340,54 @@ function cancelAttendanceEdit() {
 
 
 // ============================================================================
-// ATTENDANCE DATE FORMATTING - FIXED TIMEZONE ISSUES
+// ATTENDANCE DATE FORMATTING - FIXED LOCAL/UTC ISSUES
 // ============================================================================
 
 function formatAttendanceDate(dateString) {
     if (!dateString) return 'No Date';
 
     try {
-        const date = new Date(dateString);
-        // Convert to local date components explicitly
-        const localYear = date.getFullYear();
-        const localMonth = String(date.getMonth() + 1).padStart(2, '0');
-        const localDay = String(date.getDate()).padStart(2, '0');
+        // Handle raw YYYY-MM-DD format directly
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            const [year, month, day] = dateString.split('-');
+            return `${month}/${day}/${year}`;
+        }
 
-        return `${localMonth}/${localDay}/${localYear}`;
+        // Otherwise parse as ISO or other formats
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${month}/${day}/${year}`;
     } catch (e) {
         console.error('Error formatting attendance date:', e);
         return dateString;
     }
 }
 
-
 function formatAttendanceFullDate(dateString) {
     if (!dateString) return 'No Date';
-    
+
     try {
+        // Handle raw YYYY-MM-DD format directly
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            const [year, month, day] = dateString.split('-');
+            const date = new Date(Number(year), Number(month) - 1, Number(day));
+            return date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Otherwise parse as ISO or other formats
         const date = new Date(dateString);
-        // Use local date for display
-        return date.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+        return date.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
     } catch (e) {
         console.error('Error formatting full attendance date:', e);
@@ -1381,14 +1397,18 @@ function formatAttendanceFullDate(dateString) {
 
 function formatDateForAttendanceInput(dateString) {
     if (!dateString) return '';
-    
+
     try {
+        // Handle raw YYYY-MM-DD format directly
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            return dateString;
+        }
+
+        // Otherwise parse as ISO or other formats
         const date = new Date(dateString);
-        // Ensure we're using the local date, not UTC
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
-        
         return `${year}-${month}-${day}`;
     } catch (e) {
         console.error('Error formatting date for attendance input:', e);
@@ -1401,7 +1421,6 @@ function setTodayDate() {
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
-    
     document.getElementById('attendanceDate').value = `${year}-${month}-${day}`;
 }
 
@@ -1411,26 +1430,23 @@ function setYesterdayDate() {
     const year = yesterday.getFullYear();
     const month = String(yesterday.getMonth() + 1).padStart(2, '0');
     const day = String(yesterday.getDate()).padStart(2, '0');
-    
     document.getElementById('attendanceDate').value = `${year}-${month}-${day}`;
 }
 
 function debugAttendanceDates() {
     console.log('=== ATTENDANCE DATE DEBUG ===');
-    
+
     if (!appData.attendance || appData.attendance.length === 0) {
         console.log('No attendance records found');
         return;
     }
-    
+
     appData.attendance.forEach((session, index) => {
         console.log(`Record ${index}:`, {
             storedDate: session.date,
-            newDate: new Date(session.date),
             formatted: formatAttendanceDate(session.date),
-            inputFormatted: formatDateForAttendanceInput(session.date),
-            getDate: new Date(session.date).getDate(),
-            getUTCDate: new Date(session.date).getUTCDate()
+            fullFormatted: formatAttendanceFullDate(session.date),
+            inputFormatted: formatDateForAttendanceInput(session.date)
         });
     });
 }
