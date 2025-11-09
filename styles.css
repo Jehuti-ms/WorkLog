@@ -1574,6 +1574,18 @@ tr:hover {
     flex: 1;
 }
 
+.student-actions-side-by-side {
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+.student-actions-side-by-side .btn {
+    flex: 1;
+    min-width: 0; /* Prevents buttons from overflowing */
+}
+
 /* ============================================================================
    FORM ACTIONS
    ============================================================================ */
