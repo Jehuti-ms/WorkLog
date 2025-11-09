@@ -420,6 +420,36 @@ function viewFullHistory(studentId) {
     }
 }
 
+function updateStudentStats() {
+    try {
+        if (!appData.students) appData.students = [];
+
+        // Total students
+        const totalStudents = appData.students.length;
+
+        // Average rate across all students
+        const avgRate = totalStudents > 0
+            ? (appData.students.reduce((sum, s) => sum + (s.rate || 0), 0) / totalStudents).toFixed(2)
+            : 0;
+
+        // Total owed across all students
+        const totalOwed = appData.students.reduce((sum, s) => sum + (s.owed || 0), 0);
+
+        // Update UI elements (make sure these exist in your Students tab header)
+        const totalEl = document.getElementById('studentsTotalCount');
+        if (totalEl) totalEl.textContent = totalStudents;
+
+        const avgRateEl = document.getElementById('studentsAvgRate');
+        if (avgRateEl) avgRateEl.textContent = `$${avgRate}`;
+
+        const owedEl = document.getElementById('studentsTotalOwed');
+        if (owedEl) owedEl.textContent = `$${totalOwed.toFixed(2)}`;
+
+    } catch (error) {
+        console.error('❌ Error updating student stats:', error);
+    }
+}
+
 function addStudent() {
     try {
         const name = document.getElementById('studentName').value.trim();
