@@ -1,4 +1,4 @@
-// app.js - COMPLETE REWRITE WITH ALL FIXES
+ // app.js - COMPLETE REWRITE WITH ALL FIXES
 console.log('📦 App.js loaded');
 
 // Global data storage with proper initialization
@@ -264,7 +264,7 @@ function loadStudents() {
         
         appData.students.forEach((student, index) => {
             html += `
-                <div class="student-card">
+                <div class="student-card searchable">
                     <div class="student-header">
                         <h4 class="student-name">${student.name}</h4>
                         <span class="student-rate">$${student.rate || '0.00'}/session</span>
@@ -3016,7 +3016,22 @@ document.addEventListener('DOMContentLoaded', function() {
     if (dateInput && !dateInput.value) {
         dateInput.value = new Date().toISOString().split('T')[0];
     }
-    
+        // Setup student search filter
+    const searchBox = document.getElementById('studentSearch');
+    const container = document.getElementById('studentsContainer');
+
+    if (searchBox && container) {
+        searchBox.addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase();
+            const items = container.querySelectorAll('.student-card.searchable');
+
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+    }
+
     console.log('✅ App ready');
 });
 
