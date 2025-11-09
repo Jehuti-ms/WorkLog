@@ -610,23 +610,19 @@ function cancelStudentEdit() {
 }
 
 function deleteStudent(index) {
-    if (!confirm("Are you sure you want to delete this student?")) return;
+    try {
+        appData.students.splice(index, 1);
+        saveAllData();
+        refreshStudentsUI(); // loadStudents + updateStudentStats
 
-    appData.students.splice(index, 1);
-    saveAllData();
-    loadStudents();
-
-    // 🔽 Refresh stats after deletion
-    updateStudentStats();
-
-    alert("🗑️ Student deleted successfully!");
- 
- showToast("💰 Payment recorded successfully", "success"); // ✅ toast
+        alert("🗑️ Student deleted successfully!");
+        showToast("🗑️ Student deleted successfully", "success");
     } catch (error) {
-        console.error("❌ Error recording payment:", error);
-        showToast("❌ Error recording payment", "error"); // ✅ toast
+        console.error("❌ Error deleting student:", error);
+        showToast("❌ Error deleting student", "error");
     }
 }
+
 
 // ============================================================================
 // HOURS TRACKING
@@ -638,7 +634,8 @@ function loadHours() {
         loadHoursFromStorage();
         displayHours();
         updateHoursStats();
-    } catch (error) {
+    } 
+    catch (error) {
         console.error('❌ Error loading hours:', error);
     }
 }
