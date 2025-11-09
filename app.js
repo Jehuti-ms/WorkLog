@@ -1693,6 +1693,7 @@ function loadPayments() {
         if (!appData.payments || appData.payments.length === 0) {
             container.innerHTML = '<div class="empty-state"><div class="icon">💰</div><h4>No Payments</h4><p>No payment activity recorded yet.</p></div>';
             return;
+          updatePaymentStats(); 
         }
         
         let html = '<div class="payments-list">';
@@ -1721,8 +1722,8 @@ function loadPayments() {
         
         html += '</div>';
         container.innerHTML = html;
-        
         updatePaymentStats();
+        
         
     } catch (error) {
         console.error('❌ Error loading payments:', error);
@@ -1769,8 +1770,7 @@ function recordPayment() {
         }
 
         saveAllData();
-        loadPayments();
-        updatePaymentStats();
+        refreshPaymentsUI(); 
         resetPaymentForm();
 
         alert('✅ Payment recorded successfully!');
@@ -1817,13 +1817,17 @@ function updatePaymentStats() {
     }
 }
 
+// Unified refresh for payments UI + stats
+function refreshPaymentsUI() {
+    loadPayments();       // rebuild payment list
+    updatePaymentStats(); // refresh header stats
+}
 
 function deletePayment(index) {
     if (confirm('Are you sure you want to delete this payment record?')) {
         appData.payments.splice(index, 1);
         saveAllData();
-        loadPayments();
-        updatePaymentStats();
+        refreshPaymentsUI(); 
         alert('✅ Payment record deleted successfully!');
     }
 }
