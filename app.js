@@ -247,7 +247,7 @@ function loadTabData(tabName) {
 // STUDENTS MANAGEMENT
 // ============================================================================
 
-ffunction loadStudents() {
+function loadStudents() {
     const container = document.getElementById('studentsContainer');
     if (!container) return;
 
