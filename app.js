@@ -788,6 +788,73 @@ function loadHoursFromStorage() {
 }
 
 // ============================================================================
+// MARKS MANAGEMENT - ADD MISSING loadMarks FUNCTION
+// ============================================================================
+
+function loadMarks() {
+    try {
+        const container = document.getElementById('marksContainer');
+        if (!container) {
+            console.error('❌ Marks container not found');
+            return;
+        }
+        
+        // Populate student dropdown
+        const studentSelect = document.getElementById('marksStudent');
+        if (studentSelect) {
+            studentSelect.innerHTML = '<option value="">Select student...</option>';
+            if (appData.students) {
+                appData.students.forEach(student => {
+                    studentSelect.innerHTML += `<option value="${student.id}">${student.name}</option>`;
+                });
+            }
+        }
+        
+        if (!appData.marks || appData.marks.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📝</div><h4>No Marks</h4><p>No marks recorded yet.</p></div>';
+            return;
+        }
+        
+        let html = '<div class="marks-list">';
+        
+        const recentMarks = appData.marks.slice(-10).reverse();
+        recentMarks.forEach((mark, index) => {
+            const student = appData.students ? appData.students.find(s => s.id === mark.studentId) : null;
+            const percentage = mark.percentage || ((mark.score / mark.maxScore) * 100).toFixed(1);
+            const grade = getGrade(percentage);
+            
+            html += `
+                <div class="mark-entry">
+                    <div class="mark-header">
+                        <h4>${student ? student.name : 'Unknown Student'} - ${mark.subject || 'No Subject'}</h4>
+                        <span class="mark-percentage ${grade.toLowerCase()}">${percentage}%</span>
+                    </div>
+                    <div class="mark-details">
+                        <p><strong>Topic:</strong> ${mark.topic || 'No Topic'}</p>
+                        <p><strong>Score:</strong> ${mark.score || 0}/${mark.maxScore || 0}</p>
+                        <p><strong>Grade:</strong> ${grade}</p>
+                        <p><strong>Date:</strong> ${mark.date ? new Date(mark.date).toLocaleDateString() : 'No Date'}</p>
+                        ${mark.comments ? `<p><strong>Comments:</strong> ${mark.comments}</p>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+        updateMarksStats();
+        
+    } catch (error) {
+        console.error('❌ Error loading marks:', error);
+        const container = document.getElementById('marksContainer');
+        if (container) {
+            container.innerHTML = '<div class="error-state">Error loading marks</div>';
+        }
+    }
+}
+
+// ============================================================================
 // ATTENDANCE MANAGEMENT - FIXED VERSION
 // ============================================================================
 
@@ -889,8 +956,11 @@ function loadAttendance() {
 
 function saveAttendance() {
     try {
+        console.log('💾 Save Attendance clicked - Edit mode:', isEditingAttendance, 'Index:', editingAttendanceIndex);
+        
         // If we're in edit mode, call update instead
         if (isEditingAttendance && editingAttendanceIndex !== null) {
+            console.log('🔄 In edit mode, calling updateAttendance');
             updateAttendance(editingAttendanceIndex);
             return;
         }
@@ -898,6 +968,8 @@ function saveAttendance() {
         const date = document.getElementById('attendanceDate').value;
         const subject = document.getElementById('attendanceSubject').value;
         const topic = document.getElementById('attendanceTopic').value;
+        
+        console.log('📝 Form data:', { date, subject, topic });
         
         if (!date || !subject) {
             alert('Please fill in date and subject');
@@ -911,8 +983,11 @@ function saveAttendance() {
             const checkbox = document.getElementById(`attend_${student.id}`);
             if (checkbox && checkbox.checked) {
                 presentStudents.push(student.id);
+                console.log('✅ Student present:', student.name);
             }
         });
+        
+        console.log('👥 Present students count:', presentStudents.length);
         
         if (presentStudents.length === 0) {
             alert('Please select at least one student');
@@ -927,6 +1002,8 @@ function saveAttendance() {
             createdAt: new Date().toISOString()
         };
         
+        console.log('📅 New attendance record:', newAttendance);
+        
         if (!appData.attendance) appData.attendance = [];
         appData.attendance.push(newAttendance);
         saveAllData();
@@ -935,6 +1012,7 @@ function saveAttendance() {
         // Clear form
         clearAttendanceForm();
         
+        console.log('✅ Attendance saved successfully');
         alert(`✅ Attendance saved for ${presentStudents.length} students!`);
         
     } catch (error) {
@@ -956,6 +1034,8 @@ function editAttendance(index) {
     isEditingAttendance = true;
     editingAttendanceIndex = index;
     
+    console.log('🎯 Edit mode activated:', { isEditingAttendance, editingAttendanceIndex });
+    
     // FIXED: Use proper date formatting for the input
     const displayDate = formatDateForAttendanceInput(session.date);
     
@@ -973,24 +1053,19 @@ function editAttendance(index) {
     });
     
     // Check the students who were present
+    let checkedCount = 0;
     session.presentStudents.forEach(studentId => {
         const checkbox = document.getElementById(`attend_${studentId}`);
         if (checkbox) {
             checkbox.checked = true;
+            checkedCount++;
         }
     });
     
-    // FIXED: Simplified button update - no complex event listener replacement
-    const saveButton = document.querySelector('#attendance .btn-primary');
-    if (saveButton) {
-        saveButton.innerHTML = '💾 Update Attendance';
-        // Remove all existing click events and add our update handler
-        saveButton.replaceWith(saveButton.cloneNode(true));
-        const newSaveButton = document.querySelector('#attendance .btn-primary');
-        newSaveButton.onclick = function() {
-            updateAttendance(editingAttendanceIndex);
-        };
-    }
+    console.log(`✅ Checked ${checkedCount} students for edit`);
+    
+    // FIXED: Use a more reliable button update method
+    updateAttendanceButton();
     
     // Add cancel edit button if not exists
     if (!document.querySelector('.cancel-attendance-edit')) {
@@ -1020,6 +1095,21 @@ function editAttendance(index) {
     console.log('✅ Attendance form ready for editing');
 }
 
+// NEW: Separate function to update the attendance button
+function updateAttendanceButton() {
+    const saveButton = document.querySelector('#attendance .btn-primary');
+    if (!saveButton) return;
+    
+    if (isEditingAttendance) {
+        saveButton.innerHTML = '💾 Update Attendance';
+        // Remove any existing onclick and set the new one
+        saveButton.setAttribute('onclick', 'updateAttendance(' + editingAttendanceIndex + ')');
+    } else {
+        saveButton.innerHTML = '💾 Save Attendance';
+        saveButton.setAttribute('onclick', 'saveAttendance()');
+    }
+}
+
 function updateAttendance(index) {
     console.log('💾 Updating attendance record:', index);
     
@@ -1027,6 +1117,8 @@ function updateAttendance(index) {
         const date = document.getElementById('attendanceDate').value;
         const subject = document.getElementById('attendanceSubject').value;
         const topic = document.getElementById('attendanceTopic').value;
+        
+        console.log('📝 Update form data:', { date, subject, topic });
         
         if (!date || !subject) {
             alert('Please fill in date and subject');
@@ -1040,8 +1132,11 @@ function updateAttendance(index) {
             const checkbox = document.getElementById(`attend_${student.id}`);
             if (checkbox && checkbox.checked) {
                 presentStudents.push(student.id);
+                console.log('✅ Student present:', student.name);
             }
         });
+        
+        console.log('👥 Updated present students count:', presentStudents.length);
         
         if (presentStudents.length === 0) {
             alert('Please select at least one student');
@@ -1058,10 +1153,13 @@ function updateAttendance(index) {
             updatedAt: new Date().toISOString()
         };
         
+        console.log('📅 Updated attendance record:', appData.attendance[index]);
+        
         saveAllData();
         loadAttendance();
         cancelAttendanceEdit();
         
+        console.log('✅ Attendance updated successfully');
         alert(`✅ Attendance updated for ${presentStudents.length} students!`);
         
     } catch (error) {
@@ -1081,14 +1179,7 @@ function cancelAttendanceEdit() {
     clearAttendanceForm();
     
     // Reset save button
-    const saveButton = document.querySelector('#attendance .btn-primary');
-    if (saveButton) {
-        saveButton.innerHTML = '💾 Save Attendance';
-        // Remove all existing click events and add our save handler
-        saveButton.replaceWith(saveButton.cloneNode(true));
-        const newSaveButton = document.querySelector('#attendance .btn-primary');
-        newSaveButton.onclick = saveAttendance;
-    }
+    updateAttendanceButton();
     
     // Remove cancel button
     const cancelButton = document.querySelector('.cancel-attendance-edit');
@@ -1117,78 +1208,6 @@ function clearAttendanceForm() {
             if (checkbox) checkbox.checked = false;
         });
     }
-}
-
-// Keep all your existing utility functions - they're working fine
-function formatAttendanceDate(dateString) {
-    if (!dateString) return 'No Date';
-    
-    try {
-        const date = new Date(dateString);
-        // Use local date components to avoid timezone issues
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        
-        return `${month}/${day}/${year}`;
-    } catch (e) {
-        console.error('Error formatting attendance date:', e);
-        return dateString;
-    }
-}
-
-function formatAttendanceFullDate(dateString) {
-    if (!dateString) return 'No Date';
-    
-    try {
-        const date = new Date(dateString);
-        // Use local date for display
-        return date.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
-    } catch (e) {
-        console.error('Error formatting full attendance date:', e);
-        return dateString;
-    }
-}
-
-function formatDateForAttendanceInput(dateString) {
-    if (!dateString) return '';
-    
-    try {
-        const date = new Date(dateString);
-        // Ensure we're using the local date, not UTC
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        
-        return `${year}-${month}-${day}`;
-    } catch (e) {
-        console.error('Error formatting date for attendance input:', e);
-        return dateString;
-    }
-}
-
-function setTodayDate() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    
-    document.getElementById('attendanceDate').value = `${year}-${month}-${day}`;
-}
-
-function setYesterdayDate() {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const year = yesterday.getFullYear();
-    const month = String(yesterday.getMonth() + 1).padStart(2, '0');
-    const day = String(yesterday.getDate()).padStart(2, '0');
-    
-    document.getElementById('attendanceDate').value = `${year}-${month}-${day}`;
 }
 
 // ============================================================================
@@ -3147,6 +3166,43 @@ function useDefaultRate() {
 }
 
 // ============================================================================
+// MISSING UTILITY FUNCTIONS
+// ============================================================================
+
+function getGrade(percentage) {
+    if (percentage >= 90) return 'A';
+    if (percentage >= 80) return 'B';
+    if (percentage >= 70) return 'C';
+    if (percentage >= 60) return 'D';
+    return 'F';
+}
+
+function updateMarksStats() {
+    try {
+        if (!appData.marks) appData.marks = [];
+        
+        const marksCount = appData.marks.length;
+        const avgPercentage = marksCount > 0 
+            ? (appData.marks.reduce((sum, mark) => sum + (mark.percentage || 0), 0) / marksCount).toFixed(1)
+            : '0';
+        
+        // Update stats display if elements exist
+        const marksCountEl = document.getElementById('marksCount');
+        const avgMarksEl = document.getElementById('avgMarks');
+        
+        if (marksCountEl) marksCountEl.textContent = marksCount;
+        if (avgMarksEl) avgMarksEl.textContent = avgPercentage;
+        
+    } catch (error) {
+        console.error('❌ Error updating marks stats:', error);
+    }
+}
+
+// Export these functions globally
+window.getGrade = getGrade;
+window.updateMarksStats = updateMarksStats;
+
+// ============================================================================
 // EVENT LISTENERS AND INIT
 // ============================================================================
 
@@ -3225,6 +3281,8 @@ window.updateTotalDisplay = updateTotalDisplay;
 
 // Marks Management
 window.addMark = addMark;
+window.getGrade = getGrade;
+window.updateMarksStats = updateMarksStats;
 
 // Attendance Management
 window.saveAttendance = saveAttendance;
@@ -3242,6 +3300,7 @@ window.setTodayDate = setTodayDate;
 window.setYesterdayDate = setYesterdayDate;
 window.debugAttendanceDates = debugAttendanceDates;
 window.updateAttendanceStats = updateAttendanceStats;
+window.updateAttendanceButton = updateAttendanceButton;
 
 // Payments Management
 window.recordPayment = recordPayment;
