@@ -246,6 +246,33 @@ function loadTabData(tabName) {
 // ============================================================================
 // STUDENTS MANAGEMENT
 // ============================================================================
+// Calculate average student rate
+function updateStudentStats() {
+    const cards = document.querySelectorAll('.student-card');
+    const count = cards.length;
+    let totalRate = 0;
+
+    cards.forEach(card => {
+        const rateText = card.querySelector('.student-rate');
+        if (rateText) {
+            // Extract number from "$82.97/session"
+            const match = rateText.textContent.match(/\$([\d.]+)/);
+            if (match) {
+                totalRate += parseFloat(match[1]);
+            }
+        }
+    });
+
+    const avgRateElement = document.getElementById('avgRate');
+    const countElement = document.getElementById('studentsCount');
+
+    if (avgRateElement) {
+        avgRateElement.textContent = count > 0 ? `$${(totalRate / count).toFixed(2)}` : '$0';
+    }
+    if (countElement) {
+        countElement.textContent = count;
+    }
+}
 
 function loadStudents() {
     const container = document.getElementById('studentsContainer');
