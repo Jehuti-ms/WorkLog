@@ -308,28 +308,49 @@ function loadStudents() {
 
     let html = '<div class="students-grid">';
         
-    appData.students.forEach((student, index) => {
-        html += `
-            <div class="student-card searchable">
-                <div class="student-header">
-                    <h4 class="student-name">${student.name}</h4>
-                    <span class="student-rate">$${student.rate || '0.00'}/session</span>
-                </div>
-                <div class="student-details">
-                    <p><strong>ID:</strong> ${student.id}</p>
-                    <p><strong>Gender:</strong> ${student.gender}</p>
-                    ${student.email ? `<p><strong>Email:</strong> ${student.email}</p>` : ''}
-                    ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''}
-                    ${student.createdAt ? `<p><small>Added: ${new Date(student.createdAt).toLocaleDateString()}</small></p>` : ''}
-                </div>
-                <div class="student-actions" style="display: flex; gap: 8px; justify-content: space-between; margin-top: 15px;">
-                    <button class="btn btn-sm btn-edit" onclick="editStudent(${index})" style="flex: 1;">✏️ Edit</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteStudent(${index})" style="flex: 1;">🗑️ Delete</button>
-                </div>
+   appData.students.forEach((student, index) => {
+    html += `
+        <div class="student-card searchable">
+            <!-- Header -->
+            <div class="student-header">
+                <h4 class="student-name">${student.name || 'Unnamed Student'}</h4>
+                <span class="student-rate">
+                    $${(student.rate ? student.rate.toFixed(2) : '0.00')}/session
+                </span>
             </div>
-        `;
-    });
-        
+
+            <!-- Details -->
+            <div class="student-details">
+                <p><strong>ID:</strong> ${student.id || 'N/A'}</p>
+                <p><strong>Gender:</strong> ${student.gender || 'N/A'}</p>
+                ${student.email ? `<p><strong>Email:</strong> ${student.email}</p>` : ''}
+                ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''}
+                ${student.createdAt 
+                    ? `<p><small>Added: ${new Date(student.createdAt).toLocaleDateString()}</small></p>` 
+                    : ''}
+                <p><strong>Owed:</strong> $${(student.owed || 0).toFixed(2)}</p>
+            </div>
+
+            <!-- Payment History -->
+            <div class="student-payments">
+                <h5>💰 Payment History</h5>
+                <ul>
+                    ${renderStudentPayments(student.id)}
+                </ul>
+                <button class="btn btn-sm btn-secondary" onclick="viewFullHistory('${student.id}')">
+                    📜 View Full History
+                </button>
+            </div>
+
+            <!-- Actions -->
+            <div class="student-actions">
+                <button class="btn btn-sm btn-edit" onclick="editStudent(${index})">✏️ Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteStudent(${index})">🗑️ Delete</button>
+            </div>
+        </div>
+    `;
+});
+       
     html += '</div>';
     container.innerHTML = html;
 
@@ -337,49 +358,111 @@ function loadStudents() {
     updateStudentStats();
 }
 
+// 🔽 Helper function renderStudentPayments
+function renderStudentPayments(studentId) {
+    if (!appData.payments || appData.payments.length === 0) {
+        return '<li style="color:#666;">No payments yet</li>';
+    }
+
+    const studentPayments = appData.payments
+        .filter(p => p.studentId === studentId)
+        .slice(-5) // show last 5
+        .reverse();
+
+    if (studentPayments.length === 0) {
+        return '<li style="color:#666;">No payments yet</li>';
+    }
+
+    return studentPayments.map(p => `
+        <li>
+            $${p.amount.toFixed(2)} on ${new Date(p.date).toLocaleDateString()} 
+            (${p.method || 'N/A'})
+        </li>
+    `).join('');
+}
+
+//Builds a full history modal container for payment history
+function viewFullHistory(studentId) {
+    const student = appData.students.find(s => s.id === studentId);
+    if (!student) {
+        alert("❌ Student not found");
+        return;
+    }
+
+    const payments = appData.payments
+        ? appData.payments.filter(p => p.studentId === studentId)
+        : [];
+
+    if (payments.length === 0) {
+        alert(`No payments recorded for ${student.name}`);
+        return;
+    }
+
+    let historyHtml = `<h3>Payment History for ${student.name}</h3><ul>`;
+    payments.forEach(p => {
+        historyHtml += `
+            <li>
+                $${p.amount.toFixed(2)} on ${new Date(p.date).toLocaleDateString()} 
+                (${p.method || 'N/A'}) ${p.notes ? `- ${p.notes}` : ''}
+            </li>
+        `;
+    });
+    historyHtml += "</ul>";
+
+    // Simple modal using a container div
+    const modal = document.getElementById("historyModal");
+    if (modal) {
+        modal.innerHTML = historyHtml;
+        modal.style.display = "block";
+    } else {
+        // fallback: alert if no modal container exists
+        alert(historyHtml.replace(/<[^>]+>/g, '')); 
+    }
+}
+
 function addStudent() {
     try {
-        const name = document.getElementById('studentName').value;
-        const id = document.getElementById('studentId').value;
+        const name = document.getElementById('studentName').value.trim();
+        const id = document.getElementById('studentId').value.trim();
         const gender = document.getElementById('studentGender').value;
-        const email = document.getElementById('studentEmail').value;
-        const phone = document.getElementById('studentPhone').value;
-        const rateInput = document.getElementById('studentBaseRate').value;
-        
-        const rate = rateInput ? parseFloat(rateInput) : (appData.settings.defaultRate || 25.00);
-        
-        if (!name || !id || !gender) {
-            alert('Please fill in required fields: Name, ID, and Gender');
+        const email = document.getElementById('studentEmail').value.trim();
+        const phone = document.getElementById('studentPhone').value.trim();
+        const rate = parseFloat(document.getElementById('studentBaseRate').value) 
+                     || appData.settings.defaultRate 
+                     || 25.00;
+
+        if (!name || !id) {
+            alert("⚠️ Please enter both name and ID");
             return;
         }
-        
+
         const newStudent = {
             name,
             id,
             gender,
             email,
             phone,
-            rate: rate,
-            createdAt: new Date().toISOString()
+            rate,
+            createdAt: new Date().toISOString(),
+            owed: rate   // 🔽 initialize owed with base rate
         };
-        
+
         if (!appData.students) appData.students = [];
         appData.students.push(newStudent);
+
         saveAllData();
         loadStudents();
-
-        // 🔽 Update stats right here
         updateStudentStats();
-        clearStudentForm();
-        document.dispatchEvent(new Event('studentAdded'));
+        updatePaymentStats(); // 🔽 keep balances in sync
 
-        alert('✅ Student added successfully!');
-        
+        clearStudentForm();
+        alert("✅ Student added successfully!");
     } catch (error) {
-        console.error('❌ Error adding student:', error);
-        alert('Error adding student: ' + error.message);
+        console.error("❌ Error adding student:", error);
+        alert("Error adding student: " + error.message);
     }
 }
+
 
 
 function clearStudentForm() {
@@ -434,37 +517,52 @@ function editStudent(index) {
 
 function updateStudent(index) {
     try {
-        const name = document.getElementById('studentName').value;
-        const id = document.getElementById('studentId').value;
-        const gender = document.getElementById('studentGender').value;
-        const email = document.getElementById('studentEmail').value;
-        const phone = document.getElementById('studentPhone').value;
-        const rateInput = document.getElementById('studentBaseRate').value;
-        
-        const rate = rateInput ? parseFloat(rateInput) : (appData.settings.defaultRate || 25.00);
-        
-        if (!name || !id || !gender) {
-            alert('Please fill in required fields: Name, ID, and Gender');
+        const student = appData.students[index];
+        if (!student) {
+            alert('Student not found!');
             return;
         }
 
-        appData.students[index] = {
-            ...appData.students[index],
-            name,
-            id,
-            gender,
-            email,
-            phone,
-            rate: rate,
-            updatedAt: new Date().toISOString()
-        };
+        // Update fields from form
+        student.name = document.getElementById('studentName').value || '';
+        student.id = document.getElementById('studentId').value || '';
+        student.gender = document.getElementById('studentGender').value || '';
+        student.email = document.getElementById('studentEmail').value || '';
+        student.phone = document.getElementById('studentPhone').value || '';
+        const newRate = parseFloat(document.getElementById('studentBaseRate').value) 
+                        || appData.settings.defaultRate 
+                        || 25.00;
 
+        // 🔽 Adjust owed proportionally
+        if (typeof student.owed === 'number') {
+            // Subtract old rate, add new rate → keeps partial payments intact
+            student.owed = student.owed - student.rate + newRate;
+        } else {
+            student.owed = newRate;
+        }
+
+        // Update rate
+        student.rate = newRate;
+
+        // Save changes
         saveAllData();
+
+        // Refresh UI
         loadStudents();
-        cancelStudentEdit();
-        
+        updateStudentStats();
+        updatePaymentStats();
+
+        clearStudentForm();
+        const addButton = document.querySelector('#students .btn-primary');
+        if (addButton) {
+            addButton.innerHTML = '➕ Add Student';
+            addButton.onclick = addStudent;
+        }
+
+        const cancelButton = document.querySelector('.btn-cancel-edit');
+        if (cancelButton) cancelButton.remove();
+
         alert('✅ Student updated successfully!');
-        
     } catch (error) {
         console.error('❌ Error updating student:', error);
         alert('Error updating student: ' + error.message);
@@ -1636,8 +1734,20 @@ function recordPayment() {
 
         if (!appData.payments) appData.payments = [];
         appData.payments.push(newPayment);
+
+        // 🔽 Adjust the student's owed balance directly
+        const student = appData.students.find(s => s.id === studentId);
+        if (student) {
+            if (typeof student.owed === 'number') {
+                student.owed = Math.max(0, student.owed - amount); 
+            } else {
+                student.owed = 0; // fallback if owed wasn't initialized
+            }
+        }
+
         saveAllData();
         loadPayments();
+        updatePaymentStats();
         resetPaymentForm();
 
         alert('✅ Payment recorded successfully!');
