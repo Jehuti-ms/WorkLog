@@ -2820,6 +2820,48 @@ function updateStats() {
     }
 }
 
+// ============================================================================
+// ATTENDANCE BUTTON BINDINGS - SELECT/DESELECT ALL (SAFE VERSION)
+// ============================================================================
+
+function setupAttendanceButtons() {
+    // Re-bind Select All
+    let selectAllBtn = document.querySelector('.select-all-students-btn');
+    if (selectAllBtn) {
+        // Clone the button to remove any old listeners
+        const newSelectAllBtn = selectAllBtn.cloneNode(true);
+        selectAllBtn.parentNode.replaceChild(newSelectAllBtn, selectAllBtn);
+
+        newSelectAllBtn.addEventListener('click', () => {
+            console.log('🔍 Select All triggered');
+            appData.students.forEach(student => {
+                const checkbox = document.getElementById(`attend_${student.id}`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+        });
+    }
+
+    // Re-bind Deselect All
+    let deselectAllBtn = document.querySelector('.deselect-all-students-btn');
+    if (deselectAllBtn) {
+        // Clone the button to remove any old listeners
+        const newDeselectAllBtn = deselectAllBtn.cloneNode(true);
+        deselectAllBtn.parentNode.replaceChild(newDeselectAllBtn, deselectAllBtn);
+
+        newDeselectAllBtn.addEventListener('click', () => {
+            console.log('🔍 Deselect All triggered');
+            appData.students.forEach(student => {
+                const checkbox = document.getElementById(`attend_${student.id}`);
+                if (checkbox) {
+                    checkbox.checked = false;
+                }
+            });
+        });
+    }
+}
+
 // Make all functions globally available
 // ============================================================================
 // GLOBAL FUNCTION EXPORTS - ORGANIZED BY SECTION
