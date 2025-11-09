@@ -1287,6 +1287,81 @@ function debugAttendanceDates() {
 }
 
 // ============================================================================
+// ATTENDANCE STATS FUNCTION - MISSING FUNCTION ADDED
+// ============================================================================
+
+function updateAttendanceStats() {
+    try {
+        if (!appData.attendance) appData.attendance = [];
+        
+        const attendanceCount = appData.attendance.length;
+        const lastSession = attendanceCount > 0 && appData.attendance[appData.attendance.length - 1].date
+            ? new Date(appData.attendance[appData.attendance.length - 1].date).toLocaleDateString()
+            : 'Never';
+        
+        // Update the stats display elements if they exist
+        const attendanceCountEl = document.getElementById('attendanceCount');
+        const lastSessionDateEl = document.getElementById('lastSessionDate');
+        
+        if (attendanceCountEl) attendanceCountEl.textContent = attendanceCount;
+        if (lastSessionDateEl) lastSessionDateEl.textContent = lastSession;
+        
+    } catch (error) {
+        console.error('❌ Error updating attendance stats:', error);
+    }
+}
+
+// Also add the missing selectAllStudents and deselectAllStudents functions:
+function selectAllStudents() {
+    if (!appData.students) return;
+    
+    appData.students.forEach(student => {
+        const checkbox = document.getElementById(`attend_${student.id}`);
+        if (checkbox) checkbox.checked = true;
+    });
+}
+
+function deselectAllStudents() {
+    if (!appData.students) return;
+    
+    appData.students.forEach(student => {
+        const checkbox = document.getElementById(`attend_${student.id}`);
+        if (checkbox) checkbox.checked = false;
+    });
+}
+
+// Add the missing deleteAttendance function:
+function deleteAttendance(index) {
+    if (confirm('Are you sure you want to delete this attendance record?')) {
+        appData.attendance.splice(index, 1);
+        saveAllData();
+        loadAttendance();
+        alert('✅ Attendance record deleted successfully!');
+    }
+}
+
+// Add the missing debugAttendanceDates function:
+function debugAttendanceDates() {
+    console.log('=== ATTENDANCE DATE DEBUG ===');
+    
+    if (!appData.attendance || appData.attendance.length === 0) {
+        console.log('No attendance records found');
+        return;
+    }
+    
+    appData.attendance.forEach((session, index) => {
+        console.log(`Record ${index}:`, {
+            storedDate: session.date,
+            newDate: new Date(session.date),
+            formatted: formatAttendanceDate(session.date),
+            inputFormatted: formatDateForAttendanceInput(session.date),
+            getDate: new Date(session.date).getDate(),
+            getUTCDate: new Date(session.date).getUTCDate()
+        });
+    });
+}
+
+// ============================================================================
 // PAYMENTS MANAGEMENT - FIXED WITH MISSING FUNCTIONS
 // ============================================================================
 
@@ -3166,6 +3241,7 @@ window.formatDateForAttendanceInput = formatDateForAttendanceInput;
 window.setTodayDate = setTodayDate;
 window.setYesterdayDate = setYesterdayDate;
 window.debugAttendanceDates = debugAttendanceDates;
+window.updateAttendanceStats = updateAttendanceStats;
 
 // Payments Management
 window.recordPayment = recordPayment;
