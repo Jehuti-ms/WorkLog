@@ -247,30 +247,47 @@ function loadTabData(tabName) {
 // STUDENTS MANAGEMENT
 // ============================================================================
 
-function loadStudents() {
-    try {
-        const container = document.getElementById('studentsContainer');
-        if (!container) {
-            console.error('❌ Students container not found');
-            return;
-        }
+ffunction loadStudents() {
+    const container = document.getElementById('studentsContainer');
+    if (!container) return;
+
+    if (!appData.students || appData.students.length === 0) {
+        container.innerHTML = `
+            <p style="color: #666; text-align: center; padding: 40px;">
+                No students registered yet. Add your first student above!
+            </p>
+        `;
+        return;
+    }
+
+    let html = '<div class="students-grid">';
         
-        if (!appData.students || appData.students.length === 0) {
-            container.innerHTML = '<div class="empty-state"><div class="icon">👨‍🎓</div><h4>No Students</h4><p>No students registered yet.</p></div>';
-            return;
-        }
+    appData.students.forEach((student, index) => {
+        html += `
+            <div class="student-card searchable">
+                <div class="student-header">
+                    <h4 class="student-name">${student.name}</h4>
+                    <span class="student-rate">$${student.rate || '0.00'}/session</span>
+                </div>
+                <div class="student-details">
+                    <p><strong>ID:</strong> ${student.id}</p>
+                    <p><strong>Gender:</strong> ${student.gender}</p>
+                    ${student.email ? `<p><strong>Email:</strong> ${student.email}</p>` : ''}
+                    ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''}
+                    ${student.createdAt ? `<p><small>Added: ${new Date(student.createdAt).toLocaleDateString()}</small></p>` : ''}
+                </div>
+                <div class="student-actions" style="display: flex; gap: 8px; justify-content: space-between; margin-top: 15px;">
+                    <button class="btn btn-sm btn-edit" onclick="editStudent(${index})" style="flex: 1;">✏️ Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteStudent(${index})" style="flex: 1;">🗑️ Delete</button>
+                </div>
+            </div>
+        `;
+    });
         
-        let html = '<div class="students-grid">';
-
-appData.students.forEach((student, index) => {
-    const rateValue = student.rate ? parseFloat(student.rate).toFixed(2) : '0.00';
-
-    let html = '<div class="students-grid">'; appData.students.forEach((student, index) => { html += ` <div class="student-card searchable"> <div class="student-header"> <h4 class="student-name">${student.name}</h4> <span class="student-rate">$${student.rate || '0.00'}/session</span> </div> <div class="student-details"> <p><strong>ID:</strong> ${student.id}</p> <p><strong>Gender:</strong> ${student.gender}</p> ${student.email ? `<p><strong>Email:</strong> ${student.email}</p>` : ''} ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''} ${student.createdAt ? `<p><small>Added: ${new Date(student.createdAt).toLocaleDateString()}</small></p>` : ''} </div> <div class="student-actions" style="display: flex; gap: 8px; justify-content: space-between; margin-top: 15px;"> <button class="btn btn-sm btn-edit" onclick="editStudent(${index})" style="flex: 1;">✏️ Edit</button> <button class="btn btn-sm btn-danger" onclick="deleteStudent(${index})" style="flex: 1;">🗑️ Delete</button> </div> </div> `; }); html += '</div>'; container.innerHTML = html;
-
-// 🔽 Make sure stats update after rendering
-updateStudentStats();
-
-        
+    html += '</div>';
+    container.innerHTML = html;
+}
+       
     } catch (error) {
         console.error('❌ Error loading students:', error);
         const container = document.getElementById('studentsContainer');
