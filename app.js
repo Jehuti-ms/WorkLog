@@ -1747,6 +1747,8 @@ window.updateAttendance = updateAttendance;
 window.cancelAttendanceEdit = cancelAttendanceEdit;
 window.setTodayDate = setTodayDate;
 window.setYesterdayDate = setYesterdayDate;
+// In your global exports section, add:
+window.clearAttendanceFormManual = clearAttendanceFormManual;
 
 // Marks Management
 window.addMark = addMark;
