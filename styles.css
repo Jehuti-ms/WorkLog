@@ -3366,6 +3366,24 @@ input[type="search"]::-webkit-search-results-decoration {
     background: #dc3545;
 }
 
+/* Payment dropdown year and month*/
+.payments-filter {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.payments-filter label {
+  font-weight: 500;
+}
+
+.payments-filter select {
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
 .sync-grid-2col {
   display: grid;
   grid-template-columns: 1fr 1fr; /* two equal columns */
