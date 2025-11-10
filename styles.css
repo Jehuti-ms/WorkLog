@@ -3384,20 +3384,32 @@ input[type="search"]::-webkit-search-results-decoration {
   border: 1px solid #ccc;
 }
 
-.sync-grid-2col {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* two equal columns */
-  gap: 1rem;
+/* Default: horizontal row for large screens */
+.sync-bar-responsive {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
   padding: 1rem;
   background-color: var(--sync-bg, #f9f9f9);
   border-radius: 6px;
   box-shadow: 0 0 4px rgba(0,0,0,0.05);
 }
 
-.sync-col {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+/* Flip to grid on small screens */
+@media (max-width: 600px) {
+  .sync-bar-responsive {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 columns */
+    gap: 0.75rem;
+  }
+
+  .sync-bar-responsive .btn,
+  .sync-bar-responsive .auto-sync-label {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 
