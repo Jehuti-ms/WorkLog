@@ -218,7 +218,16 @@ class CloudSync {
             
             console.log('✅ Sync completed successfully');
             this.updateSyncStatus('All changes synced to cloud', true);
+           
+            // Refresh payments data
+              allPayments = mergedData.payments || [];
             
+              // If Payments tab is active, re-render immediately
+              if (currentTab === "payments") {
+                renderPaymentsStats(allPayments);
+              }
+            }
+        
             this.saveSettings();
             
         } catch (error) {
@@ -442,6 +451,11 @@ class CloudSync {
         console.log('✅ Data merged successfully');
     }
 
+// Refresh global payments data
+  allPayments = cloudData.payments || [];
+
+  console.log("✅ Payments data refreshed:", allPayments.length, "records");
+}
     saveLocalData(data) {
         localStorage.setItem(`worklog_data_${this.userId}`, JSON.stringify(data));
     }
