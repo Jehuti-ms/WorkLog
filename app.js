@@ -9,10 +9,9 @@ let appData = {
     attendance: [],
     payments: [],
     settings: {
-    defaultRate: 25.00
+        defaultRate: 25.00
     }
 };
-let allPayments = []; // global declaration
 
 let isEditingAttendance = false;
 
@@ -244,67 +243,6 @@ function loadTabData(tabName) {
     }
 }
 
-function loadPaymentsTab() {
-  console.log("📂 Loading tab data: payments");
-
-  // Ensure allPayments is initialized from merged data
-  if (!Array.isArray(allPayments)) {
-    console.warn("⚠️ allPayments not initialized, setting empty array");
-    allPayments = [];
-  }
-
-  // Render stats with current payments
-  renderPaymentsStats(allPayments);
-}
-
-// ============================================================================
-// Payment Stats
-// ============================================================================
-//Weekly and monthly payments
-function renderPaymentsStats(payments) {
-  if (!Array.isArray(payments)) return;
-
-  const total = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-
-  const weeklyTotals = {};
-  payments.forEach(p => {
-    const d = new Date(p.date);
-    const week = getWeekNumber(d);
-    weeklyTotals[week] = (weeklyTotals[week] || 0) + (p.amount || 0);
-  });
-
-  document.getElementById("paymentsTotal").textContent = `$${total} this month`;
-  document.getElementById("paymentsWeekly").innerHTML = Object.entries(weeklyTotals)
-    .map(([week, amt]) => `Week ${week}: $${amt}`)
-    .join("<br>");
-}
-
-// Helper: get ISO week number
-function getWeekNumber(date) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-}
-
-// Full history of payments
-function renderPaymentHistory(payments) {
-  const tableBody = document.getElementById("paymentHistoryTableBody");
-  tableBody.innerHTML = "";
-
-  payments.forEach(p => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${p.studentName}</td>
-      <td>${new Date(p.date).toLocaleDateString()}</td>
-      <td>$${p.amount}</td>
-      <td>${p.method || "N/A"}</td>
-    `;
-    tableBody.appendChild(row);
-  });
-}
-
 // ============================================================================
 // STUDENTS MANAGEMENT
 // ============================================================================
@@ -443,14 +381,6 @@ function renderStudentPayments(studentId) {
     `).join('');
 }
 
-function getPaymentsForMonth(year, month) {
-  if (!Array.isArray(allPayments)) return [];
-  return allPayments.filter(p => {
-    const d = new Date(p.date);
-    return d.getFullYear() === year && (d.getMonth() + 1) === month;
-  });
-}
-
 //Builds a full history modal container for payment history
 function viewFullHistory(studentId) {
     const student = appData.students.find(s => s.id === studentId);
@@ -502,12 +432,19 @@ function updateStudentStats() {
             ? (appData.students.reduce((sum, s) => sum + (s.rate || 0), 0) / totalStudents).toFixed(2)
             : 0;
 
-        // Update UI elements (match IDs in Students tab header)
-        const countEl = document.getElementById('studentsCount');
-        if (countEl) countEl.textContent = totalStudents;
+        // Total owed across all students
+        const totalOwed = appData.students.reduce((sum, s) => sum + (s.owed || 0), 0);
 
-        const avgRateEl = document.getElementById('avgRate');
+        // Update UI elements (make sure these exist in your Students tab header)
+        const totalEl = document.getElementById('studentsTotalCount');
+        if (totalEl) totalEl.textContent = totalStudents;
+
+        const avgRateEl = document.getElementById('studentsAvgRate');
         if (avgRateEl) avgRateEl.textContent = `$${avgRate}`;
+
+        const owedEl = document.getElementById('studentsTotalOwed');
+        if (owedEl) owedEl.textContent = `$${totalOwed.toFixed(2)}`;
+
     } catch (error) {
         console.error('❌ Error updating student stats:', error);
     }
@@ -555,6 +492,8 @@ function addStudent() {
         alert("Error adding student: " + error.message);
     }
 }
+
+
 
 function clearStudentForm() {
     document.getElementById('studentName').value = '';
@@ -678,17 +617,16 @@ function cancelStudentEdit() {
 }
 
 function deleteStudent(index) {
-    try {
-        appData.students.splice(index, 1);
-        saveAllData();
-        refreshStudentsUI(); // loadStudents + updateStudentStats
+    if (!confirm("Are you sure you want to delete this student?")) return;
 
-        alert("🗑️ Student deleted successfully!");
-        showToast("🗑️ Student deleted successfully", "success");
-    } catch (error) {
-        console.error("❌ Error deleting student:", error);
-        showToast("❌ Error deleting student", "error");
-    }
+    appData.students.splice(index, 1);
+    saveAllData();
+    loadStudents();
+
+    // 🔽 Refresh stats after deletion
+    updateStudentStats();
+
+    alert("🗑️ Student deleted successfully!");
 }
 
 // ============================================================================
@@ -701,8 +639,7 @@ function loadHours() {
         loadHoursFromStorage();
         displayHours();
         updateHoursStats();
-    } 
-    catch (error) {
+    } catch (error) {
         console.error('❌ Error loading hours:', error);
     }
 }
@@ -1763,7 +1700,6 @@ function loadPayments() {
         if (!appData.payments || appData.payments.length === 0) {
             container.innerHTML = '<div class="empty-state"><div class="icon">💰</div><h4>No Payments</h4><p>No payment activity recorded yet.</p></div>';
             return;
-          updatePaymentStats(); 
         }
         
         let html = '<div class="payments-list">';
@@ -1792,8 +1728,8 @@ function loadPayments() {
         
         html += '</div>';
         container.innerHTML = html;
-        updatePaymentStats();
         
+        updatePaymentStats();
         
     } catch (error) {
         console.error('❌ Error loading payments:', error);
@@ -1840,13 +1776,11 @@ function recordPayment() {
         }
 
         saveAllData();
-        refreshPaymentsUI(); 
+        loadPayments();
+        updatePaymentStats();
         resetPaymentForm();
 
         alert('✅ Payment recorded successfully!');
-     
-        // ✅ Toast notification
-        showToast("💰 Payment recorded successfully", "success");
     } catch (error) {
         console.error('❌ Error recording payment:', error);
         alert('Error recording payment: ' + error.message);
@@ -1855,52 +1789,54 @@ function recordPayment() {
 
 function updatePaymentStats() {
     try {
-        if (!appData.students) appData.students = [];
         if (!appData.payments) appData.payments = [];
+        if (!appData.students) appData.students = [];
 
-        // Total students
         const totalStudents = appData.students.length;
 
-        // Total owed
-        const totalOwed = appData.students.reduce((sum, s) => sum + (s.owed || 0), 0);
-
-        // Monthly payments (current month only)
         const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-
-        const monthlyTotal = appData.payments
-            .filter(p => {
-                const date = new Date(p.date);
-                return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-            })
+        const monthlyPayments = appData.payments
+            .filter(p => p.date && new Date(p.date).getMonth() === now.getMonth() && new Date(p.date).getFullYear() === now.getFullYear())
             .reduce((sum, p) => sum + (p.amount || 0), 0);
 
-        // Update UI
-        const studentCountEl = document.getElementById('totalStudentsCount');
-        if (studentCountEl) studentCountEl.textContent = totalStudents;
+        const balances = {};
+        appData.students.forEach(s => balances[s.id] = parseFloat(s.owed) || 0);
 
-        const owedEl = document.getElementById('totalOwed');
-        if (owedEl) owedEl.textContent = `$${totalOwed.toFixed(2)}`;
+        appData.payments.forEach(p => {
+            if (balances[p.studentId] !== undefined) {
+                balances[p.studentId] -= (p.amount || 0);
+            }
+        });
 
-        const monthlyEl = document.getElementById('monthlyPayments');
-        if (monthlyEl) monthlyEl.textContent = `$${monthlyTotal.toFixed(2)}`;
+        const totalOwed = Object.values(balances).reduce((a, b) => a + b, 0);
+
+        document.getElementById('totalStudentsCount').textContent = totalStudents;
+        document.getElementById('monthlyPayments').textContent = `$${monthlyPayments.toFixed(2)}`;
+        document.getElementById('totalOwed').textContent = `$${totalOwed.toFixed(2)}`;
+
+        const balancesContainer = document.getElementById('studentBalancesContainer');
+        if (balancesContainer) {
+            let html = '<ul class="balance-list">';
+            Object.keys(balances).forEach(id => {
+                const student = appData.students.find(s => s.id === id);
+                if (student) {
+                    html += `<li>${student.name}: $${balances[id].toFixed(2)}</li>`;
+                }
+            });
+            html += '</ul>';
+            balancesContainer.innerHTML = html;
+        }
     } catch (error) {
         console.error('❌ Error updating payment stats:', error);
     }
-}
-
-// Unified refresh for payments UI + stats
-function refreshPaymentsUI() {
-    loadPayments();       // rebuild payment list
-    updatePaymentStats(); // refresh header stats
 }
 
 function deletePayment(index) {
     if (confirm('Are you sure you want to delete this payment record?')) {
         appData.payments.splice(index, 1);
         saveAllData();
-        refreshPaymentsUI(); 
+        loadPayments();
+        updatePaymentStats();
         alert('✅ Payment record deleted successfully!');
     }
 }
@@ -1948,21 +1884,6 @@ function updateEarningsTracker() {
     if (weekEl) weekEl.textContent = `${weekHours.toFixed(1)}h / $${weekEarnings.toFixed(2)}`;
     if (monthEl) monthEl.textContent = `${monthHours.toFixed(1)}h / $${monthEarnings.toFixed(2)}`;
 }
-
-    function updatePaymentsByYearMonth() {
-      const year = parseInt(document.getElementById("yearSelect").value);
-      const month = parseInt(document.getElementById("monthSelect").value);
-    
-      const filteredPayments = getPaymentsForMonth(year, month);
-      renderPaymentsStats(filteredPayments);
-    }
-    
-    function getPaymentsForMonth(year, month) {
-      return allPayments.filter(p => {
-        const d = new Date(p.date);
-        return d.getFullYear() === year && (d.getMonth() + 1) === month;
-      });
-    }
 
 // ============================================================================
 // REPORTS SYSTEM - COMPLETE FIXED VERSION
@@ -3462,24 +3383,3 @@ saveAllData = function() {
     
     return originalSaveAllData.apply(this, arguments);
 };
-
-// Toast message Add / Delete payment
-function showToast(message, type = "success") {
-    const container = document.getElementById("toastContainer");
-    if (!container) return;
-
-    const toast = document.createElement("div");
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-
-    container.appendChild(toast);
-
-    // Trigger animation
-    setTimeout(() => toast.classList.add("show"), 50);
-
-    // Remove after 3 seconds
-    setTimeout(() => {
-        toast.classList.remove("show");
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
