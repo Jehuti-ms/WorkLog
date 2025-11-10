@@ -1882,6 +1882,21 @@ function updateEarningsTracker() {
     if (monthEl) monthEl.textContent = `${monthHours.toFixed(1)}h / $${monthEarnings.toFixed(2)}`;
 }
 
+    function updatePaymentsByYearMonth() {
+      const year = parseInt(document.getElementById("yearSelect").value);
+      const month = parseInt(document.getElementById("monthSelect").value);
+    
+      const filteredPayments = getPaymentsForMonth(year, month);
+      renderPaymentsStats(filteredPayments);
+    }
+    
+    function getPaymentsForMonth(year, month) {
+      return allPayments.filter(p => {
+        const d = new Date(p.date);
+        return d.getFullYear() === year && (d.getMonth() + 1) === month;
+      });
+    }
+
 // ============================================================================
 // REPORTS SYSTEM - COMPLETE FIXED VERSION
 // ============================================================================
