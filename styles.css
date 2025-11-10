@@ -3384,34 +3384,40 @@ input[type="search"]::-webkit-search-results-decoration {
   border: 1px solid #ccc;
 }
 
-/* Base layout: horizontal row */
+/* Large screens: single centered row, no wrapping */
 .sync-bar {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex-direction: row;
+  flex-wrap: nowrap;          /* prevents items from dropping to a new line */
+  justify-content: center;    /* center the whole row */
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
   background-color: var(--sync-bg, #f9f9f9);
   border-radius: 6px;
   box-shadow: 0 0 4px rgba(0,0,0,0.05);
+
+  /* allow gentle horizontal scroll if the row is wider than the viewport */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Auto-sync label styling */
 .auto-sync-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-weight: 500;
+  white-space: nowrap;        /* keeps the label on one line */
 }
 
-/* ✅ Force grid layout on small screens */
-@media screen and (max-width: 600px) {
+/* Small screens: switch to a centered grid */
+@media (max-width: 600px) {
   .sync-bar {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr);
-    justify-items: center;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 columns */
     gap: 0.75rem;
+    justify-items: center;     /* center items within each grid cell */
+    overflow-x: visible;       /* no horizontal scroll in grid mode */
   }
 
   .sync-bar .btn,
@@ -3420,3 +3426,12 @@ input[type="search"]::-webkit-search-results-decoration {
     justify-content: center;
   }
 }
+
+/* Optional: prefer 4×2 on small screens (swap this in if you want 4 columns) */
+/*
+@media (max-width: 600px) {
+  .sync-bar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+*/
