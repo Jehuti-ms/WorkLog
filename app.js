@@ -508,8 +508,6 @@ function addStudent() {
     }
 }
 
-
-
 function clearStudentForm() {
     document.getElementById('studentName').value = '';
     document.getElementById('studentId').value = '';
@@ -644,7 +642,6 @@ function deleteStudent(index) {
         showToast("❌ Error deleting student", "error");
     }
 }
-
 
 // ============================================================================
 // HOURS TRACKING
