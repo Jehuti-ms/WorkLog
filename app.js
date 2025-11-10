@@ -247,13 +247,13 @@ function loadTabData(tabName) {
 function loadPaymentsTab() {
   console.log("📂 Loading tab data: payments");
 
-  // Pull merged/synced data
-  const mergedData = getMergedData(); // however you retrieve synced data
+  // Ensure allPayments is initialized from merged data
+  if (!Array.isArray(allPayments)) {
+    console.warn("⚠️ allPayments not initialized, setting empty array");
+    allPayments = [];
+  }
 
-  // Initialize global payments array safely
-  allPayments = mergedData.payments || [];
-
-  // Render initial stats
+  // Render stats with current payments
   renderPaymentsStats(allPayments);
 }
 
@@ -396,10 +396,7 @@ function renderStudentPayments(studentId) {
 }
 
 function getPaymentsForMonth(year, month) {
-  if (!Array.isArray(allPayments)) {
-    console.warn("⚠️ allPayments not initialized");
-    return [];
-  }
+  if (!Array.isArray(allPayments)) return [];
   return allPayments.filter(p => {
     const d = new Date(p.date);
     return d.getFullYear() === year && (d.getMonth() + 1) === month;
