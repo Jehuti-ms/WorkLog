@@ -3384,7 +3384,7 @@ input[type="search"]::-webkit-search-results-decoration {
   border: 1px solid #ccc;
 }
 
-/* Simple responsive sync bar */
+/* Unified Sync Bar - Responsive */
 .sync-bar {
     display: flex;
     flex-wrap: wrap;
@@ -3398,27 +3398,85 @@ input[type="search"]::-webkit-search-results-decoration {
     margin-bottom: 20px;
 }
 
+/* Auto-sync label stays inline */
 .auto-sync-label {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-right: 15px;
+    margin-right: 8px;
+    white-space: nowrap;
 }
 
-/* Mobile stack */
+/* Custom checkbox styling */
+.custom-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #6c757d;
+    border-radius: 3px;
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+}
+
+.auto-sync-label input:checked + .custom-checkbox {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.auto-sync-label input:checked + .custom-checkbox::after {
+    content: '✓';
+    color: white;
+    position: absolute;
+    top: -2px;
+    left: 1px;
+    font-size: 12px;
+}
+
+.auto-sync-label input {
+    display: none;
+}
+
+/* Mobile styles */
 @media (max-width: 768px) {
     .sync-bar {
-        flex-direction: column;
-        align-items: stretch;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        justify-items: stretch;
     }
     
     .auto-sync-label {
-        margin-right: 0;
-        margin-bottom: 10px;
+        grid-column: 1 / -1;
         justify-content: center;
+        margin-right: 0;
+        margin-bottom: 5px;
     }
     
     .sync-bar .btn {
         width: 100%;
+        text-align: center;
     }
+}
+
+/* Small mobile styles */
+@media (max-width: 480px) {
+    .sync-bar {
+        grid-template-columns: 1fr;
+    }
+    
+    .auto-sync-label {
+        grid-column: 1;
+    }
+}
+
+/* Ensure buttons have consistent styling */
+.sync-bar .btn {
+    white-space: nowrap;
+    min-width: auto;
+}
+
+/* Hover effects */
+.sync-bar .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
