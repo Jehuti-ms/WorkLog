@@ -3384,8 +3384,8 @@ input[type="search"]::-webkit-search-results-decoration {
   border: 1px solid #ccc;
 }
 
-/* Default: horizontal row, centered */
-.sync-bar-centered {
+/* Base layout: horizontal row */
+.sync-bar {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -3405,17 +3405,17 @@ input[type="search"]::-webkit-search-results-decoration {
   font-weight: 500;
 }
 
-/* ✅ Fix: true grid layout on small screens */
-@media (max-width: 600px) {
-  .sync-bar-centered {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 2 columns */
-    gap: 0.75rem;
+/* ✅ Force grid layout on small screens */
+@media screen and (max-width: 600px) {
+  .sync-bar {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr);
     justify-items: center;
+    gap: 0.75rem;
   }
 
-  .sync-bar-centered .btn,
-  .sync-bar-centered .auto-sync-label {
+  .sync-bar .btn,
+  .sync-bar .auto-sync-label {
     width: 100%;
     justify-content: center;
   }
