@@ -9,9 +9,10 @@ let appData = {
     attendance: [],
     payments: [],
     settings: {
-        defaultRate: 25.00
+    defaultRate: 25.00
     }
 };
+let allPayments = []; // global declaration
 
 let isEditingAttendance = false;
 
