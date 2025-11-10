@@ -433,7 +433,12 @@ class CloudSync {
         if (window.appData) {
             Object.assign(window.appData, mergedData);
         }
-        
+
+        // Initialize global payments safely
+  allPayments = cloudData.payments || [];
+
+  console.log("✅ Payments data initialized:", allPayments.length, "records");
+}
         console.log('✅ Data merged successfully');
     }
 
