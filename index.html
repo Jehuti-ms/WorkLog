@@ -79,33 +79,22 @@
             </div>
         </header>
             <!-- Unified Sync Bar -->
-                <div class="sync-bar-centered">
+                <div class="sync-bar" id="syncBar">
                   <label class="auto-sync-label">
                     <input type="checkbox" id="autoSyncCheckbox" onchange="toggleAutoSync()">
                     <span class="custom-checkbox"></span>
                     Auto-sync
                   </label>
                 
-                  <button class="btn btn-sm" id="syncBtn" onclick="manualSync()" style="display: none;">
-                    🔄 Sync Now
-                  </button>
-                
-                  <button class="btn btn-sm" onclick="exportCloudData()" title="Export cloud data">
-                    ☁️ Export Cloud
-                  </button>
-                
-                  <button class="btn btn-sm btn-secondary" onclick="importToCloud()" title="Import to cloud">
-                    📥 Import Cloud
-                  </button>
-                
-                  <button class="btn btn-sm" onclick="showSyncStats()" title="Sync statistics">
-                    📊 Sync Stats
-                  </button>
-                
+                  <button class="btn btn-sm" id="syncBtn" onclick="manualSync()" style="display: none;">🔄 Sync Now</button>
+                  <button class="btn btn-sm" onclick="exportCloudData()">☁️ Export Cloud</button>
+                  <button class="btn btn-sm btn-secondary" onclick="importToCloud()">📥 Import Cloud</button>
+                  <button class="btn btn-sm" onclick="showSyncStats()">📊 Sync Stats</button>
                   <button class="btn btn-sm" onclick="exportData()">📤 Export Data</button>
                   <button class="btn btn-sm btn-secondary" onclick="importData()">📥 Import Data</button>
                   <button class="btn btn-sm btn-danger" onclick="clearAllData()">🗑️ Clear All</button>
                 </div>
+
                       
 
         <!-- Tab Navigation -->
