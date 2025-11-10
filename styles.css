@@ -3445,11 +3445,12 @@ input[type="search"]::-webkit-search-results-decoration {
         justify-items: stretch;
     }
     
+    /* FIX: Auto-sync now takes one grid cell instead of full width */
     .auto-sync-label {
-        grid-column: 1 / -1;
-        justify-content: center;
+        grid-column: span 1;
+        justify-content: start;
         margin-right: 0;
-        margin-bottom: 5px;
+        margin-bottom: 0;
     }
     
     .sync-bar .btn {
@@ -3466,6 +3467,7 @@ input[type="search"]::-webkit-search-results-decoration {
     
     .auto-sync-label {
         grid-column: 1;
+        justify-content: center;
     }
 }
 
