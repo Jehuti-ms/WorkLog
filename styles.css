@@ -3398,13 +3398,31 @@ input[type="search"]::-webkit-search-results-decoration {
     margin-bottom: 20px;
 }
 
-/* Auto-sync label stays inline */
+/* Auto-sync label styling */
 .auto-sync-label {
     display: flex;
     align-items: center;
     gap: 6px;
     margin-right: 8px;
     white-space: nowrap;
+    justify-content: center; /* Center the content */
+}
+
+/* Make auto-sync look like a button */
+.auto-sync-label {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    color: #495057;
+}
+
+.auto-sync-label:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
 }
 
 /* Custom checkbox styling */
@@ -3416,6 +3434,7 @@ input[type="search"]::-webkit-search-results-decoration {
     display: inline-block;
     position: relative;
     cursor: pointer;
+    flex-shrink: 0; /* Prevent checkbox from shrinking */
 }
 
 .auto-sync-label input:checked + .custom-checkbox {
@@ -3445,12 +3464,14 @@ input[type="search"]::-webkit-search-results-decoration {
         justify-items: stretch;
     }
     
-    /* FIX: Auto-sync now takes one grid cell instead of full width */
+    /* Auto-sync takes one grid cell and centers content */
     .auto-sync-label {
         grid-column: span 1;
-        justify-content: start;
+        justify-content: center; /* Center horizontally */
         margin-right: 0;
         margin-bottom: 0;
+        width: 100%; /* Full width of grid cell */
+        text-align: center; /* Center text */
     }
     
     .sync-bar .btn {
@@ -3478,7 +3499,8 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 /* Hover effects */
-.sync-bar .btn:hover {
+.sync-bar .btn:hover,
+.auto-sync-label:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
