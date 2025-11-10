@@ -244,6 +244,19 @@ function loadTabData(tabName) {
     }
 }
 
+function loadPaymentsTab() {
+  console.log("📂 Loading tab data: payments");
+
+  // Pull merged/synced data
+  const mergedData = getMergedData(); // however you retrieve synced data
+
+  // Initialize global payments array safely
+  allPayments = mergedData.payments || [];
+
+  // Render initial stats
+  renderPaymentsStats(allPayments);
+}
+
 // ============================================================================
 // STUDENTS MANAGEMENT
 // ============================================================================
@@ -380,6 +393,17 @@ function renderStudentPayments(studentId) {
             (${p.method || 'N/A'})
         </li>
     `).join('');
+}
+
+function getPaymentsForMonth(year, month) {
+  if (!Array.isArray(allPayments)) {
+    console.warn("⚠️ allPayments not initialized");
+    return [];
+  }
+  return allPayments.filter(p => {
+    const d = new Date(p.date);
+    return d.getFullYear() === year && (d.getMonth() + 1) === month;
+  });
 }
 
 //Builds a full history modal container for payment history
