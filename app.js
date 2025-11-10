@@ -260,34 +260,23 @@ function loadPaymentsTab() {
 // ============================================================================
 // Payment Stats
 // ============================================================================
+//Weekly and monthly payments
 function renderPaymentsStats(payments) {
-  // Defensive check
-  if (!Array.isArray(payments)) {
-    console.warn("⚠️ renderPaymentsStats called with invalid data");
-    return;
-  }
+  if (!Array.isArray(payments)) return;
 
-  // Calculate totals
   const total = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
-  // Example: weekly breakdown (group by week number)
   const weeklyTotals = {};
   payments.forEach(p => {
     const d = new Date(p.date);
-    const week = getWeekNumber(d); // helper function below
+    const week = getWeekNumber(d);
     weeklyTotals[week] = (weeklyTotals[week] || 0) + (p.amount || 0);
   });
 
-  // Update DOM
-  const totalEl = document.getElementById("paymentsTotal");
-  const weeklyEl = document.getElementById("paymentsWeekly");
-
-  if (totalEl) totalEl.textContent = `$${total} this month`;
-  if (weeklyEl) {
-    weeklyEl.innerHTML = Object.entries(weeklyTotals)
-      .map(([week, amt]) => `Week ${week}: $${amt}`)
-      .join("<br>");
-  }
+  document.getElementById("paymentsTotal").textContent = `$${total} this month`;
+  document.getElementById("paymentsWeekly").innerHTML = Object.entries(weeklyTotals)
+    .map(([week, amt]) => `Week ${week}: $${amt}`)
+    .join("<br>");
 }
 
 // Helper: get ISO week number
@@ -297,6 +286,23 @@ function getWeekNumber(date) {
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+// Full history of payments
+function renderPaymentHistory(payments) {
+  const tableBody = document.getElementById("paymentHistoryTableBody");
+  tableBody.innerHTML = "";
+
+  payments.forEach(p => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${p.studentName}</td>
+      <td>${new Date(p.date).toLocaleDateString()}</td>
+      <td>$${p.amount}</td>
+      <td>${p.method || "N/A"}</td>
+    `;
+    tableBody.appendChild(row);
+  });
 }
 
 // ============================================================================
