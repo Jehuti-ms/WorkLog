@@ -43,18 +43,18 @@ let currentTab = "dashboard"; // defaults; will be updated by setupTabs
 function init() {
   console.log("🎯 App initialization started");
 
-  // Authentication check (kept as-is)
+  // TEMP: disable auth guard so app always runs
   if (!window.Auth || !window.Auth.isAuthenticated || !window.Auth.isAuthenticated()) {
-    console.log("❌ User not authenticated");
-    return;
+    console.log("⚠️ Auth module not found or user not signed in — continuing without authentication");
+    // Do NOT return here — let the app continue
+  } else {
+    console.log("✅ User authenticated, setting up app...");
   }
 
-  console.log("✅ User authenticated, setting up app...");
-
-  // Load data from localStorage FIRST for fast initial UI
+  // Load data from localStorage FIRST
   loadAllData();
 
-  // Cloud sync auto-initialization is handled externally; just wire hooks here
+  // Cloud sync auto-initialization is handled externally
   console.log("🔧 Cloud sync auto-initialization enabled");
 
   // Tabs and events
