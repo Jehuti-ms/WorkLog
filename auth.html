@@ -1,21 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
   <title>WorkLog — Sign In</title>
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="auth.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="auth.css">
 </head>
 <body>
   <div class="auth-container">
     <div class="auth-card">
-      <!-- Logo + Title -->
-      <div class="auth-logo">
-        <img src="icons/worklog_cogs.svg" alt="WorkLog" style="height:100px;width:100px;">
-      </div>
-      <div class="auth-title"><h1>WorkLog</h1></div>
+      <h1>WorkLog</h1>
       <p class="auth-subtitle">Student Tracker & Hours Management</p>
 
       <!-- Tabs -->
@@ -24,293 +18,38 @@
         <button class="auth-tab" data-tab="register">Register</button>
       </div>
 
-      <!-- Login -->
+      <!-- Login Form -->
       <div id="login" class="auth-tab-content active">
-        <form id="loginForm" novalidate>
+        <form id="loginForm">
           <div class="form-group">
-            <label for="loginEmail">Email Address</label>
-            <input type="email" id="loginEmail" required placeholder="your@email.com">
-            <div class="error-message" id="loginEmailError">Please enter a valid email.</div>
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" required>
           </div>
-
           <div class="form-group">
             <label for="loginPassword">Password</label>
-            <input type="password" id="loginPassword" required placeholder="••••••••">
-            <div class="error-message" id="loginPasswordError">Please enter your password.</div>
+            <input type="password" id="loginPassword" required>
           </div>
-
-          <div class="form-options">
-            <label class="checkbox">
-              <input type="checkbox" id="rememberMe">
-              <span class="checkmark"></span>
-              Remember me
-            </label>
-            <a href="#" class="forgot-password" id="forgotLink">Forgot password?</a>
-          </div>
-
-          <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
-            <span class="btn-text">Sign In</span>
-            <span class="btn-loading" style="display:none;">Signing in...</span>
-          </button>
+          <button type="submit" class="btn btn-primary btn-block">Sign In</button>
         </form>
-
-        <!-- Google Auth -->
-        <div class="google-auth-section">
-          <div class="auth-divider"><span>or continue with</span></div>
-          <div id="googleSignInButton"></div>
-          <button type="button" class="btn btn-google" id="fallbackGoogleButton" style="display:none;">
-            <svg class="google-icon" viewBox="0 0 18 18" aria-hidden="true">
-              <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18Z"/>
-              <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17Z"/>
-              <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07Z"/>
-              <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3Z"/>
-            </svg>
-            Sign in with Google
-          </button>
-        </div>
       </div>
 
-      <!-- Register -->
+      <!-- Register Form -->
       <div id="register" class="auth-tab-content" style="display:none;">
-        <form id="registerForm" novalidate>
+        <form id="registerForm">
           <div class="form-group">
-            <label for="registerName">Full Name</label>
-            <input type="text" id="registerName" required placeholder="John Doe">
+            <label for="registerEmail">Email</label>
+            <input type="email" id="registerEmail" required>
           </div>
-
-          <div class="form-group">
-            <label for="registerEmail">Email Address</label>
-            <input type="email" id="registerEmail" required placeholder="your@email.com">
-          </div>
-
           <div class="form-group">
             <label for="registerPassword">Password</label>
-            <input type="password" id="registerPassword" required placeholder="••••••••">
-            <div class="password-strength">
-              <div class="strength-bar"><div class="strength-fill" id="passwordStrength"></div></div>
-              <small>Use 8+ characters with letters and numbers</small>
-            </div>
+            <input type="password" id="registerPassword" required>
           </div>
-
-          <div class="form-group">
-            <label for="registerConfirmPassword">Confirm Password</label>
-            <input type="password" id="registerConfirmPassword" required placeholder="••••••••">
-          </div>
-
-          <div class="form-options">
-            <label class="checkbox">
-              <input type="checkbox" id="acceptTerms" required>
-              <span class="checkmark"></span>
-              I agree to the <a href="#" id="termsLink">Terms of Service</a> and <a href="#" id="privacyLink">Privacy Policy</a>
-            </label>
-          </div>
-
-          <button type="submit" class="btn btn-primary btn-block" id="registerBtn">
-            <span class="btn-text">Create Account</span>
-            <span class="btn-loading" style="display:none;">Creating account...</span>
-          </button>
+          <button type="submit" class="btn btn-primary btn-block">Create Account</button>
         </form>
-
-        <!-- Google Auth -->
-        <div class="google-auth-section">
-          <div class="auth-divider"><span>or sign up with</span></div>
-          <div id="googleSignInButtonRegister"></div>
-          <button type="button" class="btn btn-google" id="fallbackGoogleButtonRegister" style="display:none;">
-            <!-- same icon as above -->
-            Sign up with Google
-          </button>
-        </div>
-      </div>
-
-      <!-- Forgot password -->
-      <div id="forgotPassword" class="auth-tab-content" style="display:none;">
-        <h3>Reset Your Password</h3>
-        <p style="color:#6c757d;margin-bottom:20px;">Enter your email address and we'll send you a link.</p>
-        <form id="forgotPasswordForm" novalidate>
-          <div class="form-group">
-            <label for="forgotEmail">Email Address</label>
-            <input type="email" id="forgotEmail" required placeholder="your@email.com">
-          </div>
-          <button type="submit" class="btn btn-primary btn-block" id="forgotBtn">
-            <span class="btn-text">Send Reset Link</span>
-            <span class="btn-loading" style="display:none;">Sending...</span>
-          </button>
-        </form>
-        <div class="back-to-login"><a href="#" id="backToLoginLink">← Back to Sign In</a></div>
-      </div>
-
-      <!-- Back to app -->
-      <div class="back-to-app">
-        <a href="#" id="backToAppLink">← Back to WorkLog App</a>
       </div>
     </div>
   </div>
 
-  <!-- Loading overlay -->
-  <div id="loadingOverlay" class="loading-overlay" style="display:none;">
-    <div class="loading-spinner"></div>
-    <p>Please wait...</p>
-  </div>
-
-  <!-- Scripts -->
-  <script>
-    // Utility: show/hide loading overlay
-    const Loading = {
-      show() { document.getElementById('loadingOverlay').style.display = 'flex'; },
-      hide() { document.getElementById('loadingOverlay').style.display = 'none'; }
-    };
-
-    // Tabs
-    function switchAuthTab(tabName) {
-      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-      document.querySelector(`.auth-tab[data-tab="${tabName}"]`).classList.add('active');
-
-      document.querySelectorAll('.auth-tab-content').forEach(c => c.style.display = 'none');
-      document.getElementById(tabName).style.display = 'block';
-
-      // Optional: re-render Google button if available
-      if (typeof renderGoogleSignInButton === 'function') {
-        const containerId = tabName === 'login' ? 'googleSignInButton' : 'googleSignInButtonRegister';
-        renderGoogleSignInButton(containerId);
-      }
-    }
-
-    // Wire tab clicks
-    document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('.auth-tab').forEach(tab => {
-        tab.addEventListener('click', () => switchAuthTab(tab.dataset.tab));
-      });
-    });
-
-    // Handlers
-    document.addEventListener('DOMContentLoaded', () => {
-      // Back to app link
-      const backLink = document.getElementById('backToAppLink');
-      if (backLink) {
-        const isAuthenticated = !!localStorage.getItem('worklog_session');
-        backLink.title = isAuthenticated ? 'Go to your WorkLog dashboard' : 'Sign in required to access the app';
-        backLink.style.opacity = isAuthenticated ? '1' : '0.7';
-        backLink.addEventListener('click', (e) => {
-          e.preventDefault();
-          if (isAuthenticated) {
-            window.location.href = 'index.html';
-          } else {
-            const proceed = confirm('You need to sign in to access the WorkLog app. Continue to the app?');
-            if (proceed) window.location.href = 'index.html';
-          }
-        });
-      }
-
-      // Forgot password/show login
-      document.getElementById('forgotLink')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.auth-tab-content').forEach(c => c.style.display = 'none');
-        document.getElementById('forgotPassword').style.display = 'block';
-      });
-      document.getElementById('backToLoginLink')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        switchAuthTab('login');
-      });
-
-      // Login submit
-      const loginForm = document.getElementById('loginForm');
-      loginForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPassword').value;
-        if (!email || !password) {
-          alert('Please enter both email and password.');
-          return;
-        }
-        console.log('Sign-in attempt:', email);
-        Loading.show();
-        try {
-          // TODO: Replace this mock with your real auth call
-          await new Promise(res => setTimeout(res, 600));
-          localStorage.setItem('worklog_session', 'mock-session-' + Date.now());
-          alert('Signed in!');
-          window.location.href = 'index.html';
-        } catch (err) {
-          alert('Sign-in failed. Please try again.');
-        } finally {
-          Loading.hide();
-        }
-      });
-
-      // Register submit
-      const registerForm = document.getElementById('registerForm');
-      registerForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('registerName').value.trim();
-        const email = document.getElementById('registerEmail').value.trim();
-        const password = document.getElementById('registerPassword').value;
-        const confirm = document.getElementById('registerConfirmPassword').value;
-        if (!name || !email || !password || !confirm) {
-          alert('Please fill out all fields.');
-          return;
-        }
-        if (password !== confirm) {
-          alert('Passwords do not match.');
-          return;
-        }
-        console.log('Register attempt:', name, email);
-        Loading.show();
-        try {
-          // TODO: Replace with real registration call
-          await new Promise(res => setTimeout(res, 600));
-          alert('Account created! Please sign in.');
-          switchAuthTab('login');
-        } catch (err) {
-          alert('Registration failed. Please try again.');
-        } finally {
-          Loading.hide();
-        }
-      });
-
-      // Forgot password submit
-      const forgotForm = document.getElementById('forgotPasswordForm');
-      forgotForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('forgotEmail').value.trim();
-        if (!email) {
-          alert('Please enter your email.');
-          return;
-        }
-        console.log('Password reset request:', email);
-        Loading.show();
-        try {
-          // TODO: Replace with real password reset call
-          await new Promise(res => setTimeout(res, 600));
-          alert('If your email exists, a reset link has been sent.');
-          switchAuthTab('login');
-        } catch (err) {
-          alert('Reset failed. Please try again.');
-        } finally {
-          Loading.hide();
-        }
-      });
-
-      // Google auth init + fallback
-      setTimeout(() => {
-        if (typeof initGoogleAuth === 'function') {
-          initGoogleAuth().catch(() => {
-            document.getElementById('fallbackGoogleButton').style.display = 'flex';
-            document.getElementById('fallbackGoogleButtonRegister').style.display = 'flex';
-          });
-        } else {
-          document.getElementById('fallbackGoogleButton').style.display = 'flex';
-          document.getElementById('fallbackGoogleButtonRegister').style.display = 'flex';
-        }
-      }, 500);
-
-      // Fallback Google buttons
-      document.getElementById('fallbackGoogleButton')?.addEventListener('click', () => {
-        alert('Google sign-in not configured yet.');
-      });
-      document.getElementById('fallbackGoogleButtonRegister')?.addEventListener('click', () => {
-        alert('Google sign-up not configured yet.');
-      });
-    });
-  </script>
+  <script src="auth.js" defer></script>
 </body>
 </html>
