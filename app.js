@@ -184,24 +184,41 @@ function activateTab(tabName) {
 }
 
 function setupEventListeners() {
-  // Year/month filter dropdowns for payments tab
-  const yearSelect = document.getElementById("paymentsYearSelect");
-  const monthSelect = document.getElementById("paymentsMonthSelect");
+  // === Students ===
+  document.getElementById("addStudentBtn")?.addEventListener("click", addStudent);
+  document.getElementById("clearStudentFormBtn")?.addEventListener("click", clearStudentForm);
+  document.getElementById("saveDefaultRateBtn")?.addEventListener("click", saveDefaultRate);
+  document.getElementById("applyDefaultRateBtn")?.addEventListener("click", applyDefaultRateToAll);
+  document.getElementById("useDefaultRateBtn")?.addEventListener("click", useDefaultRate);
 
-  if (yearSelect) {
-    yearSelect.onchange = updatePaymentsByYearMonth;
-  }
-  if (monthSelect) {
-    monthSelect.onchange = updatePaymentsByYearMonth;
-  }
+  // === Hours ===
+  document.getElementById("logHoursBtn")?.addEventListener("click", logHours);
+  document.getElementById("resetHoursFormBtn")?.addEventListener("click", resetHoursForm);
 
-  // Auto-sync checkbox wiring (HTML calls toggleAutoSync())
-  const autoSyncCheckbox = document.getElementById("autoSyncCheckbox");
-  if (autoSyncCheckbox) {
-    autoSyncCheckbox.onchange = toggleAutoSync;
-  }
+  // === Marks ===
+  document.getElementById("addMarkBtn")?.addEventListener("click", addMark);
+  document.getElementById("clearMarksFormBtn")?.addEventListener("click", () => {
+    document.getElementById("marksForm")?.reset();
+  });
 
-  // Other events: hook existing controls safely without breaking
+  // === Attendance ===
+  document.getElementById("saveAttendanceBtn")?.addEventListener("click", saveAttendance);
+  document.getElementById("clearAttendanceBtn")?.addEventListener("click", clearAttendanceFormManual);
+
+  // === Payments ===
+  document.getElementById("recordPaymentBtn")?.addEventListener("click", recordPayment);
+  document.getElementById("paymentsYearSelect")?.addEventListener("change", updatePaymentsByYearMonth);
+  document.getElementById("paymentsMonthSelect")?.addEventListener("change", updatePaymentsByYearMonth);
+
+  // === Sync Bar ===
+  document.getElementById("autoSyncCheckbox")?.addEventListener("change", toggleAutoSync);
+  document.getElementById("syncBtn")?.addEventListener("click", manualSync);
+  document.getElementById("exportCloudBtn")?.addEventListener("click", exportCloudData);
+  document.getElementById("importCloudBtn")?.addEventListener("click", importToCloud);
+  document.getElementById("syncStatsBtn")?.addEventListener("click", showSyncStats);
+  document.getElementById("exportDataBtn")?.addEventListener("click", exportData);
+  document.getElementById("importDataBtn")?.addEventListener("click", importData);
+  document.getElementById("clearAllBtn")?.addEventListener("click", clearAllData);
 }
 
 /* ============================================================================
