@@ -60,6 +60,27 @@ function init() {
     console.log('✅ App initialized successfully');
 }
 
+// Add this to your initialization for better error recovery
+function safeDataInitialization() {
+  // Ensure all arrays exist
+  if (!Array.isArray(appData.students)) appData.students = [];
+  if (!Array.isArray(appData.payments)) appData.payments = [];
+  if (!Array.isArray(appData.hours)) appData.hours = [];
+  if (!Array.isArray(appData.marks)) appData.marks = [];
+  if (!Array.isArray(appData.attendance)) appData.attendance = [];
+  
+  // Initialize allPayments from appData
+  allPayments = Array.isArray(appData.payments) ? appData.payments.slice() : [];
+  
+  // Ensure settings exist
+  if (!appData.settings) appData.settings = {};
+  if (typeof appData.settings.defaultRate !== 'number') {
+    appData.settings.defaultRate = 25.0;
+  }
+}
+
+// Call this in init() after loadAllData()
+
 // ============================================================================
 // DATA MANAGEMENT
 // ============================================================================
