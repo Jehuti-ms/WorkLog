@@ -25,7 +25,7 @@
   </header>
 
   <!-- Sync Bar -->
-  <div class="sync-bar" id="syncBar">
+ <!-- <div class="sync-bar" id="syncBar">
     <div class="auto-sync-container">
         <input type="checkbox" id="autoSyncCheckbox" class="auto-sync-checkbox">
         <label for="autoSyncCheckbox" class="auto-sync-label">🔄 Auto-sync</label>
@@ -33,14 +33,24 @@
     <button id="exportCloudBtn">☁️ Export Cloud</button>
     <button id="importCloudBtn">📥 Import Cloud</button>
    <!-- <button id="syncStatsBtn">📊 Sync Stats</button> -->
-    <div id="syncStatsModal" style="display:none;">
+   <!-- <div id="syncStatsModal" style="display:none;">
         <div id="syncStatsContent"></div>
         <button onclick="closeSyncStats()">Close</button>
     </div>
     <button id="exportDataBtn">📤 Export Data</button>
     <button id="importDataBtn">📥 Import Data</button>
     <button id="clearAllBtn">🗑️ Clear All</button>
-  </div>
+  </div> -->
+      <div class="sync-bar" id="syncBar">
+  <label>
+    <input type="checkbox" id="autoSyncCheckbox" onchange="toggleAutoSync()"> Auto-sync
+  </label>
+  <button id="syncBtn" onclick="manualSync()">🔄 Sync Now</button>
+  <button id="exportCloudBtn" onclick="exportCloudData()">☁️ Export Cloud</button>
+  <button id="importCloudBtn" onclick="importToCloud()">📥 Import Cloud</button>
+  <button id="syncStatsBtn" onclick="showSyncStats()">📊 Sync Stats</button>
+  <button id="clearAllBtn">🗑️ Clear All</button>
+</div>
 
   <!-- Tabs -->
   <div class="tabs">
