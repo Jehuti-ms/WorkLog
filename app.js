@@ -1,37 +1,26 @@
 // app.js
 
-// ✅ Safe defaults for appData
 let appData = {
   students: [],
   payments: [],
   hours: [],
   marks: [],
   attendance: [],
-  settings: {
-    defaultRate: 25.0
-  }
+  settings: { defaultRate: 25.0 }
 };
 
-// ✅ Utility: safe element lookup
 function getEl(id) {
   const el = document.getElementById(id);
-  if (!el) {
-    console.error(`Missing container: #${id}`);
-  }
+  if (!el) console.error(`Missing container: #${id}`);
   return el;
 }
 
-// ✅ Render functions with guards
 function renderStudents() {
   const el = getEl("studentCards");
   if (!el) return;
-  if (!appData.students.length) {
-    el.innerHTML = "<p>No students registered yet.</p>";
-    return;
-  }
-  el.innerHTML = appData.students
-    .map(s => `<div class="card">${s.name}</div>`)
-    .join("");
+  el.innerHTML = appData.students.length
+    ? appData.students.map(s => `<div class="card">${s.name}</div>`).join("")
+    : "<p>No students registered yet.</p>";
 }
 
 function renderPayments() {
@@ -66,15 +55,11 @@ function renderAttendance() {
     : "<p>No attendance records.</p>";
 }
 
-// ✅ Load saved data
 function loadAllData() {
   const saved = localStorage.getItem("appData");
   if (saved) {
-    try {
-      appData = JSON.parse(saved);
-    } catch (e) {
-      console.error("Failed to parse saved appData:", e);
-    }
+    try { appData = JSON.parse(saved); }
+    catch (e) { console.error("Failed to parse saved appData:", e); }
   }
   renderStudents();
   renderPayments();
@@ -83,40 +68,32 @@ function loadAllData() {
   renderAttendance();
 }
 
-// ✅ Init function
 function init() {
   console.log("🎯 App initialization started");
-
-  // Session check
   const session = localStorage.getItem("worklog_session");
-  if (!session) {
+  console.log("Session value:", session);
+
+  if (session === null) {
     console.warn("⚠️ No session found — redirecting to auth.html");
     window.location.replace("auth.html");
     return;
   }
 
-  // Load data and render
   loadAllData();
 
-  // Wire up sync bar
   const logoutBtn = getEl("logoutBtn");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("worklog_session");
-      window.location.replace("auth.html");
-    });
-  }
+  if (logoutBtn) logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("worklog_session");
+    window.location.replace("auth.html");
+  });
 
   const manualSyncBtn = getEl("manualSyncBtn");
-  if (manualSyncBtn) {
-    manualSyncBtn.addEventListener("click", () => {
-      console.log("🔄 manualSync() called");
-      // Placeholder: integrate with cloud-sync.js
-    });
-  }
+  if (manualSyncBtn) manualSyncBtn.addEventListener("click", () => {
+    console.log("🔄 manualSync() called");
+    if (typeof manualSync === "function") manualSync();
+  });
 
   console.log("✅ App initialized successfully");
 }
 
-// ✅ Run init after DOM is ready
 document.addEventListener("DOMContentLoaded", init);
