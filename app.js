@@ -124,9 +124,8 @@ function loadDefaultRate() {
    Tabs and events
 ============================================================================ */
 function setupTabs() {
-  // Example wiring: update currentTab on tab activation
-  // Ensure this matches your existing tab IDs and click handlers
-  const tabButtons = document.querySelectorAll("[data-tab]");
+  // Attach click listeners to all tab buttons
+  const tabButtons = document.querySelectorAll(".tabs .tab");
   tabButtons.forEach(btn => {
     btn.addEventListener("click", () => {
       const target = btn.getAttribute("data-tab");
@@ -172,10 +171,17 @@ function activateTab(tabName) {
     case "attendance":
       // optional: refresh attendance list
       break;
-    // add other cases as needed
+    case "hours":
+      // optional: refresh hours list
+      break;
+    case "marks":
+      // optional: refresh marks list
+      break;
+    case "reports":
+      // optional: refresh reports
+      break;
   }
 }
-
 
 function setupEventListeners() {
   // Year/month filter dropdowns for payments tab
