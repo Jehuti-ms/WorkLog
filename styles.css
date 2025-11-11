@@ -250,22 +250,20 @@ button {
 
 /* ===== TABS STYLES ===== */
 .tabs {
-  display: flex;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  padding: 8px;
+  padding: 12px;
   border-radius: var(--border-radius);
   margin-bottom: 24px;
   box-shadow: var(--shadow-md);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  flex-wrap: wrap;
 }
 
 .tab {
-  flex: 1;
-  min-width: 120px;
-  padding: 16px 20px;
+  padding: 16px 12px;
   background: transparent;
   border: none;
   border-radius: var(--border-radius-sm);
@@ -277,18 +275,33 @@ button {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  text-align: center;
+  min-height: 60px;
+  flex-direction: column;
 }
 
 .tab:hover {
   background: var(--gray-100);
   color: var(--primary);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 .tab.active {
   background: linear-gradient(135deg, var(--primary), var(--secondary));
   color: white;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.tab-icon {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+}
+
+.tab-text {
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 /* ===== TAB CONTENT STYLES ===== */
@@ -486,6 +499,30 @@ input::placeholder {
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
+
+/* Tablet Styles */
+@media (max-width: 1024px) {
+  .tabs {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 10px;
+  }
+  
+  .tab {
+    padding: 14px 8px;
+    min-height: 55px;
+  }
+  
+  .tab-icon {
+    font-size: 1.1rem;
+  }
+  
+  .tab-text {
+    font-size: 0.75rem;
+  }
+}
+
+/* Mobile Styles */
 @media (max-width: 768px) {
   .container {
     padding: 12px;
@@ -506,39 +543,83 @@ input::placeholder {
   }
   
   .tabs {
-    flex-direction: column;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    padding: 8px;
   }
   
   .tab {
-    min-width: auto;
+    padding: 12px 6px;
+    min-height: 50px;
+    flex-direction: column;
+  }
+  
+  .tab-icon {
+    font-size: 1rem;
+    margin-bottom: 2px;
+  }
+  
+  .tab-text {
+    font-size: 0.7rem;
+    line-height: 1.2;
   }
   
   .sync-bar {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
   }
   
   .sync-bar button,
   .auto-sync-label {
     justify-content: center;
     text-align: center;
+    padding: 10px 16px;
   }
   
   .form-grid {
     grid-template-columns: 1fr;
     padding: 16px;
+    gap: 12px;
   }
   
   .stats-cards {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
   
   .tab-content {
     padding: 20px;
+    min-height: 400px;
+  }
+  
+  input, select, textarea {
+    padding: 12px 14px;
   }
 }
 
+/* Small Mobile Styles */
 @media (max-width: 480px) {
+  .tabs {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+    padding: 6px;
+  }
+  
+  .tab {
+    padding: 10px 4px;
+    min-height: 45px;
+    border-radius: var(--border-radius-sm);
+  }
+  
+  .tab-icon {
+    font-size: 0.9rem;
+  }
+  
+  .tab-text {
+    font-size: 0.65rem;
+  }
+  
   .storage-status {
     flex-direction: column;
     align-items: center;
@@ -547,6 +628,59 @@ input::placeholder {
   
   .payments-stats {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .tab-content h2 {
+    font-size: 1.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .subtitle {
+    font-size: 1rem;
+  }
+}
+
+/* Extra Small Mobile Styles */
+@media (max-width: 360px) {
+  .tabs {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  
+  .tab {
+    min-height: 40px;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 10px 12px;
+  }
+  
+  .tab-icon {
+    margin-bottom: 0;
+    margin-right: 8px;
+    font-size: 1rem;
+  }
+  
+  .tab-text {
+    font-size: 0.8rem;
+  }
+  
+  .container {
+    padding: 8px;
+  }
+  
+  .header {
+    padding: 16px;
+  }
+  
+  .tab-content {
+    padding: 16px;
   }
 }
 
