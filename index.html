@@ -2,134 +2,83 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>WorkLog - Student Tracker & Hours Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WorkLog Dashboard</title>
   <link rel="stylesheet" href="styles.css">
-  <style>
-    .tab-content { display: none; padding: 20px; background: white; border-radius: 8px; margin-top: 10px; min-height: 400px; }
-    .tab-content.active { display: block !important; }
-    .tabs { margin-top: 20px; display: flex; gap: 10px; }
-    .tabs .tab { padding: 8px 16px; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; background: #f9f9f9; }
-    .tabs .tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
-  </style>
 </head>
 <body>
   <!-- Header -->
-  <header class="header">
-    <h1><img src="icons/worklog_cogs.svg" alt="WorkLog" style="height: 80px;"> WorkLog</h1>
-    <p class="subtitle">Student Tracker & Hours Management System</p>
-    <div class="storage-status">
-      <span id="localStatus">💾 Local Storage: Active</span>
-      <span id="syncStatus">☁️ Cloud Sync: Ready</span>
-      <span id="dataStatus">📊 Data: 0 Students, 0 Sessions</span>
+  <header class="app-header">
+    <div class="logo">
+      <img src="icons/worklog_cogs.svg" alt="WorkLog" style="height:40px;width:40px;">
+      <h1>WorkLog</h1>
+    </div>
+    <div class="auth-controls">
+      <button id="signInBtn" onclick="window.location.href='auth.html'">🔑 Sign In</button>
+      <button id="signOutBtn" onclick="showLogoutConfirm()" style="display:none;">🚪 Sign Out</button>
+      <button id="profileBtn" onclick="showProfileModal()" style="display:none;">👤 Profile</button>
     </div>
   </header>
 
   <!-- Sync Bar -->
- <!-- <div class="sync-bar" id="syncBar">
-    <div class="auto-sync-container">
-        <input type="checkbox" id="autoSyncCheckbox" class="auto-sync-checkbox">
-        <label for="autoSyncCheckbox" class="auto-sync-label">🔄 Auto-sync</label>
-    </div>
-    <button id="exportCloudBtn">☁️ Export Cloud</button>
-    <button id="importCloudBtn">📥 Import Cloud</button>
-   <!-- <button id="syncStatsBtn">📊 Sync Stats</button> -->
-   <!-- <div id="syncStatsModal" style="display:none;">
-        <div id="syncStatsContent"></div>
-        <button onclick="closeSyncStats()">Close</button>
-    </div>
-    <button id="exportDataBtn">📤 Export Data</button>
-    <button id="importDataBtn">📥 Import Data</button>
-    <button id="clearAllBtn">🗑️ Clear All</button>
-  </div> -->
-      <div class="sync-bar" id="syncBar">
-  <label>
-    <input type="checkbox" id="autoSyncCheckbox" onchange="toggleAutoSync()"> Auto-sync
-  </label>
-  <button id="syncBtn" onclick="manualSync()">🔄 Sync Now</button>
-  <button id="exportCloudBtn" onclick="exportCloudData()">☁️ Export Cloud</button>
-  <button id="importCloudBtn" onclick="importToCloud()">📥 Import Cloud</button>
-  <button id="syncStatsBtn" onclick="showSyncStats()">📊 Sync Stats</button>
-  <button id="clearAllBtn">🗑️ Clear All</button>
-</div>
-      <div id="syncStatsModal" style="display:none;">
-  <div id="syncStatsContent"></div>
-  <button onclick="closeSyncStats()">Close</button>
-</div>
-
-  <!-- Tabs -->
-  <div class="tabs">
-    <button class="tab active" data-tab="students">👥 Students</button>
-    <button class="tab" data-tab="hours">⏱️ Hours</button>
-    <button class="tab" data-tab="marks">📊 Marks</button>
-    <button class="tab" data-tab="attendance">✅ Attendance</button>
-    <button class="tab" data-tab="payments">💰 Payments</button>
-    <button class="tab" data-tab="reports">📈 Reports</button>
+  <div class="sync-bar" id="syncBar">
+    <label>
+      <input type="checkbox" id="autoSyncCheckbox" onchange="toggleAutoSync()"> Auto-sync
+    </label>
+    <button id="syncBtn" onclick="manualSync()">🔄 Sync Now</button>
+    <button id="exportCloudBtn" onclick="exportCloudData()">☁️ Export Cloud</button>
+    <button id="importCloudBtn" onclick="importToCloud()">📥 Import Cloud</button>
+    <button id="syncStatsBtn" onclick="showSyncStats()">📊 Sync Stats</button>
+    <button id="clearAllBtn" onclick="resetAllData()">🗑️ Clear All</button>
+    <span id="syncMessage"></span>
+    <div class="sync-indicator"></div>
   </div>
 
-  <!-- Students Tab -->
-  <div id="students" class="tab-content active">
-    <h2>📚 Student Management</h2>
-    <div id="studentsContainer"><p>No students registered yet.</p></div>
-  </div>
+  <!-- Main Content -->
+  <main id="appContent">
+    <!-- Your dashboard content goes here -->
+    <p>Welcome to WorkLog. Use the sync bar above to manage your data.</p>
+  </main>
 
-  <!-- Hours Tab -->
-  <div id="hours" class="tab-content">
-    <h2>⏱️ Earnings Tracker</h2>
-    <div id="hoursContainer"><p>No work logged yet.</p></div>
-    <div id="hoursSummary"></div>
-  </div>
-
-  <!-- Marks Tab -->
-  <div id="marks" class="tab-content">
-    <h2>📊 Marks & Assessments</h2>
-    <div id="marksContainer"><p>No marks recorded yet.</p></div>
-  </div>
-
-  <!-- Attendance Tab -->
-  <div id="attendance" class="tab-content">
-    <h2>✅ Attendance Tracking</h2>
-    <div id="attendanceContainer"><p>No attendance records yet.</p></div>
-    <div id="attendanceSummary"></div>
-  </div>
-
-  <!-- Payments Tab -->
-  <div id="payments" class="tab-content">
-    <h2>💰 Payment Management</h2>
-    <div id="paymentsStats">
-      <div id="paymentsTotal"></div>
-      <div id="paymentsWeekly"></div>
+  <!-- Sync Stats Modal -->
+  <div id="syncStatsModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h2>Sync Statistics</h2>
+      <div id="syncStatsContent"></div>
+      <button onclick="closeSyncStats()">Close</button>
     </div>
   </div>
 
-  <!-- Reports Tab -->
-  <div id="reports" class="tab-content">
-    <h2>📈 Reports</h2>
-    <div id="reportsContainer"><p>No reports yet.</p></div>
+  <!-- Profile Modal -->
+  <div id="profileModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h2>User Profile</h2>
+      <p id="profileInfo"></p>
+      <button onclick="exportUserData()">📤 Export Data</button>
+      <button onclick="resetAuthData()">🔄 Reset Auth</button>
+      <button onclick="resetAllData()">🗑️ Reset All Data</button>
+      <button onclick="logoutUser()">🚪 Logout</button>
+      <button onclick="closeProfileModal()">Close</button>
+    </div>
   </div>
 
   <!-- Scripts -->
+  <script src="auth.js"></script>
+  <script src="cloud-sync.js"></script>
   <script src="app.js"></script>
+
   <script>
-    // Tab switching logic
-    document.querySelectorAll('.tabs .tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        // Remove active from all tabs and contents
-        document.querySelectorAll('.tabs .tab').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-        // Activate clicked tab and matching content
-        btn.classList.add('active');
-        const tabId = btn.getAttribute('data-tab');
-        document.getElementById(tabId).classList.add('active');
-
-        // Call loader functions if they exist
-        if (tabId === 'students' && typeof loadStudentsTab === 'function') loadStudentsTab();
-        if (tabId === 'hours' && typeof loadHoursTab === 'function') loadHoursTab();
-        if (tabId === 'marks' && typeof loadMarksTab === 'function') loadMarksTab();
-        if (tabId === 'attendance' && typeof loadAttendanceTab === 'function') loadAttendanceTab();
-        if (tabId === 'payments' && typeof loadPaymentsTab === 'function') loadPaymentsTab();
-        if (tabId === 'reports' && typeof loadReportsTab === 'function') loadReportsTab();
-      });
+    // Toggle auth controls based on session
+    document.addEventListener("DOMContentLoaded", () => {
+      if (window.Auth && window.Auth.isAuthenticated()) {
+        document.getElementById("signInBtn").style.display = "none";
+        document.getElementById("signOutBtn").style.display = "inline-block";
+        document.getElementById("profileBtn").style.display = "inline-block";
+      } else {
+        document.getElementById("signInBtn").style.display = "inline-block";
+        document.getElementById("signOutBtn").style.display = "none";
+        document.getElementById("profileBtn").style.display = "none";
+      }
     });
   </script>
 </body>
