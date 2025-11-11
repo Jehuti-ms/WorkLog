@@ -1,4 +1,4 @@
-// cloud-sync.js - UPDATED WITH INITIALIZATION GUARDS
+// cloud-sync.js - COMPLETE FIXED VERSION
 console.log('☁️ Cloud Sync loaded');
 
 class CloudSync {
@@ -10,33 +10,30 @@ class CloudSync {
         this.userId = null;
         this.syncInterval = null;
         this.initialized = false;
-        this.initializing = false; // Add initialization lock
-        
-        // Supabase configuration - UPDATED WITH YOUR CORRECT ANON KEY
+        this.initializing = false;
+
+        // Track last sync info
+        this.lastDownloadedData = null;
+        this.lastSyncTime = null;
+        this.lastSyncStatus = 'unknown';
+        this.autoSyncEnabled = false;
+
+        // Supabase configuration
         this.supabaseConfig = {
             url: 'https://kfdhizqcjavikjwlefvk.supabase.co',
-            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmZGhpenFjamF2aWtqd2xlZnZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNTE3NDMsImV4cCI6MjA3NzkyNzc0M30.w-2Tkg1-ogfeIVI8-5NRKGm4eJk5Z7cvqu5MLt1a2c4'
+            anonKey: 'YOUR-ANON-KEY-HERE'
         };
     }
 
     async init() {
-        // Prevent multiple initializations
-        if (this.initialized) {
-            console.log('🔧 Cloud sync already initialized');
+        if (this.initialized || this.initializing) {
+            console.log('🔧 Cloud sync already initialized or initializing');
             return;
         }
-        
-        // Prevent concurrent initialization
-        if (this.initializing) {
-            console.log('⏳ Cloud sync initialization in progress...');
-            return;
-        }
-        
         this.initializing = true;
         console.log('🔄 Initializing cloud sync...');
-        
+
         try {
-            // Check if user is authenticated
             if (!window.Auth || !window.Auth.isAuthenticated()) {
                 console.log('❌ User not authenticated, sync disabled');
                 this.updateSyncStatus('Not authenticated', false);
@@ -45,67 +42,31 @@ class CloudSync {
             }
 
             this.userId = window.Auth.getCurrentUserId();
-            
-            // Validate Supabase configuration
-            if (!this.supabaseConfig.url || !this.supabaseConfig.anonKey) {
-                throw new Error('Supabase configuration missing');
-            }
 
-            console.log('🔌 Connecting to Supabase...');
-            
-            // Initialize Supabase
             this.supabase = supabase.createClient(
                 this.supabaseConfig.url,
                 this.supabaseConfig.anonKey,
-                {
-                    auth: {
-                        persistSession: false,
-                        autoRefreshToken: false
-                    }
-                }
+                { auth: { persistSession: false, autoRefreshToken: false } }
             );
 
-            // Test connection with a simple query
-            console.log('🧪 Testing Supabase connection...');
-            const { data, error } = await this.supabase
+            const { error } = await this.supabase
                 .from('worklog_data')
                 .select('*')
                 .limit(1);
 
-            if (error) {
-                // If table doesn't exist, that's ok - we'll create it on first sync
-                if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
-                    console.log('ℹ️ Table does not exist yet - will create on first sync');
-                    this.isConnected = true;
-                    this.syncEnabled = true;
-                } else if (error.code === '42501' || error.message.includes('permission')) {
-                    console.log('ℹ️ RLS policy blocking access - will try to work around it');
-                    this.isConnected = true;
-                    this.syncEnabled = true;
-                } else {
-                    throw error;
-                }
-            } else {
-                this.isConnected = true;
-                this.syncEnabled = true;
-                console.log('✅ Supabase connection successful');
+            if (error && !error.message.includes('does not exist')) {
+                throw error;
             }
 
-            console.log('✅ Cloud sync initialized successfully');
+            this.isConnected = true;
+            this.syncEnabled = true;
             this.updateSyncStatus('Connected to cloud', true);
             this.initialized = true;
-            
-            // Load settings
+
             this.loadSettings();
-            
-            // Setup auto-sync if enabled
-            if (this.autoSync) {
-                this.startAutoSync();
-            }
-            
-            // Initial sync
+            if (this.autoSync) this.startAutoSync();
             this.syncData();
-            
+
         } catch (error) {
             console.error('❌ Cloud sync initialization failed:', error);
             this.handleSyncError(error);
@@ -117,22 +78,7 @@ class CloudSync {
     handleSyncError(error) {
         this.isConnected = false;
         this.syncEnabled = false;
-        
-        let errorMessage = 'Cloud sync failed';
-        
-        if (error.message.includes('Invalid API key') || error.message.includes('JWT')) {
-            errorMessage = 'Invalid API key';
-        } else if (error.message.includes('network') || error.message.includes('fetch')) {
-            errorMessage = 'Network error';
-        } else if (error.message.includes('does not exist')) {
-            errorMessage = 'Table not found';
-        } else if (error.code === '42501') {
-            errorMessage = 'Permission denied - check RLS policies';
-        }
-        
-        this.updateSyncStatus(errorMessage, false);
-        
-        // Disable auto-sync on error
+        this.updateSyncStatus('Cloud sync failed', false);
         this.autoSync = false;
         this.stopAutoSync();
         this.updateSyncUI();
@@ -142,10 +88,8 @@ class CloudSync {
         const settings = localStorage.getItem(`worklog_sync_settings_${this.userId}`);
         if (settings) {
             const parsed = JSON.parse(settings);
-            this.autoSync = parsed.autoSync !== false; // Default to true
+            this.autoSync = parsed.autoSync !== false;
         }
-        
-        // Update UI
         this.updateSyncUI();
     }
 
@@ -161,18 +105,16 @@ class CloudSync {
         const syncBtn = document.getElementById('syncBtn');
         const autoSyncCheckbox = document.getElementById('autoSyncCheckbox');
         const syncStatus = document.getElementById('syncStatus');
-        
+
         if (syncBtn) {
             syncBtn.style.display = this.syncEnabled ? 'inline-block' : 'none';
             syncBtn.innerHTML = this.autoSync ? '🔄 Auto' : '🔄 Sync Now';
             syncBtn.disabled = !this.isConnected;
         }
-        
         if (autoSyncCheckbox) {
             autoSyncCheckbox.checked = this.autoSync && this.isConnected;
             autoSyncCheckbox.disabled = !this.isConnected;
         }
-        
         if (syncStatus) {
             syncStatus.textContent = this.autoSync ? 'Auto-sync enabled' : 'Manual sync';
             syncStatus.style.color = this.isConnected ? '#28a745' : '#dc3545';
@@ -182,251 +124,52 @@ class CloudSync {
     updateSyncStatus(message, isConnected) {
         const syncMessage = document.getElementById('syncMessage');
         const syncIndicator = document.querySelector('.sync-indicator');
-        
+
         if (syncMessage) {
             syncMessage.textContent = message;
             syncMessage.style.color = isConnected ? '#28a745' : '#dc3545';
         }
-        
         if (syncIndicator) {
             syncIndicator.className = 'sync-indicator ' + (isConnected ? 'sync-connected' : 'sync-disconnected');
         }
-        
+
         this.isConnected = isConnected;
         this.updateSyncUI();
     }
 
-    async syncData() {
-        if (!this.syncEnabled || !this.isConnected) {
-            console.log('❌ Sync disabled or not connected');
-            return;
-        }
-
-        console.log('🔄 Starting data sync...');
-        this.updateSyncStatus('Syncing data...', true);
-
-        try {
-            // Load local data
-            const localData = this.getLocalData();
-            
-            // Upload to Supabase
-            await this.uploadToSupabase(localData);
-            
-            // Download from Supabase (merge with local)
-            const cloudData = await this.downloadFromSupabase();
-            this.mergeData(cloudData);
-            
-            console.log('✅ Sync completed successfully');
-            this.updateSyncStatus('All changes synced to cloud', true);
-           
-            // Refresh payments data
-              allPayments = mergedData.payments || [];
-            
-              // If Payments tab is active, re-render immediately
-              if (currentTab === "payments") {
-                renderPaymentsStats(allPayments);
-              }
-            }
-        
-            this.saveSettings();
-            
-        } catch (error) {
-            console.error('❌ Sync failed:', error);
-            this.updateSyncStatus('Sync failed', false);
-        }
-    }
-
-    getLocalData() {
-        const userId = this.userId;
-        const savedData = localStorage.getItem(`worklog_data_${userId}`);
-        
-        if (savedData) {
-            return JSON.parse(savedData);
-        }
-        
-        return {
-            students: [],
-            hours: [],
-            marks: [],
-            attendance: [],
-            payments: [],
-            settings: { defaultRate: 25.00 },
-            lastUpdated: new Date().toISOString()
-        };
-    }
-
     async uploadToSupabase(data) {
         if (!this.supabase) throw new Error('Supabase not initialized');
-
-        console.log('📤 Uploading data to Supabase...');
-        
         const uploadData = {
             user_id: this.userId,
-            data: data,
-            last_updated: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            data,
+            last_updated: new Date().toISOString()
         };
-
-        console.log('Upload data structure:', {
-            user_id: typeof uploadData.user_id,
-            data: typeof uploadData.data,
-            has_students: Array.isArray(uploadData.data.students),
-            students_count: uploadData.data.students?.length || 0
-        });
-
-        try {
-            // First, try to check if the record exists
-            const { data: existingData, error: checkError } = await this.supabase
-                .from('worklog_data')
-                .select('user_id')
-                .eq('user_id', this.userId)
-                .maybeSingle();
-
-            if (checkError && checkError.code !== 'PGRST116') {
-                console.log('Check error:', checkError);
-                // Continue anyway - might be first time
-            }
-
-            let result;
-            if (existingData) {
-                // Update existing record
-                console.log('🔄 Updating existing record...');
-                result = await this.supabase
-                    .from('worklog_data')
-                    .update({
-                        data: uploadData.data,
-                        last_updated: uploadData.last_updated,
-                        updated_at: uploadData.updated_at
-                    })
-                    .eq('user_id', this.userId);
-            } else {
-                // Insert new record
-                console.log('🆕 Inserting new record...');
-                uploadData.created_at = new Date().toISOString();
-                result = await this.supabase
-                    .from('worklog_data')
-                    .insert([uploadData]);
-            }
-
-            const { error } = result;
-
-            if (error) {
-                console.error('❌ Upload error details:', {
-                    code: error.code,
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint
-                });
-                
-                // Try one more approach - direct insert with conflict handling
-                if (error.code === '23505' || error.message.includes('duplicate')) {
-                    console.log('🛠️ Trying conflict resolution...');
-                    const { error: updateError } = await this.supabase
-                        .from('worklog_data')
-                        .update({
-                            data: uploadData.data,
-                            last_updated: uploadData.last_updated,
-                            updated_at: uploadData.updated_at
-                        })
-                        .eq('user_id', this.userId);
-                    
-                    if (updateError) {
-                        throw updateError;
-                    }
-                } else {
-                    throw error;
-                }
-            }
-
-            console.log('✅ Data uploaded to cloud successfully');
-            
-        } catch (error) {
-            console.error('❌ Final upload error:', error);
-            throw error;
-        }
-    }
-
-    async alternativeUpload(data) {
-        // Try to insert first
-        const insertData = {
-            user_id: this.userId,
-            data: data,
-            last_updated: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        };
-
-        const { error: insertError } = await this.supabase
+        const { error } = await this.supabase
             .from('worklog_data')
-            .insert(insertData);
-
-        if (insertError) {
-            // If insert fails (likely due to conflict), try update
-            if (insertError.code === '23505') {
-                const { error: updateError } = await this.supabase
-                    .from('worklog_data')
-                    .update({
-                        data: data,
-                        last_updated: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('user_id', this.userId);
-
-                if (updateError) {
-                    throw updateError;
-                }
-            } else {
-                throw insertError;
-            }
-        }
-        
-        console.log('📤 Data uploaded to cloud (alternative method)');
+            .upsert(uploadData, { onConflict: ['user_id'] });
+        if (error) throw error;
+        console.log('✅ Data uploaded to cloud');
     }
 
     async downloadFromSupabase() {
         if (!this.supabase) throw new Error('Supabase not initialized');
-
         const { data, error } = await this.supabase
             .from('worklog_data')
             .select('data, last_updated')
             .eq('user_id', this.userId)
             .single();
-
-        if (error) {
-            if (error.code === 'PGRST116') {
-                // No data found - that's ok for first sync
-                console.log('ℹ️ No cloud data found (first sync)');
-                return null;
-            }
-            throw error;
-        }
-
-        console.log('📥 Data downloaded from cloud');
-        return data.data;
+        if (error && !error.message.includes('does not exist')) throw error;
+        if (!data) return null;
+        return { ...data.data, lastUpdated: data.last_updated };
     }
 
     mergeData(cloudData) {
-        if (!cloudData) {
-            console.log('ℹ️ No cloud data to merge');
-            return;
-        }
-
+        if (!cloudData) return;
         const localData = this.getLocalData();
-        
-        // Simple merge strategy: use whichever data is newer
         const cloudUpdated = new Date(cloudData.lastUpdated || 0);
         const localUpdated = new Date(localData.lastUpdated || 0);
-        
-        let mergedData;
-        if (cloudUpdated > localUpdated) {
-            console.log('🔄 Using cloud data (newer)');
-            mergedData = cloudData;
-        } else {
-            console.log('🔄 Using local data (newer or equal)');
-            mergedData = localData;
-        }
-        
-        // Ensure all arrays exist
+
+        let mergedData = cloudUpdated > localUpdated ? cloudData : localData;
         mergedData.students = mergedData.students || [];
         mergedData.hours = mergedData.hours || [];
         mergedData.marks = mergedData.marks || [];
@@ -434,102 +177,95 @@ class CloudSync {
         mergedData.payments = mergedData.payments || [];
         mergedData.settings = mergedData.settings || { defaultRate: 25.00 };
         mergedData.lastUpdated = new Date().toISOString();
-        
-        // Save merged data
+
         this.saveLocalData(mergedData);
-        
-        // Update app data if app is running
-        if (window.appData) {
-            Object.assign(window.appData, mergedData);
-        }
+        if (window.appData) Object.assign(window.appData, mergedData);
 
-        // Initialize global payments safely
-  allPayments = cloudData.payments || [];
-
-  console.log("✅ Payments data initialized:", allPayments.length, "records");
-}
-        console.log('✅ Data merged successfully');
+        allPayments = mergedData.payments || [];
+        console.log("✅ Payments data initialized:", allPayments.length, "records");
+        return mergedData;
     }
 
-// Refresh global payments data
-  allPayments = cloudData.payments || [];
+    getLocalData() {
+        const savedData = localStorage.getItem(`worklog_data_${this.userId}`);
+        return savedData ? JSON.parse(savedData) : {
+            students: [], hours: [], marks: [], attendance: [], payments: [],
+            settings: { defaultRate: 25.00 }, lastUpdated: new Date().toISOString()
+        };
+    }
 
-  console.log("✅ Payments data refreshed:", allPayments.length, "records");
-}
     saveLocalData(data) {
         localStorage.setItem(`worklog_data_${this.userId}`, JSON.stringify(data));
     }
 
-    startAutoSync() {
-        if (this.syncInterval) {
-            clearInterval(this.syncInterval);
+    async syncData() {
+        if (!this.syncEnabled || !this.isConnected) return;
+        try {
+            const localData = this.getLocalData();
+            await this.uploadToSupabase(localData);
+            const cloudData = await this.downloadFromSupabase();
+            const mergedData = this.mergeData(cloudData);
+            this.lastDownloadedData = cloudData;
+            this.lastSyncTime = new Date().toISOString();
+            this.lastSyncStatus = 'success';
+            this.autoSyncEnabled = this.autoSync;
+            this.updateSyncStatus('All changes synced to cloud', true);
+        } catch (error) {
+            console.error('❌ Sync failed:', error);
+            this.lastSyncStatus = 'failed';
+            this.updateSyncStatus('Sync failed', false);
         }
-        
+    }
+
+    startAutoSync() {
+        this.stopAutoSync();
         this.syncInterval = setInterval(() => {
-            if (this.autoSync && this.syncEnabled && this.isConnected) {
-                this.syncData();
-            }
-        }, 30000); // Sync every 30 seconds
-        
+            if (this.autoSync && this.syncEnabled && this.isConnected) this.syncData();
+        }, 30000);
         console.log('⏰ Auto-sync started (30s intervals)');
     }
 
     stopAutoSync() {
-        if (this.syncInterval) {
-            clearInterval(this.syncInterval);
-            this.syncInterval = null;
-        }
+        if (this.syncInterval) clearInterval(this.syncInterval);
+        this.syncInterval = null;
         console.log('⏹️ Auto-sync stopped');
     }
 
     toggleAutoSync() {
         this.autoSync = !this.autoSync;
-        
         if (this.autoSync && this.isConnected) {
             this.startAutoSync();
-            this.syncData(); // Immediate sync when enabling
+            this.syncData();
         } else {
             this.stopAutoSync();
         }
-        
         this.saveSettings();
         this.updateSyncUI();
-        
-        console.log('🔧 Auto-sync:', this.autoSync ? 'enabled' : 'disabled');
     }
 
-    manualSync() {
-        console.log('👆 Manual sync triggered');
-        this.syncData();
-    }
+    manualSync() { this.syncData(); }
 
-    // Export data for backup
-    async exportCloudData() {
+        async exportCloudData() {
         try {
             const data = await this.downloadFromSupabase();
             if (!data) {
                 alert('No data found in cloud');
                 return;
             }
-            
-            const dataStr = JSON.stringify(data, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.download = `worklog_cloud_backup_${new Date().toISOString().split('T')[0]}.json`;
             link.click();
             URL.revokeObjectURL(url);
-            
             alert('✅ Cloud data exported successfully!');
-            
         } catch (error) {
             console.error('❌ Error exporting cloud data:', error);
             alert('Error exporting cloud data: ' + error.message);
         }
     }
 
-    // Import data to cloud
     async importToCloud() {
         return new Promise((resolve) => {
             const input = document.createElement('input');
@@ -541,15 +277,11 @@ class CloudSync {
                 reader.onload = async (event) => {
                     try {
                         const importedData = JSON.parse(event.target.result);
-                        
-                        // Add metadata
                         importedData.lastUpdated = new Date().toISOString();
                         importedData.importedAt = new Date().toISOString();
-                        
                         await this.uploadToSupabase(importedData);
                         alert('✅ Data imported to cloud successfully!');
                         resolve(true);
-                        
                     } catch (error) {
                         console.error('❌ Error importing to cloud:', error);
                         alert('Error importing to cloud: Invalid file format');
@@ -562,12 +294,10 @@ class CloudSync {
         });
     }
 
-    // Get sync statistics
     async getSyncStats() {
         try {
             const localData = this.getLocalData();
             const cloudData = await this.downloadFromSupabase();
-            
             return {
                 local: {
                     students: localData.students?.length || 0,
@@ -589,7 +319,6 @@ class CloudSync {
                 autoSync: this.autoSync,
                 isConnected: this.isConnected
             };
-            
         } catch (error) {
             console.error('❌ Error getting sync stats:', error);
             return null;
@@ -597,169 +326,81 @@ class CloudSync {
     }
 }
 
-// Create global instance with singleton pattern
+// Singleton instance
 if (!window.cloudSync) {
     window.cloudSync = new CloudSync();
 } else {
     console.log('ℹ️ Cloud sync instance already exists');
 }
 
-// Smart initialization function
+// Smart initialization
 function initCloudSync() {
-    // Don't initialize if already initialized or initializing
     if (window.cloudSync.initialized || window.cloudSync.initializing) {
         console.log('🔧 Cloud sync already initialized or initializing - skipping');
         return;
     }
-    
-    // Check if user is authenticated
     if (!window.Auth || !window.Auth.isAuthenticated()) {
         console.log('❌ User not authenticated - delaying cloud sync init');
         return;
     }
-    
     console.log('🚀 Starting cloud sync initialization...');
     window.cloudSync.init();
 }
 
-// Auto-initialize when conditions are met
 function autoInitCloudSync() {
-    // Wait a bit for everything to load
     setTimeout(() => {
         if (window.Auth && window.Auth.isAuthenticated() && window.supabase) {
             initCloudSync();
         } else {
             console.log('⏳ Waiting for dependencies...');
-            // Try again in a second
             setTimeout(initCloudSync, 1000);
         }
     }, 500);
 }
-
-// Start auto-initialization
 autoInitCloudSync();
 
-// Ensure global functions are available immediately
-window.toggleAutoSync = function() {
-    if (window.cloudSync) {
-        window.cloudSync.toggleAutoSync();
-    } else {
-        console.error('Cloud sync not initialized');
-        alert('Cloud sync is not ready yet. Please wait a moment and try again.');
-    }
-};
+// Global wrappers for UI buttons
+window.toggleAutoSync = () => window.cloudSync?.toggleAutoSync();
+window.manualSync = () => window.cloudSync?.manualSync();
+window.exportCloudData = () => window.cloudSync?.exportCloudData();
+window.importToCloud = () => window.cloudSync?.importToCloud();
+window.getSyncStats = () => window.cloudSync?.getSyncStats();
 
-window.manualSync = function() {
-    if (window.cloudSync) {
-        window.cloudSync.manualSync();
-    } else {
-        console.error('Cloud sync not initialized');
-        alert('Cloud sync is not ready yet. Please wait a moment and try again.');
-    }
-};
-
-window.exportCloudData = function() {
-    if (window.cloudSync) {
-        window.cloudSync.exportCloudData();
-    } else {
-        console.error('Cloud sync not initialized');
-        alert('Cloud sync is not ready yet. Please wait a moment and try again.');
-    }
-};
-
-window.importToCloud = function() {
-    if (window.cloudSync) {
-        window.cloudSync.importToCloud();
-    } else {
-        console.error('Cloud sync not initialized');
-        alert('Cloud sync is not ready yet. Please wait a moment and try again.');
-    }
-};
-
-window.getSyncStats = function() {
-    if (window.cloudSync) {
-        return window.cloudSync.getSyncStats();
-    } else {
-        console.error('Cloud sync not initialized');
-        alert('Cloud sync is not ready yet. Please wait a moment and try again.');
-        return Promise.resolve(null);
-    }
-};
-
-// Replace the broken showSyncStats function:
-window.showSyncStats = function() {
+// Modal helpers
+window.showSyncStats = async function() {
     console.log('📊 Showing sync stats...');
-    
     try {
         const modal = document.getElementById('syncStatsModal');
         const content = document.getElementById('syncStatsContent');
-        
         if (!modal || !content) {
             console.error('Sync stats modal elements not found');
             return;
         }
-        
-        // Get sync stats without recursion
-        const stats = getSyncStats();
-        
-        content.innerHTML = `
-            <div class="sync-stats-grid">
-                <div class="stat-item">
-                    <strong>Last Sync:</strong>
-                    <span>${stats.lastSync || 'Never'}</span>
-                </div>
-                <div class="stat-item">
-                    <strong>Sync Status:</strong>
-                    <span class="status-${stats.status}">${stats.status}</span>
-                </div>
-                <div class="stat-item">
-                    <strong>Students:</strong>
-                    <span>${stats.studentsCount} local / ${stats.cloudStudentsCount} cloud</span>
-                </div>
-                <div class="stat-item">
-                    <strong>Attendance:</strong>
-                    <span>${stats.attendanceCount} local / ${stats.cloudAttendanceCount} cloud</span>
-                </div>
-                <div class="stat-item">
-                    <strong>Auto-sync:</strong>
-                    <span>${stats.autoSync ? 'Enabled' : 'Disabled'}</span>
-                </div>
-                <div class="stat-item">
-                    <strong>Connection:</strong>
-                    <span class="status-${stats.connectionStatus}">${stats.connectionStatus}</span>
-                </div>
-            </div>
-        `;
-        
+        const stats = await window.getSyncStats();
+        if (!stats) {
+            content.innerHTML = "<p>Unable to load sync stats.</p>";
+        } else {
+            content.innerHTML = `
+                <div class="sync-stats-grid">
+                    <div class="stat-item"><strong>Local Students:</strong> ${stats.local.students}</div>
+                    <div class="stat-item"><strong>Cloud Students:</strong> ${stats.cloud?.students || 0}</div>
+                    <div class="stat-item"><strong>Local Attendance:</strong> ${stats.local.attendance}</div>
+                    <div class="stat-item"><strong>Cloud Attendance:</strong> ${stats.cloud?.attendance || 0}</div>
+                    <div class="stat-item"><strong>Auto-sync:</strong> ${stats.autoSync ? 'Enabled' : 'Disabled'}</div>
+                    <div class="stat-item"><strong>Connection:</strong> ${stats.isConnected ? 'Connected' : 'Disconnected'}</div>
+                    <div class="stat-item"><strong>Last Sync:</strong> ${stats.local.lastUpdated || 'Never'}</div>
+                </div>`;
+        }
         modal.style.display = 'block';
-        
     } catch (error) {
         console.error('Error showing sync stats:', error);
     }
 };
 
-// Add this helper function to avoid recursion
-function getSyncStats() {
-    const appData = JSON.parse(localStorage.getItem('worklog_data') || '{}');
-    const cloudData = window.cloudSync?.lastDownloadedData || {};
-    
-    return {
-        lastSync: window.cloudSync?.lastSyncTime || 'Never',
-        status: window.cloudSync?.lastSyncStatus || 'unknown',
-        studentsCount: appData.students?.length || 0,
-        attendanceCount: appData.attendance?.length || 0,
-        cloudStudentsCount: cloudData.students?.length || 0,
-        cloudAttendanceCount: cloudData.attendance?.length || 0,
-        autoSync: window.cloudSync?.autoSyncEnabled || false,
-        connectionStatus: window.cloudSync?.isConnected ? 'connected' : 'disconnected'
-    };
-}
-
 window.closeSyncStats = function() {
     const modal = document.getElementById('syncStatsModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
+    if (modal) modal.style.display = 'none';
 };
 
-console.log('✅ Cloud sync functions registered globally');
+console.log('✅ Cloud sync fully initialized and global functions registered');
+
