@@ -26,8 +26,10 @@
 
   <!-- Sync Bar -->
   <div class="sync-bar" id="syncBar">
-    <label><input type="checkbox" id="autoSyncCheckbox"> Auto-sync</label>
-    <button id="syncBtn">🔄 Sync Now</button>
+    <div class="auto-sync-container">
+        <input type="checkbox" id="autoSyncCheckbox" class="auto-sync-checkbox">
+        <label for="autoSyncCheckbox" class="auto-sync-label">🔄 Auto-sync</label>
+    </div>
     <button id="exportCloudBtn">☁️ Export Cloud</button>
     <button id="importCloudBtn">📥 Import Cloud</button>
     <button id="syncStatsBtn">📊 Sync Stats</button>
