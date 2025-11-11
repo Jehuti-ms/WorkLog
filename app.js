@@ -222,6 +222,241 @@ function setupEventListeners() {
 }
 
 /* ============================================================================
+   Feature Functions
+============================================================================ */
+// === Students ===
+function addStudent() {
+  const name = document.getElementById("studentName").value.trim();
+  const id = document.getElementById("studentId").value.trim();
+  const gender = document.getElementById("studentGender").value;
+  const email = document.getElementById("studentEmail").value.trim();
+  const phone = document.getElementById("studentPhone").value.trim();
+  const rate = parseFloat(document.getElementById("studentBaseRate").value);
+
+  if (!name || !id) {
+    alert("Name and ID are required.");
+    return;
+  }
+
+  const student = { name, id, gender, email, phone, rate: rate || 0 };
+  appData.students.push(student);
+  saveLocalData();
+
+  renderStudents();
+  clearStudentForm();
+  console.log("➕ Student added:", student);
+}
+
+function clearStudentForm() {
+  document.getElementById("studentForm")?.reset();
+}
+
+function renderStudents() {
+  const container = document.getElementById("studentsContainer");
+  if (appData.students.length === 0) {
+    container.innerHTML = "<p>No students registered yet.</p>";
+    return;
+  }
+
+  container.innerHTML = appData.students.map(s => `
+    <div class="student-card">
+      <strong>${s.name}</strong> (${s.id}) - ${s.gender}<br>
+      Email: ${s.email || "N/A"}, Phone: ${s.phone || "N/A"}<br>
+      Rate: $${s.rate.toFixed(2)}
+    </div>
+  `).join("");
+
+  document.getElementById("studentsCount").textContent = appData.students.length;
+  const avgRate = appData.students.reduce((sum, s) => sum + s.rate, 0) / appData.students.length;
+  document.getElementById("avgRate").textContent = `$${avgRate.toFixed(2)}`;
+}
+
+// === Hours ===
+function logHours() {
+  const org = document.getElementById("organization").value.trim();
+  const type = document.getElementById("workType").value;
+  const date = document.getElementById("workDate").value;
+  const hours = parseFloat(document.getElementById("hoursWorked").value);
+  const rate = parseFloat(document.getElementById("baseRate").value);
+
+  if (!org || !date || isNaN(hours) || isNaN(rate)) {
+    alert("Fill out all fields.");
+    return;
+  }
+
+  const entry = { org, type, date, hours, rate };
+  appData.hours.push(entry);
+  saveLocalData();
+
+  renderHours();
+  resetHoursForm();
+  console.log("💾 Hours logged:", entry);
+}
+
+function resetHoursForm() {
+  document.getElementById("hoursForm")?.reset();
+}
+
+function renderHours() {
+  const container = document.getElementById("hoursContainer");
+  if (appData.hours.length === 0) {
+    container.innerHTML = "<p>No work logged yet.</p>";
+    return;
+  }
+
+  container.innerHTML = appData.hours.map(h => `
+    <div class="hours-card">
+      ${h.date}: ${h.org} (${h.type}) — ${h.hours}h @ $${h.rate}
+    </div>
+  `).join("");
+}
+
+// === Marks ===
+function addMark() {
+  const studentId = document.getElementById("marksStudent").value;
+  const subject = document.getElementById("markSubject").value.trim();
+  const date = document.getElementById("markDate").value;
+  const score = parseFloat(document.getElementById("score").value);
+  const maxScore = parseFloat(document.getElementById("maxScore").value);
+
+  if (!studentId || !subject || !date || isNaN(score) || isNaN(maxScore)) {
+    alert("Fill out all fields.");
+    return;
+  }
+
+  const mark = { studentId, subject, date, score, maxScore };
+  appData.marks.push(mark);
+  saveLocalData();
+
+  renderMarks();
+  document.getElementById("marksForm")?.reset();
+  console.log("💾 Mark added:", mark);
+}
+
+function renderMarks() {
+  const container = document.getElementById("marksContainer");
+  if (appData.marks.length === 0) {
+    container.innerHTML = "<p>No marks recorded yet.</p>";
+    return;
+  }
+
+  container.innerHTML = appData.marks.map(m => `
+    <div class="mark-card">
+      ${m.date}: ${m.subject} — ${m.score}/${m.maxScore} (Student: ${m.studentId})
+    </div>
+  `).join("");
+}
+
+// === Attendance ===
+function saveAttendance() {
+  const date = document.getElementById("attendanceDate").value;
+  const subject = document.getElementById("attendanceSubject").value.trim();
+
+  if (!date || !subject) {
+    alert("Fill out all fields.");
+    return;
+  }
+
+  const record = { date, subject, students: appData.students.map(s => ({ id: s.id, present: true })) };
+  appData.attendance.push(record);
+  saveLocalData();
+
+  renderAttendance();
+  clearAttendanceFormManual();
+  console.log("💾 Attendance saved:", record);
+}
+
+function clearAttendanceFormManual() {
+  document.getElementById("attendanceForm")?.reset();
+}
+
+function renderAttendance() {
+  const container = document.getElementById("attendanceContainer");
+  if (appData.attendance.length === 0) {
+    container.innerHTML = "<p>No attendance records yet.</p>";
+    return;
+  }
+
+  container.innerHTML = appData.attendance.map(a => `
+    <div class="attendance-card">
+      ${a.date}: ${a.subject} — ${a.students.length} students marked present
+    </div>
+  `).join("");
+}
+
+// === Payments ===
+function recordPayment() {
+  const studentId = document.getElementById("paymentStudent").value;
+  const amount = parseFloat(document.getElementById("paymentAmount").value);
+  const date = document.getElementById("paymentDate").value;
+  const method = document.getElementById("paymentMethod").value;
+  const notes = document.getElementById("paymentNotes").value.trim();
+
+  if (!studentId || isNaN(amount) || !date) {
+    alert("Fill out all fields.");
+    return;
+  }
+
+  const payment = { studentId, amount, date, method, notes };
+  appData.payments.push(payment);
+  saveLocalData();
+
+  renderPayments();
+  document.getElementById("paymentForm")?.reset();
+  console.log("💳 Payment recorded:", payment);
+}
+
+function updatePaymentsByYearMonth() {
+  renderPayments();
+}
+
+function renderPayments() {
+  const container = document.getElementById("paymentsStats");
+  if (appData.payments.length === 0) {
+    container.innerHTML = "<p>No payments recorded yet.</p>";
+    return;
+  }
+
+  const total = appData.payments.reduce((sum, p) => sum + p.amount, 0);
+  container.innerHTML = `
+    <div>Total: $${total.toFixed(2)}</div>
+    <div>Payments: ${appData.payments.length}</div>
+  `;
+}
+
+// === Sync Bar ===
+function manualSync() { console.log("🔄 manualSync() called"); }
+function exportCloudData() { console.log("☁️ exportCloudData() called"); }
+function importToCloud() { console.log("📥 importToCloud() called"); }
+function showSyncStats() { console.log("📊 showSyncStats() called"); }
+function exportData() { console.log("📤 exportData() called"); }
+function importData() { console.log("📥 importData() called"); }
+function clearAllData() { 
+  appData = { students: [], payments: [], hours: [], marks: [], attendance: [] };
+  saveLocalData();
+  renderStudents(); renderPayments(); renderHours(); renderMarks(); renderAttendance();
+  console.log("🗑️ All data cleared");
+}
+function toggleAutoSync() { console.log("🔁 toggleAutoSync() called"); }
+
+// === Local Storage ===
+function saveLocalData() {
+  localStorage.setItem("appData", JSON.stringify(appData));
+}
+
+function loadAllData() {
+  const saved = localStorage.getItem("appData");
+  if (saved) {
+    appData = JSON.parse(saved);
+  }
+  renderStudents();
+  renderPayments();
+  renderHours();
+  renderMarks();
+  renderAttendance();
+}
+
+/* ============================================================================
    Attendance edit guards and cloud sync integration
 ============================================================================ */
 function wireAttendanceEditGuards() {
