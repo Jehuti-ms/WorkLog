@@ -139,21 +139,43 @@ function activateTab(tabName) {
   currentTab = tabName;
   console.log(`🗂️ Activated tab: ${tabName}`);
 
-  // Dispatch per-tab loaders without heavy coupling
+  // Hide all tab contents
+  document.querySelectorAll(".tab-content").forEach(el => {
+    el.classList.remove("active");
+  });
+
+  // Remove active class from all tab buttons
+  document.querySelectorAll(".tabs .tab").forEach(btn => {
+    btn.classList.remove("active");
+  });
+
+  // Show the selected tab content
+  const targetContent = document.getElementById(tabName);
+  if (targetContent) {
+    targetContent.classList.add("active");
+  }
+
+  // Highlight the clicked tab button
+  const targetButton = document.querySelector(`.tabs .tab[data-tab="${tabName}"]`);
+  if (targetButton) {
+    targetButton.classList.add("active");
+  }
+
+  // Dispatch per-tab loaders
   switch (tabName) {
     case "payments":
       loadPaymentsTab();
       break;
-    case "paymentHistory":
-      // Payment history renders via separate module; keep source ready
-      // Example hook: renderPaymentHistory(allStudents, allPayments)
-      // We provide the balances tool; actual rendering is in your history module
+    case "students":
+      // optional: refresh student list
       break;
-    default:
-      // dashboard, attendance, hours, etc.
+    case "attendance":
+      // optional: refresh attendance list
       break;
+    // add other cases as needed
   }
 }
+
 
 function setupEventListeners() {
   // Year/month filter dropdowns for payments tab
