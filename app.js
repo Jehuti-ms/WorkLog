@@ -357,7 +357,14 @@ function saveAttendance() {
     return;
   }
 
-  const record = { date, subject, students: appData.students.map(s => ({ id: s.id, present: true })) };
+  // Collect checkbox states
+  const checkboxes = document.querySelectorAll("#attendanceList input[type='checkbox']");
+  const studentsMarked = Array.from(checkboxes).map(cb => ({
+    id: cb.getAttribute("data-student"),
+    present: cb.checked
+  }));
+
+  const record = { date, subject, students: studentsMarked };
   appData.attendance.push(record);
   saveLocalData();
 
@@ -365,6 +372,7 @@ function saveAttendance() {
   clearAttendanceFormManual();
   console.log("💾 Attendance saved:", record);
 }
+
 
 function clearAttendanceFormManual() {
   document.getElementById("attendanceForm")?.reset();
@@ -377,11 +385,15 @@ function renderAttendance() {
     return;
   }
 
-  container.innerHTML = appData.attendance.map(a => `
-    <div class="attendance-card">
-      ${a.date}: ${a.subject} — ${a.students.length} students marked present
-    </div>
-  `).join("");
+  container.innerHTML = appData.attendance.map(a => {
+    const presentCount = a.students.filter(s => s.present).length;
+    const absentCount = a.students.filter(s => !s.present).length;
+    return `
+      <div class="attendance-card">
+        ${a.date}: ${a.subject} — Present: ${presentCount}, Absent: ${absentCount}
+      </div>
+    `;
+  }).join("");
 }
 
 // === Payments ===
@@ -631,23 +643,116 @@ function setAutoSyncLocal(enabled) {
   }
 }
 
+/* ===========================================================================
+      Tab Loaders
+=============================================================================*/
+// === Tab Loaders ===
+function loadStudentsTab() {
+  console.log("📂 Loading tab data: students");
+  renderStudents();
+
+  const marksSelect = document.getElementById("marksStudent");
+  const paymentSelect = document.getElementById("paymentStudent");
+
+  if (marksSelect) {
+    marksSelect.innerHTML = appData.students.map(s =>
+      `<option value="${s.id}">${s.name} (${s.id})</option>`
+    ).join("");
+  }
+
+  if (paymentSelect) {
+    paymentSelect.innerHTML = appData.students.map(s =>
+      `<option value="${s.id}">${s.name} (${s.id})</option>`
+    ).join("");
+  }
+}
+
+function loadAttendanceTab() {
+  console.log("📂 Loading tab data: attendance");
+  renderAttendance();
+
+  const list = document.getElementById("attendanceList");
+  if (list) {
+    if (appData.students.length === 0) {
+      list.innerHTML = "<p>No students registered.</p>";
+    } else {
+      list.innerHTML = appData.students.map(s => `
+        <label>
+          <input type="checkbox" data-student="${s.id}" checked>
+          ${s.name} (${s.id})
+        </label><br>
+      `).join("");
+    }
+  }
+}
+
+function loadHoursTab() {
+  console.log("📂 Loading tab data: hours");
+  renderHours();
+}
+
+function loadMarksTab() {
+  console.log("📂 Loading tab data: marks");
+  renderMarks();
+}
+
+function loadReportsTab() {
+  console.log("📂 Loading tab data: reports");
+  const container = document.getElementById("reportsContainer");
+  if (!container) return;
+
+  // Basic counts
+  const studentCount = appData.students.length;
+  const paymentCount = appData.payments.length;
+  const hoursCount = appData.hours.length;
+  const marksCount = appData.marks.length;
+  const attendanceSessions = appData.attendance.length;
+
+  // Attendance breakdown
+  let totalPresent = 0;
+  let totalMarked = 0;
+  appData.attendance.forEach(session => {
+    session.students.forEach(s => {
+      totalMarked++;
+      if (s.present) totalPresent++;
+    });
+  });
+  const attendanceRate = totalMarked > 0 ? ((totalPresent / totalMarked) * 100).toFixed(1) : "N/A";
+
+  // Render summary
+  container.innerHTML = `
+    <h3>📊 Reports Summary</h3>
+    <p>👩‍🎓 Students: ${studentCount}</p>
+    <p>💳 Payments: ${paymentCount}</p>
+    <p>⏱️ Hours logged: ${hoursCount}</p>
+    <p>📝 Marks recorded: ${marksCount}</p>
+    <p>📅 Attendance sessions: ${attendanceSessions}</p>
+    <p>✅ Average attendance rate: ${attendanceRate}%</p>
+  `;
+}
+
+
 /* ============================================================================
    Payments tab: loaders, filters, and summary renderer
 ============================================================================ */
 function loadPaymentsTab() {
   console.log("📂 Loading tab data: payments");
+  renderPayments();
 
-  // Ensure allPayments is an array
-  if (!Array.isArray(allPayments)) {
-    console.warn("⚠️ allPayments not initialized, setting empty array");
-    allPayments = [];
+  const yearSelect = document.getElementById("paymentsYearSelect");
+  const monthSelect = document.getElementById("paymentsMonthSelect");
+
+  if (yearSelect) {
+    const years = [...new Set(appData.payments.map(p => new Date(p.date).getFullYear()))];
+    yearSelect.innerHTML = `<option value="">All Years</option>` +
+      years.map(y => `<option value="${y}">${y}</option>`).join("");
   }
 
-  // Initialize year/month selects if present
-  initPaymentsFilters();
-
-  // Render summary stats
-  renderPaymentsStats(allPayments);
+  if (monthSelect) {
+    const months = [...new Set(appData.payments.map(p => new Date(p.date).getMonth() + 1))];
+    monthSelect.innerHTML = `<option value="">All Months</option>` +
+      months.map(m => `<option value="${m}">${m}</option>`).join("");
+  }
 }
 
 function initPaymentsFilters() {
