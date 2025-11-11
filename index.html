@@ -1,859 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WorkLog - Student Tracker & Hours Management</title>
-    <link rel="icon" type="image/svg+xml" href="icons/favicon_cogs32x32.svg">
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Emergency CSS to ensure tabs work */
-        .tab-content {
-            display: none;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            margin-top: 10px;
-            min-height: 400px;
-        }
-        
-        .tab-content.active {
-            display: block !important;
-        }
-        
-        .user-menu {
-            display: none;
-            position: absolute;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            min-width: 150px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-        
-        .user-menu-item {
-            width: 100%;
-            padding: 8px 12px;
-            border: none;
-            background: none;
-            text-align: left;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        
-        .user-menu-item:hover {
-            background: #f5f5f5;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>WorkLog - Student Tracker & Hours Management</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .tab-content { display: none; padding: 20px; background: white; border-radius: 8px; margin-top: 10px; min-height: 400px; }
+    .tab-content.active { display: block !important; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header Section -->
-        <header class="header">
-          <h1><img src="icons/worklog_cogs.svg" alt="WorkLog" style="height: 100px; width: 100px;"></h1><h1>WorkLog</h1>
-            <p class="subtitle">Student Tracker & Hours Management System</p> 
-           <div style="display: flex; align-items: center; gap: 12px;"> 
-            
-            <div class="storage-status">
-                <span class="status" id="localStatus">💾 Local Storage: Active</span>
-                <span class="status" id="syncStatus">☁️ Cloud Sync: Ready</span>
-                <span class="status" id="dataStatus">📊 Data: 0 Students, 0 Sessions</span>
-                
-                <!-- Auth Section -->
-                <div class="auth-section" style="display: inline-block; margin-left: 10px; position: relative;">
-                    <button class="btn btn-sm" id="authButton">Sign In</button>
-                    <div id="userMenu" class="user-menu">
-                        <div class="user-info" style="padding: 8px 12px; border-bottom: 1px solid #eee; margin-bottom: 5px;">
-                            <strong id="userName">User</strong>
-                        </div>
-                        <button class="user-menu-item" onclick="window.Auth.showProfileModal()">
-                            👤 Profile & Settings
-                        </button>
-                        <button class="user-menu-item" onclick="window.Auth.logoutUser()" style="color: #dc3545;">
-                            🚪 Logout
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </header>
-            <!-- Unified Sync Bar -->
-                <div class="sync-bar" id="syncBar">
-                  <label class="auto-sync-label">
-                    <input type="checkbox" id="autoSyncCheckbox" onchange="toggleAutoSync()">
-                    <span class="custom-checkbox"></span>
-                    Auto-sync
-                  </label>
-                
-                  <button class="btn btn-sm" id="syncBtn" onclick="manualSync()" style="display: none;">🔄 Sync Now</button>
-                  <button class="btn btn-sm" onclick="exportCloudData()">☁️ Export Cloud</button>
-                  <button class="btn btn-sm btn-secondary" onclick="importToCloud()">📥 Import Cloud</button>
-                  <button class="btn btn-sm" onclick="showSyncStats()">📊 Sync Stats</button>
-                  <button class="btn btn-sm" onclick="exportData()">📤 Export Data</button>
-                  <button class="btn btn-sm btn-secondary" onclick="importData()">📥 Import Data</button>
-                  <button class="btn btn-sm btn-danger" onclick="clearAllData()">🗑️ Clear All</button>
-                </div>
-
-                      
-
-        <!-- Tab Navigation -->
-        <div class="tabs-container">
-            <div class="tabs">
-                <button class="tab active" data-tab="students">👥 Students</button>
-                <button class="tab" data-tab="hours">⏱️ Hours</button>
-                <button class="tab" data-tab="marks">📊 Marks</button>
-                <button class="tab" data-tab="attendance">✅ Attendance</button>
-                <button class="tab" data-tab="payments">💰 Payments</button>
-                <button class="tab" data-tab="reports">📈 Reports</button>
-            </div>
-        </div>
-
-        <!-- Main Content Area -->
-        <div class="content">
-            <!-- Students Tab -->
-            <div id="students" class="tab-content active">
-                <div class="section-header">
-                    <h2>📚 Student Management</h2>
-                   <div class="student-stats">
-                        <span class="stat-badge" id="studentsCount">0</span>
-                        <span class="stat-divider">|</span>
-                        <span class="stat-text">Avg Rate: <span id="avgRate">$0</span></span>
-                    </div>
-                </div>
-
-                <!-- Default Rate Settings Panel -->
-               <div class="default-rate-panel">
-                    <h4>💰 Default Rate Settings</h4>
-                    
-                    <div class="form-group">
-                        <label for="defaultBaseRate">Set Default Rate ($/session)</label>
-                        <div class="rate-input-wrapper">
-                            <span class="currency-symbol">$</span>
-                            <input type="number" id="defaultBaseRate" step="0.01" min="0" placeholder="25.00">
-                            <span class="rate-suffix">/ session</span>
-                        </div>
-                        <div class="help-text">This rate will be automatically filled for new students</div>
-                    </div>
-                    
-                    <div class="current-rate-display">
-                        <span class="current-label">Current Default Rate:</span>
-                        <span class="current-value">$<span id="currentDefaultRate">0.00</span>/session</span>
-                    </div>
-                    
-                    <div class="rate-actions">
-                        <button type="button" class="btn btn-success" onclick="saveDefaultRate()">
-                            💾 Save Default Rate
-                        </button>
-                        <button type="button" class="btn btn-warning" onclick="applyDefaultRateToAll()">
-                            🔄 Apply to All Students
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="useDefaultRate()">
-                            📝 Use in Student Form
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Student Registration Form -->
-                <div class="section-card">
-                    <h3>👤 Student Registration</h3>
-                    <form id="studentForm">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="studentName">Full Name *</label>
-                                <input type="text" id="studentName" placeholder="Enter student's full name" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="studentId">Student ID *</label>
-                                <input type="text" id="studentId" placeholder="Enter unique student ID" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="studentGender">Gender *</label>
-                                <select id="studentGender" required>
-                                    <option value="">Select gender</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="studentEmail">Email Address</label>
-                                <input type="email" id="studentEmail" placeholder="student@email.com">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="studentPhone">Phone Number</label>
-                                <input type="tel" id="studentPhone" placeholder="+1 (555) 123-4567">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="studentBaseRate">Base Rate ($/session)</label>
-                                <input type="number" id="studentBaseRate" step="0.01" min="0" placeholder="e.g., 25.00">
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-primary" onclick="addStudent()">
-                                ➕ Add Student
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="clearStudentForm()">
-                                🗑️ Clear Form
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Student List -->
-                <div class="section-card">
-                    <div class="section-header">
-                        <h3>📋 Registered Students</h3>
-                        <div class="list-controls">
-                            <div class="search-wrapper">
-                                <input type="text" id="studentSearch" placeholder="Search students...">
-                                <span id="clearSearch" title="Clear search">✖</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="students-container" id="studentsContainer">
-                        <p style="color: #666; text-align: center; padding: 40px;">
-                            No students registered yet. Add your first student above!
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-     <!-- Hours Tab -->
-            <div id="hours" class="tab-content">
-                <div class="section-header">
-                    <h2>⏱️ Earnings Tracker</h2>
-                    <div class="student-stats">
-                        <span class="stat-text">This Week: <span id="weeklyHours">0</span>h / $<span id="weeklyTotal">0</span></span>
-                        <span class="stat-divider">|</span>
-                        <span class="stat-text">This Month: <span id="monthlyHours">0</span>h / $<span id="monthlyTotal">0</span></span>
-                    </div>
-                </div>
-            
-                <div class="form-grid">
-                    <div class="section-card">
-                        <h3>➕ Log Work & Earnings</h3>
-                        
-                        <div class="form-group">
-                            <label for="organization">Organization *</label>
-                            <input type="text" id="organization" placeholder="Company, school, or client name" required>
-                        </div>
-                        
-                        <!-- Work Type Selection -->
-                        <div class="form-group">
-                            <label for="workType">Work Type</label>
-                            <select id="workType" class="form-control">
-                                <option value="hourly">⏱️ Hourly Work</option>
-                                <option value="session">👥 Per-Session</option>
-                                <option value="contract">📝 Contract Work</option>
-                                <option value="other">🔧 Other</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="subject">Subject/Department</label>
-                            <input type="text" id="subject" placeholder="e.g., Mathematics, Consulting, Training">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="topic">Topic/Project</label>
-                            <input type="text" id="topic" placeholder="Specific topic or project name">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="workDate">Date *</label>
-                            <input type="date" id="workDate" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="hoursWorked">Hours Worked *</label>
-                            <input type="number" id="hoursWorked" step="0.5" min="0.5" placeholder="e.g., 1.5" required>
-                        </div>
-                        
-                        <!-- Base Rate with Default Rate Button -->
-                        <div class="form-group">
-                            <label for="baseRate">Your Hourly Rate ($/hour) *</label>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <input type="number" id="baseRate" step="0.01" min="0" placeholder="Enter your hourly rate" required style="flex: 1;">
-                                <button type="button" class="btn btn-sm" onclick="useDefaultRateInHours()" style="white-space: nowrap;">
-                                    Use Default ($<span id="currentDefaultRateDisplay">25.00</span>)
-                                </button>
-                            </div>
-                            <small class="text-muted">Your effective hourly rate for this work</small>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="totalPay">Total Earnings</label>
-                            <input type="text" id="totalPay" readonly placeholder="Calculated automatically" style="font-weight: bold; color: #28a745;">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="workNotes">Notes</label>
-                            <textarea id="workNotes" rows="3" placeholder="Additional notes about the work session (e.g., 'Group session with 4 students', 'Project milestone completed')"></textarea>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-primary" onclick="logHours()">
-                                💾 Log Work & Earnings
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="resetHoursForm()">
-                                🗑️ Clear Form
-                            </button>
-                        </div>
-                    </div>
-            
-                    <div class="section-card">
-                        <h3>📊 Recent Earnings</h3>
-                        <div class="mobile-entries" id="hoursContainer">
-                            <p style="color: #666; text-align: center; padding: 40px;">
-                                No work logged yet. Start tracking your earnings!
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Marks Tab -->
-            <div id="marks" class="tab-content">
-                <div class="section-header">
-                    <h2>📊 Marks & Assessments</h2>
-                    <div class="student-stats">
-                        <span class="stat-badge" id="marksCount">0</span>
-                        <span class="stat-divider">|</span>
-                        <span class="stat-text">Avg Score: <span id="avgMarks">0%</span></span>
-                    </div>
-                </div>
-
-                <div class="form-grid">
-                    <div class="section-card">
-                        <h3>➕ Add New Mark</h3>
-                        <form id="marksForm">
-                            <div class="form-group">
-                                <label for="marksStudent">Student *</label>
-                                <select id="marksStudent" required>
-                                    <option value="">Select student...</option>
-                                </select>
-                            </div>
-                            
-                            <div id="studentDetails" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                                <strong>Selected Student:</strong>
-                                <div>Name: <span id="selectedStudentName"></span></div>
-                                <div>Gender: <span id="selectedStudentGender"></span></div>
-                                <div>ID: <span id="selectedStudentId"></span></div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="markSubject">Subject *</label>
-                                <input type="text" id="markSubject" placeholder="e.g., Mathematics" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="markTopic">Topic *</label>
-                                <input type="text" id="markTopic" placeholder="e.g., Algebra, Calculus" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="markDate">Date *</label>
-                                <input type="date" id="markDate" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="score">Score *</label>
-                                <input type="number" id="score" step="0.5" min="0" placeholder="Student's score" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="maxScore">Maximum Score *</label>
-                                <input type="number" id="maxScore" step="0.5" min="1" placeholder="Total possible score" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="percentage">Percentage</label>
-                                <input type="text" id="percentage" readonly placeholder="Calculated automatically">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="grade">Grade</label>
-                                <input type="text" id="grade" readonly placeholder="Calculated automatically">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="markComments">Comments</label>
-                                <textarea id="markComments" rows="3" placeholder="Feedback and comments"></textarea>
-                            </div>
-                            
-                            <div class="form-actions">
-                                <button type="button" class="btn btn-primary" onclick="addMark()">
-                                    💾 Save Mark
-                                </button>
-                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('marksForm').reset()">
-                                    🗑️ Clear Form
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="section-card">
-                        <h3>📋 Recent Marks</h3>
-                        <div class="mobile-entries" id="marksContainer">
-                            <p style="color: #666; text-align: center; padding: 40px;">
-                                No marks recorded yet. Add student assessments!
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-         <!-- Attendance Tab -->
-        <div id="attendance" class="tab-content">
-            <div class="section-header">
-                <h2>✅ Attendance Tracking</h2>
-                <div class="student-stats">
-                    <span class="stat-badge" id="attendanceCount">0</span>
-                    <span class="stat-divider">|</span>
-                    <span class="stat-text">Last Session: <span id="lastSessionDate">Never</span></span>
-                </div>
-            </div>
-        
-            <div class="form-grid">
-                <div class="section-card">
-                    <h3>📅 Quick Attendance</h3>
-                    
-                    <div class="form-group">
-                        <label for="attendanceDate">Date *</label>
-                        <input type="date" id="attendanceDate" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="attendanceSubject">Subject *</label>
-                        <input type="text" id="attendanceSubject" placeholder="e.g., Mathematics" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="attendanceTopic">Topic</label>
-                        <input type="text" id="attendanceTopic" placeholder="Specific topic covered">
-                    </div>
-                    
-                    <div class="attendance-container">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h4 style="margin: 0;">Select Present Students:</h4>
-                            <div class="attendance-quick-actions">
-                                <button type="button" class="btn btn-sm select-all-students-btn">
-                                            ✅ Select All
-                                        </button>
-                                        <button type="button" class="btn btn-sm deselect-all-students-btn">
-                                            ❌ Deselect All
-                                        </button>
-                                     </div>
-                                </div>
-                        
-                        <div id="attendanceList">
-                            <p style="color: #666; text-align: center; padding: 20px;">
-                                No students registered. Add students first.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div class="form-actions">
-                       <button type="button" class="btn btn-primary save-attendance-btn">
-                            💾 Save Attendance
-                       </button>
-                       <button type="button" class="btn btn-secondary" onclick="clearAttendanceFormManual()">
-                            <!--🧹 Clear Form -->
-                            🗑️ Clear Form
-                       </button>
-                    </div>
-                </div>
-        
-                <div class="section-card">
-                    <h3>📋 Recent Attendance</h3>
-                    <div class="attendance-history" id="attendanceContainer">
-                        <p style="color: #666; text-align: center; padding: 40px;">
-                            No attendance records yet. Track your first session!
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-            
-            <!-- Payments Tab -->
-            <div id="payments" class="tab-content">
-                <div class="section-header">
-                    <h2>💰 Payment Management</h2>
-                    
-                   <!-- Payments Filter Controls -->
-                        <div class="payments-filter">
-                          <label for="yearSelect">Year:</label>
-                          <select id="yearSelect" onchange="updatePaymentsByYearMonth()">
-                            <option value="2025">2025</option>
-                            <option value="2024">2024</option>
-                            <option value="2023">2023</option>
-                              <option value="2022">2022</option>
-                              <option value="2021">2021</option>
-                              <option value="2020">2020</option>
-                            <!-- Add more years as needed -->
-                          </select>
-                        
-                          <label for="monthSelect">Month:</label>
-                          <select id="monthSelect" onchange="updatePaymentsByYearMonth()">
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                          </select>
-                        </div>
-                             <!-- Payment Stats -->
-                            <div id="paymentsStats">
-                              <div id="paymentsTotal"></div>
-                              <div id="paymentsWeekly"></div>
-                            </div>
-
-                    <div class="student-stats">
-                        <span class="stat-text">Total Students: <span id="totalStudentsCount">0</span></span>
-                        <span class="stat-divider">|</span>
-                        <span class="stat-text">Total Owed: <span id="totalOwed">$0</span></span>
-                        <span class="stat-divider">|</span>
-                        <span class="stat-text">This Month: <span id="monthlyPayments">$0</span></span>
-                    </div>
-                </div>
-
-                <div class="form-grid">
-                    <div class="section-card">
-                        <h3>💳 Record Payment</h3>
-                        <div class="form-group">
-                            <label for="paymentStudent">Student *</label>
-                            <select id="paymentStudent" required>
-                                <option value="">Select Student</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="paymentAmount">Amount ($) *</label>
-                            <input type="number" id="paymentAmount" step="0.01" min="0.01" placeholder="0.00" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="paymentDate">Date *</label>
-                            <input type="date" id="paymentDate" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="paymentMethod">Payment Method</label>
-                            <select id="paymentMethod">
-                                <option value="Cash">Cash</option>
-                                <option value="Bank Transfer">Bank Transfer</option>
-                                <option value="Credit Card">Credit Card</option>
-                                <option value="PayPal">PayPal</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="paymentNotes">Notes</label>
-                            <textarea id="paymentNotes" rows="3" placeholder="Payment reference or notes"></textarea>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-primary" onclick="recordPayment()">
-                                💾 Record Payment
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="resetPaymentForm()">
-                                🗑️ Clear Form
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="section-card">
-                        <h3>👥 Student Balances</h3>
-                        <div class="students-container" id="studentBalancesContainer">
-                            <p style="color: #666; text-align: center; padding: 40px;">
-                                No students with balances. Add students and payments first.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section-card">
-                    <h3>📝 Payment Activity</h3>
-                    <div class="activity-log" id="paymentActivityLog">
-                        <p style="color: #666; text-align: center; padding: 20px;">
-                            No recent payment activity.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-          <!-- Full Payment History Modal -->
-            <div id="historyModal" class="modal" style="display:none;">
-                <div class="modal-content">
-                    <span class="close" onclick="document.getElementById('historyModal').style.display='none'">&times;</span>
-                    <!-- Full history will be injected here -->
-                </div>
-            </div>
-
-            <!-- Reports Tab -->
-            <div id="reports" class="tab-content">
-                <div class="section-header">
-                    <h2>📈 Reports & Analytics</h2>
-                    <div class="student-stats">
-                        <span class="stat-text">Outstanding: <span id="outstandingBalance">$0</span></span>
-                    </div>
-                </div>
-
-                <!-- Quick Stats -->
-                <div class="stats-row">
-                    <div class="stat-card">
-                        <h3>Total Students</h3>
-                        <span id="totalStudentsReport">0</span>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Total Hours</h3>
-                        <span id="totalHoursReport">0</span>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Total Earnings</h3>
-                        <span id="totalEarningsReport">$0</span>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Average Mark</h3>
-                        <span id="avgMarkReport">0%</span>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Total Payments</h3>
-                        <span id="totalPaymentsReport">$0</span>
-                    </div>
-                </div>
-
-                <!-- Breakdown Analysis -->
-                <div class="section-card">
-                    <h3>📊 Breakdown Analysis</h3>
-                    <div class="button-group">
-                        <button class="btn" onclick="showWeeklyBreakdown()">📅 Weekly</button>
-                        <button class="btn" onclick="showBiWeeklyBreakdown()">📆 Bi-Weekly</button>
-                        <button class="btn" onclick="showMonthlyBreakdown()">📈 Monthly</button>
-                        <button class="btn" onclick="showSubjectBreakdown()">📚 Subject</button>
-                    </div>
-                    
-                    <div id="breakdownContainer">
-                        <p style="color: #666; text-align: center; padding: 40px;">
-                            Select a breakdown option above to view analytics.
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Detailed Reports -->
-                <div class="form-grid">
-                    <div class="section-card">
-                        <h3>📅 Weekly Summary</h3>
-                        <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Week</th>
-                                        <th>Hours</th>
-                                        <th>Earnings</th>
-                                        <th>Subjects</th>
-                                        <th>Net (80%)</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="weeklyBody">
-                                    <tr>
-                                        <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
-                                            No weekly data available
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="section-card">
-                        <h3>📚 Subject Performance</h3>
-                        <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Subject</th>
-                                        <th>Avg Mark</th>
-                                        <th>Hours</th>
-                                        <th>Earnings</th>
-                                        <th>Sessions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="subjectBody">
-                                    <tr>
-                                        <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
-                                            No subject data available
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <!-- Header -->
+  <header class="header">
+    <h1><img src="icons/worklog_cogs.svg" alt="WorkLog" style="height: 80px;"> WorkLog</h1>
+    <p class="subtitle">Student Tracker & Hours Management System</p>
+    <div class="storage-status">
+      <span id="localStatus">💾 Local Storage: Active</span>
+      <span id="syncStatus">☁️ Cloud Sync: Ready</span>
+      <span id="dataStatus">📊 Data: 0 Students, 0 Sessions</span>
     </div>
+  </header>
 
-    <!-- Hidden file input for import -->
-    <input type="file" id="importFile" accept=".json" style="display: none;">
+  <!-- Sync Bar -->
+  <div class="sync-bar" id="syncBar">
+    <label>
+      <input type="checkbox" id="autoSyncCheckbox"> Auto-sync
+    </label>
+    <button id="syncBtn">🔄 Sync Now</button>
+    <button id="exportCloudBtn">☁️ Export Cloud</button>
+    <button id="importCloudBtn">📥 Import Cloud</button>
+    <button id="syncStatsBtn">📊 Sync Stats</button>
+    <button id="exportDataBtn">📤 Export Data</button>
+    <button id="importDataBtn">📥 Import Data</button>
+    <button id="clearAllBtn">🗑️ Clear All</button>
+  </div>
 
-     <!-- JavaScript Files - CORRECT ORDER -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="auth.js"></script>
-<script src="cloud-sync.js"></script>
-<script src="app.js"></script>
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="students">👥 Students</button>
+    <button class="tab" data-tab="hours">⏱️ Hours</button>
+    <button class="tab" data-tab="marks">📊 Marks</button>
+    <button class="tab" data-tab="attendance">✅ Attendance</button>
+    <button class="tab" data-tab="payments">💰 Payments</button>
+    <button class="tab" data-tab="reports">📈 Reports</button>
+  </div>
 
-<script>
-    // Simple initialization with proper error handling
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 Starting app...');
-        
-        // Auth will auto-initialize
-        setTimeout(() => {
-            console.log('🚀 Starting app...');
-            if (window.Auth && window.Auth.isAuthenticated()) {
-                console.log('✅ User authenticated');
-                // Only initialize the main app, let app.js handle cloud sync
-                if (window.init) {
-                    window.init();
-                }
-            } else {
-                console.log('❌ User not authenticated');
-                window.location.href = 'auth.html';
-            }
-        }, 100);
-              
-        // Close user menu when clicking outside
-        document.addEventListener('click', function(event) {
-            const userMenu = document.getElementById('userMenu');
-            const authButton = document.getElementById('authButton');
-            
-            if (userMenu && authButton && 
-                !authButton.contains(event.target) && 
-                !userMenu.contains(event.target)) {
-                userMenu.style.display = 'none';
-            }
-        });
-
-        // Comprehensive Event Delegation for ALL buttons
-        document.addEventListener('click', function(e) {
-            const button = e.target;
-            
-            // Attendance buttons
-            if (button.classList.contains('edit-btn')) {
-                console.log('Edit button clicked via delegation');
-                editAttendance(button);
-            }
-            
-            if (button.classList.contains('update-btn')) {
-                console.log('Update button clicked via delegation');
-                const row = button.closest('tr');
-                const originalValues = JSON.parse(row.dataset.originalValues || '[]');
-                updateAttendance(button, originalValues);
-            }
-            
-            if (button.classList.contains('cancel-btn')) {
-                console.log('Cancel button clicked via delegation');
-                const row = button.closest('tr');
-                const originalValues = JSON.parse(row.dataset.originalValues || '[]');
-                cancelEdit(button, originalValues);
-            }
-            
-            // Quick action buttons
-            if (button.classList.contains('select-all-btn')) {
-                selectAllStudents();
-            }
-            
-            if (button.classList.contains('deselect-all-btn')) {
-                deselectAllStudents();
-            }
-            
-            // Form action buttons
-            if (button.classList.contains('save-attendance-btn')) {
-                saveAttendance();
-            }
-            
-            if (button.classList.contains('clear-attendance-btn')) {
-                clearAttendanceForm();
-            }
-        });
-
-        // Also handle form submissions properly
-        document.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            if (e.target.id === 'studentForm') {
-                addStudent();
-            }
-            
-            if (e.target.id === 'marksForm') {
-                addMark();
-            }
-        });
-    });
-
-    // Make sure these functions are available globally
-    function selectAllStudents() {
-        console.log('Select All clicked');
-        // Your selectAllStudents implementation
-        const checkboxes = document.querySelectorAll('.student-attendance-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = true;
-        });
-    }
-
-    function deselectAllStudents() {
-        console.log('Deselect All clicked');
-        // Your deselectAllStudents implementation
-        const checkboxes = document.querySelectorAll('.student-attendance-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = false;
-        });
-    }
-
-    function saveAttendance() {
-        console.log('Save Attendance clicked');
-        // Your saveAttendance implementation
-    }
-
-    function clearAttendanceForm() {
-        console.log('Clear Attendance Form clicked');
-        // Your clearAttendanceForm implementation
-    }
-</script>
-    
-    <!-- Sync Stats Modal -->
-    <div id="syncStatsModal" class="sync-stats-modal">
-        <div class="sync-stats-content">
-            <span class="close" onclick="closeSyncStats()" style="float: right; cursor: pointer; font-size: 20px;">&times;</span>
-            <h3>📊 Sync Statistics</h3>
-            <div id="syncStatsContent">
-                <p>Loading sync statistics...</p>
-            </div>
-            <div style="margin-top: 20px; text-align: center;">
-                <button class="btn btn-primary" onclick="manualSync()">🔄 Sync Now</button>
-                <button class="btn btn-secondary" onclick="closeSyncStats()">Close</button>
-            </div>
-        </div>
+  <!-- Students Tab -->
+  <div id="students" class="tab-content active">
+    <h2>📚 Student Management</h2>
+    <div class="student-stats">
+      <span id="studentsCount">0</span> | Avg Rate: <span id="avgRate">$0</span>
     </div>
-    <!-- Toast Notifications -->
-<div id="toastContainer" class="toast-container"></div>
+    <form id="studentForm">
+      <input type="text" id="studentName" placeholder="Full Name" required>
+      <input type="text" id="studentId" placeholder="Student ID" required>
+      <select id="studentGender" required>
+        <option value="">Gender</option><option>Male</option><option>Female</option><option>Other</option>
+      </select>
+      <input type="email" id="studentEmail" placeholder="Email">
+      <input type="tel" id="studentPhone" placeholder="Phone">
+      <input type="number" id="studentBaseRate" step="0.01" placeholder="Base Rate">
+      <button type="button" id="addStudentBtn">➕ Add Student</button>
+      <button type="button" id="clearStudentFormBtn">🗑️ Clear Form</button>
+    </form>
+    <div id="studentsContainer"><p>No students registered yet.</p></div>
+  </div>
 
+  <!-- Hours Tab -->
+  <div id="hours" class="tab-content">
+    <h2>⏱️ Earnings Tracker</h2>
+    <form id="hoursForm">
+      <input type="text" id="organization" placeholder="Organization" required>
+      <select id="workType"><option>hourly</option><option>session</option><option>contract</option></select>
+      <input type="date" id="workDate" required>
+      <input type="number" id="hoursWorked" step="0.5" required>
+      <input type="number" id="baseRate" step="0.01" required>
+      <button type="button" id="logHoursBtn">💾 Log Work</button>
+      <button type="button" id="resetHoursFormBtn">🗑️ Clear Form</button>
+    </form>
+    <div id="hoursContainer"><p>No work logged yet.</p></div>
+  </div>
+
+  <!-- Marks Tab -->
+  <div id="marks" class="tab-content">
+    <h2>📊 Marks & Assessments</h2>
+    <form id="marksForm">
+      <select id="marksStudent" required></select>
+      <input type="text" id="markSubject" required>
+      <input type="date" id="markDate" required>
+      <input type="number" id="score" required>
+      <input type="number" id="maxScore" required>
+      <button type="button" id="addMarkBtn">💾 Save Mark</button>
+      <button type="button" id="clearMarksFormBtn">🗑️ Clear Form</button>
+    </form>
+    <div id="marksContainer"><p>No marks recorded yet.</p></div>
+  </div>
+
+  <!-- Attendance Tab -->
+  <div id="attendance" class="tab-content">
+    <h2>✅ Attendance Tracking</h2>
+    <form id="attendanceForm">
+      <input type="date" id="attendanceDate" required>
+      <input type="text" id="attendanceSubject" required>
+      <div id="attendanceList"><p>No students registered.</p></div>
+      <button type="button" id="saveAttendanceBtn">💾 Save Attendance</button>
+      <button type="button" id="clearAttendanceBtn">🗑️ Clear Form</button>
+    </form>
+    <div id="attendanceContainer"><p>No attendance records yet.</p></div>
+  </div>
+
+  <!-- Payments Tab -->
+  <div id="payments" class="tab-content">
+    <h2>💰 Payment Management</h2>
+    <div class="payments-filter">
+      <select id="paymentsYearSelect"></select>
+      <select id="paymentsMonthSelect"></select>
+    </div>
+    <div id="paymentsStats">
+      <div id="paymentsTotal"></div>
+      <div id="paymentsWeekly"></div>
+    </div>
+    <form id="paymentForm">
+      <select id="paymentStudent" required></select>
+      <input type="number" id="paymentAmount" step="0.01" required>
+      <input type="date" id="paymentDate" required>
+      <select id="paymentMethod"><option>Cash</option><option>Bank Transfer</option></select>
+      <textarea id="paymentNotes"></textarea>
+      <button type="button" id="recordPaymentBtn">💳 Record Payment</button>
+    </form>
+  </div>
+
+  <!-- Reports Tab -->
+  <div id="reports" class="tab-content">
+    <h2>📈 Reports</h2>
+    <div id="reportsContainer"><p>No reports yet.</p></div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
