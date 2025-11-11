@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <title>WorkLog - Student Tracker & Hours Management</title>
-   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css">
   <style>
     .tab-content { display: none; padding: 20px; background: white; border-radius: 8px; margin-top: 10px; min-height: 400px; }
     .tab-content.active { display: block !important; }
+    .tabs { margin-top: 20px; display: flex; gap: 10px; }
+    .tabs .tab { padding: 8px 16px; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; background: #f9f9f9; }
+    .tabs .tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
   </style>
 </head>
 <body>
@@ -23,9 +26,7 @@
 
   <!-- Sync Bar -->
   <div class="sync-bar" id="syncBar">
-    <label>
-      <input type="checkbox" id="autoSyncCheckbox"> Auto-sync
-    </label>
+    <label><input type="checkbox" id="autoSyncCheckbox"> Auto-sync</label>
     <button id="syncBtn">🔄 Sync Now</button>
     <button id="exportCloudBtn">☁️ Export Cloud</button>
     <button id="importCloudBtn">📥 Import Cloud</button>
@@ -48,86 +49,36 @@
   <!-- Students Tab -->
   <div id="students" class="tab-content active">
     <h2>📚 Student Management</h2>
-    <div class="student-stats">
-      <span id="studentsCount">0</span> | Avg Rate: <span id="avgRate">$0</span>
-    </div>
-    <form id="studentForm">
-      <input type="text" id="studentName" placeholder="Full Name" required>
-      <input type="text" id="studentId" placeholder="Student ID" required>
-      <select id="studentGender" required>
-        <option value="">Gender</option><option>Male</option><option>Female</option><option>Other</option>
-      </select>
-      <input type="email" id="studentEmail" placeholder="Email">
-      <input type="tel" id="studentPhone" placeholder="Phone">
-      <input type="number" id="studentBaseRate" step="0.01" placeholder="Base Rate">
-      <button type="button" id="addStudentBtn">➕ Add Student</button>
-      <button type="button" id="clearStudentFormBtn">🗑️ Clear Form</button>
-    </form>
     <div id="studentsContainer"><p>No students registered yet.</p></div>
   </div>
 
   <!-- Hours Tab -->
   <div id="hours" class="tab-content">
     <h2>⏱️ Earnings Tracker</h2>
-    <form id="hoursForm">
-      <input type="text" id="organization" placeholder="Organization" required>
-      <select id="workType"><option>hourly</option><option>session</option><option>contract</option></select>
-      <input type="date" id="workDate" required>
-      <input type="number" id="hoursWorked" step="0.5" required>
-      <input type="number" id="baseRate" step="0.01" required>
-      <button type="button" id="logHoursBtn">💾 Log Work</button>
-      <button type="button" id="resetHoursFormBtn">🗑️ Clear Form</button>
-    </form>
     <div id="hoursContainer"><p>No work logged yet.</p></div>
+    <div id="hoursSummary"></div>
   </div>
 
   <!-- Marks Tab -->
   <div id="marks" class="tab-content">
     <h2>📊 Marks & Assessments</h2>
-    <form id="marksForm">
-      <select id="marksStudent" required></select>
-      <input type="text" id="markSubject" required>
-      <input type="date" id="markDate" required>
-      <input type="number" id="score" required>
-      <input type="number" id="maxScore" required>
-      <button type="button" id="addMarkBtn">💾 Save Mark</button>
-      <button type="button" id="clearMarksFormBtn">🗑️ Clear Form</button>
-    </form>
     <div id="marksContainer"><p>No marks recorded yet.</p></div>
   </div>
 
   <!-- Attendance Tab -->
   <div id="attendance" class="tab-content">
     <h2>✅ Attendance Tracking</h2>
-    <form id="attendanceForm">
-      <input type="date" id="attendanceDate" required>
-      <input type="text" id="attendanceSubject" required>
-      <div id="attendanceList"><p>No students registered.</p></div>
-      <button type="button" id="saveAttendanceBtn">💾 Save Attendance</button>
-      <button type="button" id="clearAttendanceBtn">🗑️ Clear Form</button>
-    </form>
     <div id="attendanceContainer"><p>No attendance records yet.</p></div>
+    <div id="attendanceSummary"></div>
   </div>
 
   <!-- Payments Tab -->
   <div id="payments" class="tab-content">
     <h2>💰 Payment Management</h2>
-    <div class="payments-filter">
-      <select id="paymentsYearSelect"></select>
-      <select id="paymentsMonthSelect"></select>
-    </div>
     <div id="paymentsStats">
       <div id="paymentsTotal"></div>
       <div id="paymentsWeekly"></div>
     </div>
-    <form id="paymentForm">
-      <select id="paymentStudent" required></select>
-      <input type="number" id="paymentAmount" step="0.01" required>
-      <input type="date" id="paymentDate" required>
-      <select id="paymentMethod"><option>Cash</option><option>Bank Transfer</option></select>
-      <textarea id="paymentNotes"></textarea>
-      <button type="button" id="recordPaymentBtn">💳 Record Payment</button>
-    </form>
   </div>
 
   <!-- Reports Tab -->
@@ -136,6 +87,30 @@
     <div id="reportsContainer"><p>No reports yet.</p></div>
   </div>
 
+  <!-- Scripts -->
   <script src="app.js"></script>
+  <script>
+    // Tab switching logic
+    document.querySelectorAll('.tabs .tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Remove active from all tabs and contents
+        document.querySelectorAll('.tabs .tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        // Activate clicked tab and matching content
+        btn.classList.add('active');
+        const tabId = btn.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+
+        // Call loader functions if they exist
+        if (tabId === 'students' && typeof loadStudentsTab === 'function') loadStudentsTab();
+        if (tabId === 'hours' && typeof loadHoursTab === 'function') loadHoursTab();
+        if (tabId === 'marks' && typeof loadMarksTab === 'function') loadMarksTab();
+        if (tabId === 'attendance' && typeof loadAttendanceTab === 'function') loadAttendanceTab();
+        if (tabId === 'payments' && typeof loadPaymentsTab === 'function') loadPaymentsTab();
+        if (tabId === 'reports' && typeof loadReportsTab === 'function') loadReportsTab();
+      });
+    });
+  </script>
 </body>
 </html>
