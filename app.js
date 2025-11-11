@@ -23,12 +23,101 @@ const monthNames = [
     "July", "August", "September", "October", "November", "December"
 ];
 
+/* ============================================================================
+   Attendance edit guards and cloud sync integration
+============================================================================ */
+function wireAttendanceEditGuards() {
+  // Override cloud sync while editing attendance
+  if (window.cloudSync && typeof window.cloudSync.syncData === "function") {
+    const originalSyncData = window.cloudSync.syncData;
+    window.cloudSync.syncData = function (...args) {
+      if (isEditingAttendance) {
+        console.log("🛑 Cloud sync skipped - attendance edit in progress");
+        return Promise.resolve();
+      }
+      return originalSyncData.apply(this, args);
+    };
+  }
+}
+
+// Cloud sync hooks: refresh payments and re-render active tabs as needed
+function wireCloudSyncEvents() {
+  if (!window.cloudSync) return;
+
+  // If your cloudSync exposes events or callbacks, wire them here.
+  // We'll support both patterns gracefully.
+
+  // Pattern A: cloudSync triggers onSyncCompleted(mergedData)
+  window.onSyncCompleted = function (mergedData) {
+    console.log("✅ Sync completed successfully");
+
+    // Refresh payments single source
+    allPayments = Array.isArray(mergedData?.payments) ? mergedData.payments.slice() : [];
+
+    // Optionally refresh students, marks, etc. if provided
+    if (Array.isArray(mergedData?.students)) {
+      appData.students = mergedData.students.slice();
+    }
+
+    // Save locally and refresh UI if on payments tab
+    saveAllData();
+
+    if (currentTab === "payments") {
+      renderPaymentsStats(allPayments);
+    }
+  };
+
+  // Pattern B: cloudSync calls mergeCloudData(cloudData) and returns merged
+  window.mergeCloudData = function (cloudData) {
+    // Merge minimally, without breaking existing structure
+    if (cloudData && typeof cloudData === "object") {
+      // Merge top-level arrays if provided
+      if (Array.isArray(cloudData.students)) {
+        appData.students = cloudData.students.slice();
+      }
+      if (Array.isArray(cloudData.payments)) {
+        allPayments = cloudData.payments.slice();
+      }
+
+      // Preserve others unless provided
+      if (Array.isArray(cloudData.hours)) {
+        appData.hours = cloudData.hours.slice();
+      }
+      if (Array.isArray(cloudData.marks)) {
+        appData.marks = cloudData.marks.slice();
+      }
+      if (Array.isArray(cloudData.attendance)) {
+        appData.attendance = cloudData.attendance.slice();
+      }
+      if (cloudData.settings && typeof cloudData.settings === "object") {
+        appData.settings = { ...appData.settings, ...cloudData.settings };
+      }
+    }
+
+    console.log("✅ Data merged successfully");
+    console.log("✅ Payments data refreshed:", allPayments.length, "records");
+
+    saveAllData();
+
+    // Hot refresh if Payments tab is active
+    if (currentTab === "payments") {
+      renderPaymentsStats(allPayments);
+    }
+
+    return appData;
+  };
+}
+
+/* ============================================================================
+   Initialization
+============================================================================ */
 function init() {
   console.log("🎯 App initialization started");
 
   // TEMP: disable auth guard so app always runs
   if (!window.Auth || !window.Auth.isAuthenticated || !window.Auth.isAuthenticated()) {
     console.log("⚠️ Auth module not found or user not signed in — continuing without authentication");
+    // Do NOT return here — let the app continue
   } else {
     console.log("✅ User authenticated, setting up app...");
   }
@@ -46,15 +135,14 @@ function init() {
   // Settings
   loadDefaultRate();
 
-  // Initial stats render - ADD THIS
-  renderStudents(); // Make sure students are rendered
-  updateStats();    // Update all stats
+  // Initial stats render
+  updateStats();
 
   // Attendance edit-safe overrides for cloud sync
-  wireAttendanceEditGuards();
+  wireAttendanceEditGuards(); // ✅ NOW THIS WILL WORK
 
   // Wire cloud sync completion to UI refresh
-  wireCloudSyncEvents();
+  wireCloudSyncEvents(); // ✅ THIS TOO
 
   console.log("✅ App initialized successfully");
 }
