@@ -419,22 +419,45 @@ function recordPayment() {
 }
 
 function updatePaymentsByYearMonth() {
-  renderPayments();
+  const year = document.getElementById("paymentsYearSelect")?.value;
+  const month = document.getElementById("paymentsMonthSelect")?.value;
+
+  let filtered = appData.payments;
+  if (year) filtered = filtered.filter(p => new Date(p.date).getFullYear().toString() === year);
+  if (month) filtered = filtered.filter(p => (new Date(p.date).getMonth() + 1).toString() === month);
+
+  renderPayments(filtered);
 }
 
-function renderPayments() {
+function renderPayments(filteredList) {
+  const payments = filteredList || appData.payments;
   const container = document.getElementById("paymentsStats");
-  if (appData.payments.length === 0) {
+
+  if (payments.length === 0) {
     container.innerHTML = "<p>No payments recorded yet.</p>";
     return;
   }
 
-  const total = appData.payments.reduce((sum, p) => sum + p.amount, 0);
+  const total = payments.reduce((sum, p) => sum + p.amount, 0);
+
+  // Balance per student
+  const balances = {};
+  payments.forEach(p => {
+    if (!balances[p.studentId]) balances[p.studentId] = 0;
+    balances[p.studentId] += p.amount;
+  });
+
   container.innerHTML = `
     <div>Total: $${total.toFixed(2)}</div>
-    <div>Payments: ${appData.payments.length}</div>
+    <div>Payments: ${payments.length}</div>
+    <h4>Balances by Student</h4>
+    ${Object.entries(balances).map(([id, amt]) => {
+      const student = appData.students.find(s => s.id === id);
+      return `<div>${student?.name || id}: $${amt.toFixed(2)}</div>`;
+    }).join("")}
   `;
 }
+
 
 // === Sync Bar ===
 function manualSync() { console.log("🔄 manualSync() called"); }
@@ -651,45 +674,129 @@ function loadStudentsTab() {
   console.log("📂 Loading tab data: students");
   renderStudents();
 
-  const marksSelect = document.getElementById("marksStudent");
-  const paymentSelect = document.getElementById("paymentStudent");
+  const container = document.getElementById("studentsSummary");
+  if (!container) return;
 
-  if (marksSelect) {
-    marksSelect.innerHTML = appData.students.map(s =>
-      `<option value="${s.id}">${s.name} (${s.id})</option>`
-    ).join("");
+  const studentCount = appData.students.length;
+  if (studentCount === 0) {
+    container.innerHTML = "<p>No students registered yet.</p>";
+    return;
   }
 
-  if (paymentSelect) {
-    paymentSelect.innerHTML = appData.students.map(s =>
-      `<option value="${s.id}">${s.name} (${s.id})</option>`
-    ).join("");
+  // Optional: average age if DOB is stored
+  let avgAge = "N/A";
+  const ages = appData.students
+    .map(s => s.dob ? Math.floor((Date.now() - new Date(s.dob)) / (365.25 * 24 * 60 * 60 * 1000)) : null)
+    .filter(age => age !== null);
+  if (ages.length > 0) {
+    avgAge = (ages.reduce((sum, a) => sum + a, 0) / ages.length).toFixed(1);
   }
+
+  // Breakdown by gender (if stored)
+  const genderStats = {};
+  appData.students.forEach(s => {
+    if (s.gender) {
+      if (!genderStats[s.gender]) genderStats[s.gender] = 0;
+      genderStats[s.gender]++;
+    }
+  });
+
+  // Render summary
+  container.innerHTML = `
+    <h3>👩‍🎓 Students Summary</h3>
+    <p>Total students: ${studentCount}</p>
+    <p>Average age: ${avgAge}</p>
+    <h4>By Gender</h4>
+    ${Object.entries(genderStats).map(([g, count]) => `<div>${g}: ${count}</div>`).join("") || "<p>No gender data.</p>"}
+  `;
 }
 
 function loadAttendanceTab() {
   console.log("📂 Loading tab data: attendance");
   renderAttendance();
 
-  const list = document.getElementById("attendanceList");
-  if (list) {
-    if (appData.students.length === 0) {
-      list.innerHTML = "<p>No students registered.</p>";
-    } else {
-      list.innerHTML = appData.students.map(s => `
-        <label>
-          <input type="checkbox" data-student="${s.id}" checked>
-          ${s.name} (${s.id})
-        </label><br>
-      `).join("");
-    }
+  const summaryContainer = document.getElementById("attendanceSummary");
+  if (!summaryContainer) return;
+
+  if (appData.students.length === 0) {
+    summaryContainer.innerHTML = "<p>No students registered.</p>";
+    return;
   }
+
+  if (appData.attendance.length === 0) {
+    summaryContainer.innerHTML = "<p>No attendance records yet.</p>";
+    return;
+  }
+
+  // Calculate per-student attendance
+  const stats = {};
+  appData.students.forEach(s => {
+    stats[s.id] = { name: s.name, present: 0, total: 0 };
+  });
+
+  appData.attendance.forEach(session => {
+    session.students.forEach(stu => {
+      if (stats[stu.id]) {
+        stats[stu.id].total++;
+        if (stu.present) stats[stu.id].present++;
+      }
+    });
+  });
+
+  // Render summary
+  summaryContainer.innerHTML = `
+    <h3>📅 Attendance Summary</h3>
+    ${Object.values(stats).map(s => {
+      const rate = s.total > 0 ? ((s.present / s.total) * 100).toFixed(1) : "N/A";
+      return `<div>${s.name}: ${s.present}/${s.total} sessions (${rate}%)</div>`;
+    }).join("")}
+  `;
 }
+
 
 function loadHoursTab() {
   console.log("📂 Loading tab data: hours");
   renderHours();
+
+  const container = document.getElementById("hoursSummary");
+  if (!container) return;
+
+  const hoursCount = appData.hours.length;
+  if (hoursCount === 0) {
+    container.innerHTML = "<p>No hours logged yet.</p>";
+    return;
+  }
+
+  // Totals and averages
+  const totalHours = appData.hours.reduce((sum, h) => sum + h.hours, 0);
+  const avgHours = (totalHours / hoursCount).toFixed(1);
+
+  // Breakdown by work type
+  const typeStats = {};
+  appData.hours.forEach(h => {
+    if (!typeStats[h.type]) typeStats[h.type] = 0;
+    typeStats[h.type] += h.hours;
+  });
+
+  // Breakdown by organization
+  const orgStats = {};
+  appData.hours.forEach(h => {
+    if (!orgStats[h.org]) orgStats[h.org] = 0;
+    orgStats[h.org] += h.hours;
+  });
+
+  // Render summary
+  container.innerHTML = `
+    <h3>⏱️ Hours Summary</h3>
+    <p>Total hours logged: ${totalHours}</p>
+    <p>Average hours per entry: ${avgHours}</p>
+    <h4>By Work Type</h4>
+    ${Object.entries(typeStats).map(([type, hrs]) => `<div>${type}: ${hrs}h</div>`).join("")}
+    <h4>By Organization</h4>
+    ${Object.entries(orgStats).map(([org, hrs]) => `<div>${org}: ${hrs}h</div>`).join("")}
+  `;
 }
+
 
 function loadMarksTab() {
   console.log("📂 Loading tab data: marks");
@@ -708,7 +815,7 @@ function loadReportsTab() {
   const marksCount = appData.marks.length;
   const attendanceSessions = appData.attendance.length;
 
-  // Attendance breakdown
+  // Attendance breakdown (overall)
   let totalPresent = 0;
   let totalMarked = 0;
   appData.attendance.forEach(session => {
@@ -719,6 +826,69 @@ function loadReportsTab() {
   });
   const attendanceRate = totalMarked > 0 ? ((totalPresent / totalMarked) * 100).toFixed(1) : "N/A";
 
+  // Per-student attendance
+  const stats = {};
+  appData.students.forEach(s => {
+    stats[s.id] = { name: s.name, present: 0, total: 0 };
+  });
+  appData.attendance.forEach(session => {
+    session.students.forEach(stu => {
+      if (stats[stu.id]) {
+        stats[stu.id].total++;
+        if (stu.present) stats[stu.id].present++;
+      }
+    });
+  });
+  const perStudentAttendance = Object.values(stats).map(s => {
+    const rate = s.total > 0 ? ((s.present / s.total) * 100).toFixed(1) : "N/A";
+    return `<div>${s.name}: ${s.present}/${s.total} sessions (${rate}%)</div>`;
+  }).join("");
+
+  // Financial summaries
+  const totalRevenue = appData.payments.reduce((sum, p) => sum + p.amount, 0);
+  const avgPayment = paymentCount > 0 ? (totalRevenue / paymentCount).toFixed(2) : "N/A";
+  const avgPerStudent = studentCount > 0 ? (totalRevenue / studentCount).toFixed(2) : "N/A";
+
+  // Marks analysis
+  let avgScore = "N/A";
+  let highestMark = "N/A";
+  let lowestMark = "N/A";
+  if (marksCount > 0) {
+    const percentages = appData.marks.map(m => (m.score / m.maxScore) * 100);
+    avgScore = (percentages.reduce((sum, p) => sum + p, 0) / percentages.length).toFixed(1);
+    highestMark = Math.max(...percentages).toFixed(1);
+    lowestMark = Math.min(...percentages).toFixed(1);
+  }
+
+  // Subject-level breakdown
+  const subjectStats = {};
+  appData.marks.forEach(m => {
+    const pct = (m.score / m.maxScore) * 100;
+    if (!subjectStats[m.subject]) subjectStats[m.subject] = [];
+    subjectStats[m.subject].push(pct);
+  });
+  let subjectSummary = "";
+  for (const [subject, scores] of Object.entries(subjectStats)) {
+    const avg = (scores.reduce((sum, s) => sum + s, 0) / scores.length).toFixed(1);
+    const high = Math.max(...scores).toFixed(1);
+    const low = Math.min(...scores).toFixed(1);
+    subjectSummary += `<p>📘 ${subject}: Avg ${avg}%, High ${high}%, Low ${low}%</p>`;
+  }
+
+  // Hours per student
+  const hoursStats = {};
+  appData.students.forEach(s => {
+    hoursStats[s.id] = { name: s.name, totalHours: 0 };
+  });
+  appData.hours.forEach(h => {
+    if (hoursStats[h.studentId]) {
+      hoursStats[h.studentId].totalHours += h.hours;
+    }
+  });
+  const perStudentHours = Object.values(hoursStats).map(s => {
+    return `<div>${s.name}: ${s.totalHours}h</div>`;
+  }).join("");
+
   // Render summary
   container.innerHTML = `
     <h3>📊 Reports Summary</h3>
@@ -728,8 +898,25 @@ function loadReportsTab() {
     <p>📝 Marks recorded: ${marksCount}</p>
     <p>📅 Attendance sessions: ${attendanceSessions}</p>
     <p>✅ Average attendance rate: ${attendanceRate}%</p>
+    <hr>
+    <h4>Per-Student Attendance</h4>
+    ${perStudentAttendance || "<p>No attendance data yet.</p>"}
+    <hr>
+    <p>💰 Total revenue: $${totalRevenue.toFixed(2)}</p>
+    <p>💵 Average payment: $${avgPayment}</p>
+    <p>👨‍🎓 Average revenue per student: $${avgPerStudent}</p>
+    <hr>
+    <p>📈 Average score: ${avgScore}%</p>
+    <p>🏆 Highest mark: ${highestMark}%</p>
+    <p>📉 Lowest mark: ${lowestMark}%</p>
+    <h4>📘 Subject Breakdown</h4>
+    ${subjectSummary || "<p>No subject data yet.</p>"}
+    <hr>
+    <h4>⏱️ Hours per Student</h4>
+    ${perStudentHours || "<p>No hours data yet.</p>"}
   `;
 }
+
 
 
 /* ============================================================================
