@@ -24,40 +24,39 @@ const monthNames = [
 ];
 
 function init() {
-    console.log('🎯 App initialization started');
-    
-    // Check authentication
-    if (!window.Auth || !window.Auth.isAuthenticated()) {
-        console.log('❌ User not authenticated');
-        return;
-    }
-    
-    console.log('✅ User authenticated, setting up app...');
-    
-    // Load data from localStorage FIRST
-    loadAllData();
-    
-    // Initialize cloud sync ONLY if not already initialized
-    if (window.cloudSync && typeof window.cloudSync.init === 'function' && !window.cloudSync.initialized) {
-        console.log('🔧 Initializing cloud sync...');
-        window.cloudSync.init();
-    } else if (window.cloudSync && window.cloudSync.initialized) {
-        console.log('🔧 Cloud sync already initialized');
-    }
-    
-    // Setup tabs
-    setupTabs();
-    
-    // Setup event listeners
-    setupEventListeners();
-    
-    // Load default rate settings
-    loadDefaultRate();
-    
-    // Update stats
-    updateStats();
-    
-    console.log('✅ App initialized successfully');
+  console.log("🎯 App initialization started");
+
+  // TEMP: disable auth guard so app always runs
+  if (!window.Auth || !window.Auth.isAuthenticated || !window.Auth.isAuthenticated()) {
+    console.log("⚠️ Auth module not found or user not signed in — continuing without authentication");
+  } else {
+    console.log("✅ User authenticated, setting up app...");
+  }
+
+  // Load data from localStorage FIRST
+  loadAllData();
+
+  // Cloud sync auto-initialization is handled externally
+  console.log("🔧 Cloud sync auto-initialization enabled");
+
+  // Tabs and events
+  setupTabs();
+  setupEventListeners();
+
+  // Settings
+  loadDefaultRate();
+
+  // Initial stats render - ADD THIS
+  renderStudents(); // Make sure students are rendered
+  updateStats();    // Update all stats
+
+  // Attendance edit-safe overrides for cloud sync
+  wireAttendanceEditGuards();
+
+  // Wire cloud sync completion to UI refresh
+  wireCloudSyncEvents();
+
+  console.log("✅ App initialized successfully");
 }
 
 // Add this to your initialization for better error recovery
@@ -86,37 +85,40 @@ function safeDataInitialization() {
 // ============================================================================
 
 function loadAllData() {
-    const userId = window.Auth.getCurrentUserId();
-    const savedData = localStorage.getItem(`worklog_data_${userId}`);
-    
-    if (savedData) {
-        try {
-            const parsedData = JSON.parse(savedData);
-            appData.students = Array.isArray(parsedData.students) ? parsedData.students : [];
-            appData.hours = Array.isArray(parsedData.hours) ? parsedData.hours : [];
-            appData.marks = Array.isArray(parsedData.marks) ? parsedData.marks : [];
-            appData.attendance = Array.isArray(parsedData.attendance) ? parsedData.attendance : [];
-            appData.payments = Array.isArray(parsedData.payments) ? parsedData.payments : [];
-            appData.settings = parsedData.settings || { defaultRate: 25.00 };
-            
-            console.log('📊 Loaded existing data:', {
-                students: appData.students.length,
-                hours: appData.hours.length,
-                marks: appData.marks.length,
-                attendance: appData.attendance.length,
-                payments: appData.payments.length
-            });
-            
-        } catch (error) {
-            console.error('❌ Error loading data, starting fresh:', error);
-            resetAppData();
-        }
-    } else {
-        console.log('📊 No existing data, starting fresh');
-        resetAppData();
+  try {
+    const stored = JSON.parse(localStorage.getItem("appData")) || null;
+    if (stored && typeof stored === "object") {
+      Object.assign(appData, stored);
+    }
+
+    // Validate student data
+    if (!Array.isArray(appData.students)) {
+      appData.students = [];
     }
     
-    loadHoursFromStorage();
+    // Ensure each student has a rate
+    appData.students.forEach(student => {
+      if (typeof student.rate !== 'number' || isNaN(student.rate)) {
+        student.rate = appData.settings?.defaultRate || 25.0;
+      }
+    });
+
+    // Initialize payments single source of truth from appData
+    allPayments = Array.isArray(appData.payments) ? appData.payments.slice() : [];
+
+    console.log("📥 Local data loaded:", {
+      students: appData.students.length,
+      payments: allPayments.length
+    });
+  } catch (err) {
+    console.warn("⚠️ Failed to load local data:", err);
+    // Initialize empty arrays if load fails
+    appData.students = [];
+    appData.payments = [];
+    appData.hours = [];
+    appData.marks = [];
+    appData.attendance = [];
+  }
 }
 
 function resetAppData() {
@@ -311,43 +313,34 @@ function loadStudents() {
 }
 
 function addStudent() {
-    try {
-        const name = document.getElementById('studentName').value;
-        const id = document.getElementById('studentId').value;
-        const gender = document.getElementById('studentGender').value;
-        const email = document.getElementById('studentEmail').value;
-        const phone = document.getElementById('studentPhone').value;
-        const rateInput = document.getElementById('studentBaseRate').value;
-        
-        const rate = rateInput ? parseFloat(rateInput) : (appData.settings.defaultRate || 25.00);
-        
-        if (!name || !id || !gender) {
-            alert('Please fill in required fields: Name, ID, and Gender');
-            return;
-        }
-        
-        const newStudent = {
-            name,
-            id,
-            gender,
-            email,
-            phone,
-            rate: rate,
-            createdAt: new Date().toISOString()
-        };
-        
-        if (!appData.students) appData.students = [];
-        appData.students.push(newStudent);
-        saveAllData();
-        loadStudents();
-        clearStudentForm();
-        
-        alert('✅ Student added successfully!');
-        
-    } catch (error) {
-        console.error('❌ Error adding student:', error);
-        alert('Error adding student: ' + error.message);
-    }
+  const name = document.getElementById("studentName").value.trim();
+  const id = document.getElementById("studentId").value.trim();
+  const gender = document.getElementById("studentGender").value;
+  const email = document.getElementById("studentEmail").value.trim();
+  const phone = document.getElementById("studentPhone").value.trim();
+  const rate = parseFloat(document.getElementById("studentBaseRate").value);
+
+  if (!name || !id) {
+    alert("Name and ID are required.");
+    return;
+  }
+
+  const student = { 
+    name, 
+    id, 
+    gender, 
+    email, 
+    phone, 
+    rate: rate || appData.settings.defaultRate || 25.0 // Use default if no rate provided
+  };
+  
+  appData.students.push(student);
+  saveLocalData();
+
+  renderStudents();
+  updateStats(); // ADD THIS to update the stats display
+  clearStudentForm();
+  console.log("➕ Student added:", student);
 }
 
 function clearStudentForm() {
@@ -463,6 +456,42 @@ function deleteStudent(index) {
         loadStudents();
         alert('✅ Student deleted successfully!');
     }
+}
+
+function renderStudents() {
+  const container = document.getElementById("studentsContainer");
+  const studentsCountEl = document.getElementById("studentsCount");
+  const avgRateEl = document.getElementById("avgRate");
+  
+  if (!container) return;
+
+  // Render student cards
+  if (appData.students.length === 0) {
+    container.innerHTML = "<p>No students registered yet.</p>";
+  } else {
+    container.innerHTML = appData.students.map(s => `
+      <div class="student-card">
+        <strong>${s.name}</strong> (${s.id}) - ${s.gender}<br>
+        Email: ${s.email || "N/A"}, Phone: ${s.phone || "N/A"}<br>
+        Rate: $${(s.rate || 0).toFixed(2)}
+      </div>
+    `).join("");
+  }
+
+  // Update stats - FIXED CALCULATIONS
+  if (studentsCountEl) {
+    studentsCountEl.textContent = appData.students.length;
+  }
+  
+  if (avgRateEl) {
+    if (appData.students.length > 0) {
+      const totalRate = appData.students.reduce((sum, s) => sum + (s.rate || 0), 0);
+      const averageRate = totalRate / appData.students.length;
+      avgRateEl.textContent = `$${averageRate.toFixed(2)}/session`;
+    } else {
+      avgRateEl.textContent = "$0.00/session";
+    }
+  }
 }
 
 // ============================================================================
@@ -2979,22 +3008,21 @@ function setupEventListeners() {
 }
 
 function updateStats() {
-    console.log('📈 Updating stats...');
-    
-    try {
-        if (!appData.students) appData.students = [];
-        if (!appData.hours) appData.hours = [];
-        if (!appData.attendance) appData.attendance = [];
-        
-        const totalStudents = appData.students.length;
-        const totalHours = appData.hours.reduce((sum, entry) => sum + (entry.hours || 0), 0).toFixed(1);
-        const totalSessions = appData.hours.length + appData.attendance.length;
-        
-        document.getElementById('dataStatus').textContent = `📊 Data: ${totalStudents} Students, ${totalSessions} Sessions`;
-        
-    } catch (error) {
-        console.error('❌ Error updating stats:', error);
-    }
+  // Update dashboard/global stats
+  const studentsCountEl = document.getElementById("studentsCount");
+  const avgRateEl = document.getElementById("avgRate");
+  
+  if (studentsCountEl) {
+    studentsCountEl.textContent = appData.students.length;
+  }
+  
+  if (avgRateEl && appData.students.length > 0) {
+    const totalRate = appData.students.reduce((sum, s) => sum + (s.rate || 0), 0);
+    const averageRate = totalRate / appData.students.length;
+    avgRateEl.textContent = `$${averageRate.toFixed(2)}/session`;
+  } else if (avgRateEl) {
+    avgRateEl.textContent = "$0.00/session";
+  }
 }
 
 // ============================================================================
