@@ -120,6 +120,24 @@ function saveAllData() {
     }
 }
 
+function clearAllData() {
+  // Use individual assignment instead of reassigning appData
+  appData.students = [];
+  appData.payments = [];
+  appData.hours = [];
+  appData.marks = [];
+  appData.attendance = [];
+  allPayments = []; // Also clear the payments source
+  
+  saveLocalData();
+  renderStudents(); 
+  renderPayments(); 
+  renderHours(); 
+  renderMarks(); 
+  renderAttendance();
+  console.log("🗑️ All data cleared");
+}
+
 // ============================================================================
 // TAB MANAGEMENT - FIXED VERSION
 // ============================================================================
@@ -1237,6 +1255,37 @@ function deletePayment(index) {
         loadPayments();
         alert('✅ Payment record deleted successfully!');
     }
+}
+
+function renderPaymentsStats(payments) {
+  // Implementation similar to your existing renderPayments but for stats
+  const container = document.getElementById("paymentsStats");
+  if (!container) return;
+  
+  const paymentsToRender = payments || allPayments;
+  
+  if (paymentsToRender.length === 0) {
+    container.innerHTML = "<p>No payments recorded yet.</p>";
+    return;
+  }
+
+  const total = paymentsToRender.reduce((sum, p) => sum + p.amount, 0);
+  const balances = {};
+  
+  paymentsToRender.forEach(p => {
+    if (!balances[p.studentId]) balances[p.studentId] = 0;
+    balances[p.studentId] += p.amount;
+  });
+
+  container.innerHTML = `
+    <div>Total: $${total.toFixed(2)}</div>
+    <div>Payments: ${paymentsToRender.length}</div>
+    <h4>Balances by Student</h4>
+    ${Object.entries(balances).map(([id, amt]) => {
+      const student = appData.students.find(s => s.id === id);
+      return `<div>${student?.name || id}: $${amt.toFixed(2)}</div>`;
+    }).join("")}
+  `;
 }
 
 // ============================================================================
