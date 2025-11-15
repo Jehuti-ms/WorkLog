@@ -90,24 +90,15 @@
         
         <!-- Cloud Sync Bar -->
 <div class="cloud-sync-bar">
-    <div class="sync-status">
-        <span class="sync-indicator sync-connected" id="syncIndicator"></span>
-        <span id="syncMessage">Connecting to cloud...</span>
-        <span id="syncStatus" style="margin-left: 10px; font-size: 12px; color: #666;"></span>
-    </div>
-    <div class="sync-controls">
-        <!-- Sync Controls -->
-        <div class="sync-options">
-            <label class="auto-sync-label">
-                <input type="checkbox" id="autoSyncCheckbox" onchange="toggleAutoSync()">
-                <span class="custom-checkbox"></span>
-                Auto-sync
-            </label>
-            
-            <button class="btn btn-sm" id="syncBtn" onclick="manualSync()" style="display: none;">
-                🔄 Sync Now
-            </button>
-            
+    <div class="sync-toolbar">
+    <label class="auto-sync-label" id="autoSyncLabel">
+        <input type="checkbox" id="autoSyncCheckbox" />
+        <span class="auto-sync-text" id="autoSyncText">Manual</span>
+    </label>
+    
+    <button id="syncButton" class="btn btn-sm btn-primary">🔄 Sync Now</button>
+    <span id="autoSyncDot" class="auto-sync-dot" style="display:none;"></span>
+      
             <button class="btn btn-sm" onclick="exportCloudData()" title="Export cloud data">
                 ☁️ Export Cloud
             </button>
