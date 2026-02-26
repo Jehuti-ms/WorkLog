@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Log Pro - Event Management System</title>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+        
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+        
+        // Make auth available globally
+        window.firebaseAuth = auth;
+        window.firebaseProvider = provider;
+        window.firebaseDb = db;
+    </script>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <!-- Apple Mobile Web App -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Event Log Pro">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Copy all CSS from your original index.html here */
+        /* ... (keep all existing CSS) ... */
+    </style>
+</head>
+<body>
+    <div id="landingPage" class="landing-page">
+        <div class="landing-content">
+            <div class="landing-logo">📚</div>
+            <h1>Event Log Pro</h1>
+            <h2>Event Management System</h2>
+            <p>Manage field trips, tours, and student events efficiently with our comprehensive tracking system.</p>
+            <button onclick="handleGoogleSignIn()" class="google-signin-btn">
+                <svg class="google-icon" viewBox="0 0 24 24">
+                    <!-- Google icon path -->
+                </svg>
+                Sign in with Google
+            </button>
+        </div>
+    </div>
+
+    <div id="spinner" class="spinner">
+        <div class="spinner-content">
+            <div class="loader"></div>
+            <div id="spinnerText">Processing...</div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Settings</h2>
+            </div>
+            <div class="modal-body">
+                <div class="settings-grid">
+                    <div class="settings-section">
+                        <h3>🔐 Firebase Configuration</h3>
+                        <p>Firebase is configured. No additional settings needed.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeSettings()" class="btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer">
+        <header>
+            <div class="school-header-icon">🎓</div>
+            <h1>Event Log Pro</h1>
+            <h2>Comprehensive Event Management</h2>
+            <h3 class="form-title">Event / Tour Data Sheet</h3>
+            <p id="eventIdDisplay">Event ID: (new)</p>
+
+            <div class="header-controls">
+                <button onclick="handleLogout()" class="settings-btn">
+                    🚪 Logout
+                </button>
+                <button onclick="openSettings()" class="settings-btn">
+                    ⚙️ Settings
+                </button>
+                <div class="theme-toggle-wrapper">
+                    <span class="toggle-text">Dark Mode</span>
+                    <div class="theme-toggle">
+                        <input type="checkbox" id="darkModeToggle">
+                        <label for="darkModeToggle" class="toggle-label">
+                            <span class="toggle-icon sun">☀️</span>
+                            <span class="toggle-icon moon">🌙</span>
+                            <span class="toggle-ball"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <form id="eventForm">
+            <input type="hidden" id="eventId" name="eventId">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="eventName">Event Name *</label>
+                    <input type="text" id="eventName" name="eventName" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="eventDate">Date *</label>
+                    <input type="date" id="eventDate" name="eventDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventVenue">Venue</label>
+                    <input type="text" id="eventVenue" name="eventVenue">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="departureTime">Departure Time</label>
+                    <input type="time" id="departureTime" name="departureTime">
+                </div>
+                <div class="form-group">
+                    <label for="returnTime">Return Time</label>
+                    <input type="time" id="returnTime" name="returnTime">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="company">Company</label>
+                    <input type="text" id="company" name="company">
+                </div>
+                <div class="form-group">
+                    <label for="vehicle">Vehicle No.</label>
+                    <input type="text" id="vehicle" name="vehicle">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="accompanying">Accompanying Teachers</label>
+                    <input type="text" id="accompanying" name="accompanying" placeholder="Enter teacher names separated by commas">
+                    <small class="help-text">e.g., Ms. Smith, Mr. Jones, Dr. Brown</small>
+                </div>
+            </div>
+
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <div class="stat-label">Total Students</div>
+                    <div class="stat-value" id="totalStudents">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">No. Teachers</div>
+                    <div class="stat-value" id="numTeachers">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Present</div>
+                    <div class="stat-value" id="presentCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Permission Slips</div>
+                    <div class="stat-value" id="permissionCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total People</div>
+                    <div class="stat-value" id="totalPeople">0</div>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 30px; margin-bottom: 15px;">Student List</h4>
+            <div class="table-container">
+                <table id="studentTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Student Name</th>
+                            <th>Form</th>
+                            <th>Contact Number</th>
+                            <th>Medical / Illness</th>
+                            <th>Medication</th>
+                            <th>Permission</th>
+                            <th>Present</th>
+                            <th>Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Student rows will be added here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <button type="button" class="add-row" onclick="addStudentRow()">+ Add Student</button>
+
+            <div class="form-group">
+                <label for="eventSelect">Load Existing Event</label>
+                <select id="eventSelect" onchange="loadSelectedEvent()">
+                    <option value="">-- Select an event --</option>
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-primary" onclick="newEvent()">➕ New Event</button>
+                <button type="button" class="btn-primary" onclick="saveEvent()">💾 Save Event</button>
+                <button type="button" class="btn-success" onclick="editEvent()">✏️ Edit</button>
+                <button type="button" class="btn-secondary" onclick="promptLoadEvent()">📂 Load Event</button>
+                <button type="button" class="btn-danger" onclick="deleteEvent()">🗑️ Delete Event</button>
+                <button type="button" class="btn-info" onclick="generateReport()">📄 Generate Report</button>
+            </div>
+        </form>
+    </div>
+
+    <script type="module">
+        // Import Firebase services
+        import { 
+            collection, 
+            doc, 
+            setDoc, 
+            getDocs, 
+            query, 
+            where, 
+            orderBy,
+            serverTimestamp 
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+        import { 
+            signInWithPopup, 
+            signOut, 
+            onAuthStateChanged 
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        
+        // ============================================
+        // Firebase Service Functions
+        // ============================================
+        
+        async function generateEventId() {
+            try {
+                const year = new Date().getFullYear();
+                const eventsQuery = query(
+                    collection(window.firebaseDb, 'events'), 
+                    where('eventId', '>=', `${year}-`), 
+                    where('eventId', '<', `${year}-~`)
+                );
+                
+                const snapshot = await getDocs(eventsQuery);
+                let maxNum = 0;
+                
+                snapshot.forEach(doc => {
+                    const eventId = doc.data().eventId;
+                    if (eventId && typeof eventId === 'string') {
+                        const parts = eventId.split('-');
+                        if (parts.length === 2 && parts[0] === year.toString()) {
+                            const num = parseInt(parts[1]);
+                            if (!isNaN(num) && num > maxNum) {
+                                maxNum = num;
+                            }
+                        }
+                    }
+                });
+                
+                const nextNum = (maxNum + 1).toString().padStart(3, '0');
+                return `${year}-${nextNum}`;
+            } catch (error) {
+                console.error('Error generating event ID:', error);
+                const year = new Date().getFullYear();
+                return `${year}-001`;
+            }
+        }
+        
+        async function getAllEvents() {
+            try {
+                const eventsQuery = query(
+                    collection(window.firebaseDb, 'events'), 
+                    orderBy('lastModified', 'desc')
+                );
+                const snapshot = await getDocs(eventsQuery);
+                
+                const events = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    events.push({
+                        id: doc.id,
+                        eventId: data.eventId,
+                        eventName: data.eventName,
+                        eventDate: data.eventDate,
+                        venue: data.venue,
+                        lastModified: data.lastModified?.toDate?.()?.toLocaleString() || data.lastModified
+                    });
+                });
+                
+                return events;
+            } catch (error) {
+                console.error('Error getting events:', error);
+                return [];
+            }
+        }
+        
+        async function getEventData(eventId) {
+            try {
+                // Get event by eventId field
+                const eventsQuery = query(
+                    collection(window.firebaseDb, 'events'), 
+                    where('eventId', '==', eventId)
+                );
+                const eventSnapshot = await getDocs(eventsQuery);
+                
+                if (eventSnapshot.empty) {
+                    return null;
+                }
+                
+                const eventDoc = eventSnapshot.docs[0];
+                const eventData = eventDoc.data();
+                
+                // Get students for this event
+                const studentsQuery = query(
+                    collection(window.firebaseDb, 'students'), 
+                    where('eventId', '==', eventId)
+                );
+                const studentsSnapshot = await getDocs(studentsQuery);
+                
+                const students = [];
+                studentsSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    students.push({
+                        name: data.name,
+                        form: data.form,
+                        contact: data.contact,
+                        illness: data.illness,
+                        otherIllness: data.otherIllness || '',
+                        takingMedication: data.takingMedication || false,
+                        medicationDetails: data.medicationDetails || '',
+                        permission: data.permission || false,
+                        present: data.present || false
+                    });
+                });
+                
+                return {
+                    eventId: eventData.eventId,
+                    eventName: eventData.eventName,
+                    eventDate: eventData.eventDate,
+                    venue: eventData.venue,
+                    departure: eventData.departure,
+                    returnTime: eventData.returnTime,
+                    vehicle: eventData.vehicle,
+                    company: eventData.company,
+                    accompanying: eventData.accompanying,
+                    students: students
+                };
+            } catch (error) {
+                console.error('Error getting event data:', error);
+                return null;
+            }
+        }
+        
+        // ============================================
+        // Application State
+        // ============================================
+        
+        let currentEventId = null;
+        let isEditMode = false;
+        let allEvents = [];
+        let isAuthenticated = false;
+        
+        // Check auth state on load
+        onAuthStateChanged(window.firebaseAuth, (user) => {
+            if (user) {
+                isAuthenticated = true;
+                localStorage.setItem('isAuthenticated', 'true');
+                applyAuthState();
+                generateNewEventId();
+                loadAllEvents();
+                updateCounts();
+                showToast(`Welcome, ${user.displayName}!`, 'success');
+            } else {
+                isAuthenticated = false;
+                localStorage.removeItem('isAuthenticated');
+                applyAuthState();
+            }
+        });
+        
+        // ============================================
+        // Authentication Functions
+        // ============================================
+        
+        window.handleGoogleSignIn = async function() {
+            showSpinner('Signing in...');
+            try {
+                await signInWithPopup(window.firebaseAuth, window.firebaseProvider);
+                hideSpinner();
+            } catch (error) {
+                hideSpinner();
+                showToast('Sign-in failed: ' + error.message, 'error');
+            }
+        }
+        
+        window.handleLogout = async function() {
+            if (confirm('Are you sure you want to logout?')) {
+                showSpinner('Logging out...');
+                try {
+                    await signOut(window.firebaseAuth);
+                    hideSpinner();
+                    showToast('Logged out successfully', 'success');
+                } catch (error) {
+                    hideSpinner();
+                    showToast('Logout failed: ' + error.message, 'error');
+                }
+            }
+        }
+        
+        // ============================================
+        // Event Operations
+        // ============================================
+        
+        window.generateNewEventId = async function() {
+            const eventId = await generateEventId();
+            document.getElementById('eventId').value = eventId;
+            document.getElementById('eventIdDisplay').textContent = `Event ID: ${eventId}`;
+            currentEventId = eventId;
+        }
+        
+        window.loadAllEvents = async function() {
+            allEvents = await getAllEvents();
+            populateEventDropdown();
+        }
+        
+        window.loadSelectedEvent = function() {
+            const select = document.getElementById('eventSelect');
+            const eventId = select.value;
+            if (eventId) loadEvent(eventId);
+        }
+        
+        window.promptLoadEvent = function() {
+            const eventId = prompt('Enter Event ID to load:');
+            if (eventId) loadEvent(eventId.trim());
+        }
+        
+        window.loadEvent = async function(eventId) {
+            showSpinner('Loading event...');
+            const event = await getEventData(eventId);
+            hideSpinner();
+            
+            if (!event) {
+                showToast('Event not found', 'error');
+                return;
+            }
+            
+            // Populate form
+            document.getElementById('eventId').value = event.eventId;
+            document.getElementById('eventIdDisplay').textContent = `Event ID: ${event.eventId}`;
+            document.getElementById('eventName').value = event.eventName || '';
+            document.getElementById('eventDate').value = event.eventDate || '';
+            document.getElementById('eventVenue').value = event.venue || '';
+            document.getElementById('departureTime').value = event.departure || '';
+            document.getElementById('returnTime').value = event.returnTime || '';
+            document.getElementById('vehicle').value = event.vehicle || '';
+            document.getElementById('company').value = event.company || '';
+            document.getElementById('accompanying').value = event.accompanying || '';
+            
+            // Clear and populate student table
+            const tbody = document.querySelector('#studentTable tbody');
+            tbody.innerHTML = '';
+            
+            if (event.students && event.students.length > 0) {
+                event.students.forEach((student, index) => {
+                    addStudentRow(student, index + 1);
+                });
+            } else {
+                addStudentRow();
+            }
+            
+            currentEventId = event.eventId;
+            isEditMode = true;
+            updateCounts();
+            showToast('Event loaded successfully', 'success');
+        }
+        
+        window.saveEvent = async function() {
+            const eventData = collectFormData();
+            
+            if (!eventData.eventName || !eventData.eventDate) {
+                showToast('Event Name and Date are required', 'error');
+                return;
+            }
+            
+            showSpinner('Saving event...');
+            
+            try {
+                const batch = [];
+                const { eventId } = eventData;
+                
+                // Calculate counts
+                const accompanyingTeachers = eventData.accompanying 
+                    ? eventData.accompanying.split(',').filter(t => t.trim()).length 
+                    : 0;
+                const studentsCount = eventData.students.filter(s => s.name && s.name.trim()).length;
+                
+                // Save event
+                const eventsQuery = query(
+                    collection(window.firebaseDb, 'events'), 
+                    where('eventId', '==', eventId)
+                );
+                const eventSnapshot = await getDocs(eventsQuery);
+                
+                let eventRef;
+                if (!eventSnapshot.empty) {
+                    eventRef = eventSnapshot.docs[0].ref;
+                } else {
+                    eventRef = doc(collection(window.firebaseDb, 'events'));
+                }
+                
+                await setDoc(eventRef, {
+                    eventId,
+                    eventName: eventData.eventName,
+                    eventDate: eventData.eventDate,
+                    venue: eventData.venue || '',
+                    departure: eventData.departure || '',
+                    returnTime: eventData.returnTime || '',
+                    vehicle: eventData.vehicle || '',
+                    company: eventData.company || '',
+                    accompanying: eventData.accompanying || '',
+                    teachersCount: accompanyingTeachers,
+                    studentsCount,
+                    lastModified: serverTimestamp()
+                }, { merge: true });
+                
+                // Delete existing students for this event
+                const studentsQuery = query(
+                    collection(window.firebaseDb, 'students'), 
+                    where('eventId', '==', eventId)
+                );
+                const studentsSnapshot = await getDocs(studentsQuery);
+                
+                // Save new students
+                let studentNo = 1;
+                for (const student of eventData.students) {
+                    if (student.name && student.name.trim()) {
+                        const studentRef = doc(collection(window.firebaseDb, 'students'));
+                        await setDoc(studentRef, {
+                            studentNo,
+                            name: student.name,
+                            form: student.form || '',
+                            contact: student.contact || '',
+                            illness: student.illness || 'None',
+                            otherIllness: student.otherIllness || '',
+                            takingMedication: student.takingMedication || false,
+                            medicationDetails: student.medicationDetails || '',
+                            permission: student.permission || false,
+                            present: student.present || false,
+                            eventId
+                        });
+                        studentNo++;
+                    }
+                }
+                
+                // Delete old students
+                studentsSnapshot.forEach(async (doc) => {
+                    await setDoc(doc.ref, { deleted: true }, { merge: true });
+                });
+                
+                hideSpinner();
+                showToast((isEditMode ? 'Event updated' : 'Event saved') + ' successfully!', 'success');
+                await loadAllEvents();
+                isEditMode = false;
+            } catch (error) {
+                hideSpinner();
+                showToast('Error saving event: ' + error.message, 'error');
+            }
+        }
+        
+        window.deleteEvent = async function() {
+            if (!currentEventId) {
+                showToast('No event selected', 'error');
+                return;
+            }
+            
+            if (!confirm('Are you sure you want to delete this event?')) {
+                return;
+            }
+            
+            showSpinner('Deleting event...');
+            
+            try {
+                // Delete event
+                const eventsQuery = query(
+                    collection(window.firebaseDb, 'events'), 
+                    where('eventId', '==', currentEventId)
+                );
+                const eventSnapshot = await getDocs(eventsQuery);
+                eventSnapshot.forEach(async (doc) => {
+                    await setDoc(doc.ref, { deleted: true }, { merge: true });
+                });
+                
+                // Mark students as deleted
+                const studentsQuery = query(
+                    collection(window.firebaseDb, 'students'), 
+                    where('eventId', '==', currentEventId)
+                );
+                const studentsSnapshot = await getDocs(studentsQuery);
+                studentsSnapshot.forEach(async (doc) => {
+                    await setDoc(doc.ref, { deleted: true }, { merge: true });
+                });
+                
+                hideSpinner();
+                showToast('Event deleted successfully!', 'success');
+                await loadAllEvents();
+                resetForm();
+            } catch (error) {
+                hideSpinner();
+                showToast('Error deleting event: ' + error.message, 'error');
+            }
+        }
+        
+        window.generateReport = function() {
+            if (!currentEventId) {
+                showToast('Please save the event before generating a report', 'error');
+                return;
+            }
+            
+            // Generate report data and display in a new window
+            const eventData = collectFormData();
+            const reportWindow = window.open('', '_blank');
+            reportWindow.document.write(`
+                <html>
+                <head>
+                    <title>Event Report - ${eventData.eventName}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 40px; }
+                        h1 { color: #667eea; }
+                        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #667eea; color: white; }
+                        .summary { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Event Report: ${eventData.eventName}</h1>
+                    <div class="summary">
+                        <h3>Event Details</h3>
+                        <p><strong>Event ID:</strong> ${eventData.eventId}</p>
+                        <p><strong>Date:</strong> ${eventData.eventDate}</p>
+                        <p><strong>Venue:</strong> ${eventData.venue}</p>
+                        <p><strong>Departure:</strong> ${eventData.departure}</p>
+                        <p><strong>Return:</strong> ${eventData.returnTime}</p>
+                        <p><strong>Vehicle:</strong> ${eventData.vehicle}</p>
+                        <p><strong>Company:</strong> ${eventData.company}</p>
+                        <p><strong>Accompanying Teachers:</strong> ${eventData.accompanying}</p>
+                    </div>
+                    
+                    <h3>Student List</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Form</th>
+                                <th>Contact</th>
+                                <th>Medical</th>
+                                <th>Medication</th>
+                                <th>Permission</th>
+                                <th>Present</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${eventData.students.map((s, i) => `
+                                <tr>
+                                    <td>${i + 1}</td>
+                                    <td>${s.name}</td>
+                                    <td>${s.form}</td>
+                                    <td>${s.contact}</td>
+                                    <td>${s.illness} ${s.otherIllness ? ': ' + s.otherIllness : ''}</td>
+                                    <td>${s.takingMedication ? s.medicationDetails : 'No'}</td>
+                                    <td>${s.permission ? 'Yes' : 'No'}</td>
+                                    <td>${s.present ? 'Yes' : 'No'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <p style="margin-top: 30px;">Generated on: ${new Date().toLocaleString()}</p>
+                </body>
+                </html>
+            `);
+            reportWindow.document.close();
+        }
+        
+        // ============================================
+        // UI Helper Functions (copied from original)
+        // ============================================
+        
+        function applyAuthState() {
+            const landingPage = document.getElementById('landingPage');
+            const mainContainer = document.getElementById('mainContainer');
+            
+            if (isAuthenticated) {
+                landingPage.classList.add('hidden');
+                mainContainer.classList.add('active');
+            } else {
+                landingPage.classList.remove('hidden');
+                mainContainer.classList.remove('active');
+            }
+        }
+        
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+        }
+        
+        window.closeSettings = function() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+        
+        // Initialize dark mode
+        (function() {
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const savedTheme = localStorage.getItem('theme');
+            
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark');
+                darkModeToggle.checked = true;
+            }
+            
+            darkModeToggle.addEventListener('change', () => {
+                document.body.classList.toggle('dark');
+                localStorage.setItem('theme', darkModeToggle.checked ? 'dark' : 'light');
+            });
+        })();
+        
+        // Initialize event handlers
+        document.addEventListener('DOMContentLoaded', () => {
+            const accompanyingInput = document.getElementById('accompanying');
+            if (accompanyingInput) {
+                accompanyingInput.addEventListener('input', updateCounts);
+            }
+            
+            const tableBody = document.querySelector('#studentTable tbody');
+            if (tableBody) {
+                tableBody.addEventListener('change', (e) => {
+                    if (e.target.classList.contains('student-illness')) {
+                        handleIllnessChange(e.target);
+                    }
+                    if (e.target.classList.contains('medication-checkbox')) {
+                        handleMedicationChange(e.target);
+                    }
+                    updateCounts();
+                });
+                
+                tableBody.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('delete-row')) {
+                        deleteStudentRow(e.target);
+                    }
+                });
+                
+                tableBody.addEventListener('input', updateCounts);
+            }
+            
+            window.addEventListener('click', (e) => {
+                const modal = document.getElementById('settingsModal');
+                if (e.target === modal) {
+                    closeSettings();
+                }
+            });
+            
+            // Add initial student row if none exists
+            if (tableBody && tableBody.rows.length === 0) {
+                addStudentRow();
+            }
+        });
+        
+        // Student table functions
+        window.addStudentRow = function(studentData = null, index = null) {
+            const tbody = document.querySelector('#studentTable tbody');
+            const rowNum = index || tbody.rows.length + 1;
+            
+            const row = tbody.insertRow();
+            
+            const showIllnessOther = studentData && studentData.illness === 'Other (specify)';
+            const showMedication = studentData && studentData.takingMedication;
+            
+            row.innerHTML = `
+                <td>${rowNum}</td>
+                <td><input type="text" name="studentName[]" value="${studentData?.name || ''}"></td>
+                <td><input type="text" name="form[]" value="${studentData?.form || ''}"></td>
+                <td><input type="text" name="contact[]" value="${studentData?.contact || ''}"></td>
+                <td>
+                    <select name="illness[]" class="student-illness">
+                        <option value="None" ${!studentData || studentData.illness === 'None' ? 'selected' : ''}>None</option>
+                        <option value="Asthma" ${studentData?.illness === 'Asthma' ? 'selected' : ''}>Asthma</option>
+                        <option value="Allergies – Mild" ${studentData?.illness === 'Allergies – Mild' ? 'selected' : ''}>Allergies – Mild</option>
+                        <option value="Allergies – Severe / Anaphylaxis" ${studentData?.illness === 'Allergies – Severe / Anaphylaxis' ? 'selected' : ''}>Allergies – Severe / Anaphylaxis</option>
+                        <option value="Epilepsy / Seizure disorder" ${studentData?.illness === 'Epilepsy / Seizure disorder' ? 'selected' : ''}>Epilepsy / Seizure disorder</option>
+                        <option value="Diabetes" ${studentData?.illness === 'Diabetes' ? 'selected' : ''}>Diabetes</option>
+                        <option value="Heart condition" ${studentData?.illness === 'Heart condition' ? 'selected' : ''}>Heart condition</option>
+                        <option value="Other (specify)" ${studentData?.illness === 'Other (specify)' ? 'selected' : ''}>Other (specify)</option>
+                    </select>
+                    <input type="text" name="illnessOther[]" class="illness-other" placeholder="Describe other illness" value="${studentData?.otherIllness || ''}" style="display:${showIllnessOther ? 'block' : 'none'}; margin-top: 5px; width: 100%;">
+                </td>
+                <td>
+                    <input type="checkbox" name="medication[]" class="medication-checkbox" ${studentData?.takingMedication ? 'checked' : ''}>
+                    <input type="text" name="medicationDetails[]" class="medication-details" placeholder="Medication name/details" value="${studentData?.medicationDetails || ''}" style="display:${showMedication ? 'block' : 'none'}; margin-top: 5px; width: 100%;">
+                </td>
+                <td><input type="checkbox" name="permission[]" ${studentData?.permission === 'Yes' || studentData?.permission === true ? 'checked' : ''}></td>
+                <td><input type="checkbox" name="present[]" ${studentData?.present === 'Yes' || studentData?.present === true ? 'checked' : ''}></td>
+                <td><button type="button" class="delete-row">✖</button></td>
+            `;
+            
+            renumberRows();
+            updateCounts();
+        }
+        
+        function deleteStudentRow(button) {
+            const tbody = document.querySelector('#studentTable tbody');
+            if (tbody.rows.length <= 1) {
+                showToast('At least one student row must remain', 'error');
+                return;
+            }
+            
+            button.closest('tr').remove();
+            renumberRows();
+            updateCounts();
+        }
+        
+        function renumberRows() {
+            const rows = document.querySelectorAll('#studentTable tbody tr');
+            rows.forEach((row, index) => {
+                row.cells[0].textContent = index + 1;
+            });
+        }
+        
+        function handleIllnessChange(select) {
+            const row = select.closest('tr');
+            const otherInput = row.querySelector('.illness-other');
+            
+            if (select.value === 'Other (specify)') {
+                otherInput.style.display = 'block';
+                otherInput.focus();
+            } else {
+                otherInput.style.display = 'none';
+                otherInput.value = '';
+            }
+        }
+        
+        function handleMedicationChange(checkbox) {
+            const row = checkbox.closest('tr');
+            const medicationInput = row.querySelector('.medication-details');
+            
+            if (checkbox.checked) {
+                medicationInput.style.display = 'block';
+                medicationInput.focus();
+            } else {
+                medicationInput.style.display = 'none';
+                medicationInput.value = '';
+            }
+        }
+        
+        function collectFormData() {
+            const students = [];
+            const rows = document.querySelectorAll('#studentTable tbody tr');
+            
+            rows.forEach(row => {
+                const cells = row.cells;
+                const illness = cells[4].querySelector('.student-illness').value;
+                const otherIllness = cells[4].querySelector('.illness-other').value;
+                const takingMedication = cells[5].querySelector('.medication-checkbox').checked;
+                const medicationDetails = cells[5].querySelector('.medication-details').value;
+                
+                students.push({
+                    name: cells[1].querySelector('input').value,
+                    form: cells[2].querySelector('input').value,
+                    contact: cells[3].querySelector('input').value,
+                    illness: illness,
+                    otherIllness: illness === 'Other (specify)' ? otherIllness : '',
+                    takingMedication: takingMedication,
+                    medicationDetails: takingMedication ? medicationDetails : '',
+                    permission: cells[6].querySelector('input').checked,
+                    present: cells[7].querySelector('input').checked
+                });
+            });
+            
+            return {
+                eventId: currentEventId || document.getElementById('eventId').value,
+                eventName: document.getElementById('eventName').value,
+                eventDate: document.getElementById('eventDate').value,
+                venue: document.getElementById('eventVenue').value,
+                departure: document.getElementById('departureTime').value,
+                returnTime: document.getElementById('returnTime').value,
+                vehicle: document.getElementById('vehicle').value,
+                company: document.getElementById('company').value,
+                accompanying: document.getElementById('accompanying').value,
+                students: students
+            };
+        }
+        
+        function updateCounts() {
+            const rows = document.querySelectorAll('#studentTable tbody tr');
+            const accompanyingValue = document.getElementById('accompanying').value;
+            
+            let accompanyingCount = 0;
+            if (accompanyingValue && accompanyingValue.trim()) {
+                accompanyingCount = accompanyingValue.split(',').filter(name => name.trim() !== '').length;
+            }
+            
+            let totalStudents = 0;
+            let presentCount = 0;
+            let permissionCount = 0;
+            
+            rows.forEach(row => {
+                const nameInput = row.cells[1].querySelector('input');
+                if (nameInput.value.trim()) {
+                    totalStudents++;
+                }
+                
+                if (row.cells[7].querySelector('input').checked) {
+                    presentCount++;
+                }
+                
+                if (row.cells[6].querySelector('input').checked) {
+                    permissionCount++;
+                }
+            });
+            
+            const totalPeople = totalStudents + accompanyingCount;
+            
+            document.getElementById('totalStudents').textContent = totalStudents;
+            document.getElementById('numTeachers').textContent = accompanyingCount;
+            document.getElementById('presentCount').textContent = presentCount;
+            document.getElementById('permissionCount').textContent = permissionCount;
+            document.getElementById('totalPeople').textContent = totalPeople;
+        }
+        
+        function resetForm() {
+            document.getElementById('eventForm').reset();
+            document.getElementById('eventId').value = '';
+            document.getElementById('eventIdDisplay').textContent = 'Event ID: (new)';
+            
+            const tbody = document.querySelector('#studentTable tbody');
+            tbody.innerHTML = '';
+            addStudentRow();
+            
+            currentEventId = null;
+            isEditMode = false;
+            
+            generateNewEventId();
+            updateCounts();
+        }
+        
+        window.newEvent = function() {
+            if (confirm('Create a new event? Any unsaved changes will be lost.')) {
+                resetForm();
+                showToast('Ready to create a new event!', 'success');
+            }
+        }
+        
+        window.editEvent = function() {
+            if (!currentEventId) {
+                promptLoadEvent();
+                return;
+            }
+            isEditMode = true;
+            showToast('Editing mode enabled. Make changes and click Save Event.', 'success');
+        }
+        
+        function populateEventDropdown() {
+            const select = document.getElementById('eventSelect');
+            select.innerHTML = '<option value="">-- Select an event --</option>';
+            
+            allEvents.forEach(event => {
+                const option = document.createElement('option');
+                option.value = event.eventId;
+                option.textContent = `${event.eventName} (${event.eventDate})`;
+                if (event.lastModified) {
+                    option.textContent += ` - Modified: ${event.lastModified}`;
+                }
+                select.appendChild(option);
+            });
+        }
+        
+        // Toast and spinner functions
+        function showSpinner(message = 'Loading...') {
+            const spinner = document.getElementById('spinner');
+            if (spinner) {
+                spinner.classList.add('active');
+                const spinnerText = document.getElementById('spinnerText');
+                if (spinnerText) spinnerText.textContent = message;
+            }
+        }
+        
+        function hideSpinner() {
+            const spinner = document.getElementById('spinner');
+            if (spinner) spinner.classList.remove('active');
+        }
+        
+        function showToast(message, type = 'info', duration = 4000) {
+            const toast = document.getElementById('toast');
+            if (toast) {
+                toast.textContent = message;
+                toast.className = 'toast show';
+                toast.classList.add(type === 'error' ? 'error' : type === 'success' ? 'success' : 'info');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, duration);
+            }
+        }
+        
+        // Make functions global
+        window.openSettings = openSettings;
+    </script>
+</body>
+</html>
