@@ -24,6 +24,144 @@ const monthNames = [
 ];
 
 /* ============================================================================
+   DUAL STORAGE MANAGEMENT (Local + Firebase)
+   ============================================================================ */
+
+// Save to both local and Firebase
+async function saveToAllStorage() {
+    try {
+        // Save to local
+        saveLocalData();
+        
+        // Save to Firebase if cloud sync is enabled
+        if (window.cloudSync && window.cloudSync.isCloudEnabled()) {
+            const autoSync = document.getElementById('autoSyncCheckbox')?.checked || false;
+            if (autoSync) {
+                await window.cloudSync.syncData({
+                    students: appData.students,
+                    hours: window.hoursEntries || [],
+                    marks: appData.marks,
+                    attendance: appData.attendance,
+                    payments: appData.payments,
+                    settings: appData.settings
+                });
+                console.log('☁️ Data synced to Firebase');
+                updateSyncStatus('connected', 'Synced');
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error saving to storage:', error);
+        updateSyncStatus('error', 'Sync failed');
+    }
+}
+
+// Save local data
+function saveLocalData() {
+    try {
+        const userId = window.Auth?.getCurrentUserId?.() || 'default';
+        const storageKey = `worklog_data_${userId}`;
+        
+        // Save main app data
+        localStorage.setItem(storageKey, JSON.stringify({
+            students: appData.students,
+            marks: appData.marks,
+            attendance: appData.attendance,
+            payments: appData.payments,
+            settings: appData.settings,
+            lastUpdated: new Date().toISOString()
+        }));
+        
+        // Save hours separately (using window.hoursEntries)
+        localStorage.setItem('worklog_hours', JSON.stringify({
+            hours: window.hoursEntries || [],
+            lastUpdated: new Date().toISOString()
+        }));
+        
+        console.log('💾 Data saved locally');
+        updateSyncStatus('pending', 'Local only');
+    } catch (error) {
+        console.error('❌ Error saving local data:', error);
+    }
+}
+
+// Load from local storage
+function loadLocalData() {
+    try {
+        const userId = window.Auth?.getCurrentUserId?.() || 'default';
+        const storageKey = `worklog_data_${userId}`;
+        
+        // Load main app data
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+            const data = JSON.parse(saved);
+            if (data.students) appData.students = data.students;
+            if (data.marks) appData.marks = data.marks;
+            if (data.attendance) appData.attendance = data.attendance;
+            if (data.payments) appData.payments = data.payments;
+            if (data.settings) appData.settings = data.settings;
+        }
+        
+        // Load hours data
+        const hoursSaved = localStorage.getItem('worklog_hours');
+        if (hoursSaved) {
+            const hoursData = JSON.parse(hoursSaved);
+            window.hoursEntries = hoursData.hours || [];
+        }
+        
+        console.log('📥 Data loaded from local storage');
+        updateSyncStatus('pending', 'Local only');
+    } catch (error) {
+        console.error('❌ Error loading local data:', error);
+    }
+}
+
+// Sync from Firebase to local
+async function syncFromFirebase() {
+    try {
+        if (!window.cloudSync || !window.cloudSync.isCloudEnabled()) {
+            console.log('☁️ Cloud sync not enabled');
+            return false;
+        }
+        
+        const cloudData = await window.cloudSync.loadData();
+        if (cloudData) {
+            // Merge cloud data with local
+            if (cloudData.students) appData.students = cloudData.students;
+            if (cloudData.hours) window.hoursEntries = cloudData.hours;
+            if (cloudData.marks) appData.marks = cloudData.marks;
+            if (cloudData.attendance) appData.attendance = cloudData.attendance;
+            if (cloudData.payments) appData.payments = cloudData.payments;
+            if (cloudData.settings) appData.settings = cloudData.settings;
+            
+            // Save merged data locally
+            saveLocalData();
+            
+            console.log('✅ Data synced from Firebase');
+            updateSyncStatus('connected', 'Synced');
+            return true;
+        }
+    } catch (error) {
+        console.error('❌ Error syncing from Firebase:', error);
+        updateSyncStatus('error', 'Sync failed');
+    }
+    return false;
+}
+
+// Update sync status in UI
+function updateSyncStatus(status, message) {
+    const syncIndicator = document.getElementById('syncIndicator');
+    const syncStatusText = document.getElementById('syncStatusText');
+    
+    if (syncIndicator) {
+        syncIndicator.className = `sync-indicator sync-${status}`;
+    }
+    
+    if (syncStatusText) {
+        syncStatusText.textContent = message || status;
+    }
+}
+
+/* ============================================================================
    Attendance edit guards and cloud sync integration
 ============================================================================ */
 function wireAttendanceEditGuards() {
@@ -44,44 +182,34 @@ function wireAttendanceEditGuards() {
 function wireCloudSyncEvents() {
   if (!window.cloudSync) return;
 
-  // If your cloudSync exposes events or callbacks, wire them here.
-  // We'll support both patterns gracefully.
-
-  // Pattern A: cloudSync triggers onSyncCompleted(mergedData)
   window.onSyncCompleted = function (mergedData) {
     console.log("✅ Sync completed successfully");
 
-    // Refresh payments single source
-    allPayments = Array.isArray(mergedData?.payments) ? mergedData.payments.slice() : [];
-
-    // Optionally refresh students, marks, etc. if provided
     if (Array.isArray(mergedData?.students)) {
       appData.students = mergedData.students.slice();
     }
+    if (Array.isArray(mergedData?.payments)) {
+      appData.payments = mergedData.payments.slice();
+    }
 
-    // Save locally and refresh UI if on payments tab
-    saveAllData();
+    saveLocalData();
 
     if (currentTab === "payments") {
-      renderPaymentsStats(allPayments);
+      renderPaymentsStats(appData.payments);
     }
   };
 
-  // Pattern B: cloudSync calls mergeCloudData(cloudData) and returns merged
   window.mergeCloudData = function (cloudData) {
-    // Merge minimally, without breaking existing structure
     if (cloudData && typeof cloudData === "object") {
-      // Merge top-level arrays if provided
       if (Array.isArray(cloudData.students)) {
         appData.students = cloudData.students.slice();
       }
       if (Array.isArray(cloudData.payments)) {
-        allPayments = cloudData.payments.slice();
+        appData.payments = cloudData.payments.slice();
       }
-
-      // Preserve others unless provided
       if (Array.isArray(cloudData.hours)) {
         appData.hours = cloudData.hours.slice();
+        window.hoursEntries = cloudData.hours.slice();
       }
       if (Array.isArray(cloudData.marks)) {
         appData.marks = cloudData.marks.slice();
@@ -95,13 +223,10 @@ function wireCloudSyncEvents() {
     }
 
     console.log("✅ Data merged successfully");
-    console.log("✅ Payments data refreshed:", allPayments.length, "records");
+    saveLocalData();
 
-    saveAllData();
-
-    // Hot refresh if Payments tab is active
     if (currentTab === "payments") {
-      renderPaymentsStats(allPayments);
+      renderPaymentsStats(appData.payments);
     }
 
     return appData;
@@ -117,16 +242,27 @@ function init() {
   // TEMP: disable auth guard so app always runs
   if (!window.Auth || !window.Auth.isAuthenticated || !window.Auth.isAuthenticated()) {
     console.log("⚠️ Auth module not found or user not signed in — continuing without authentication");
-    // Do NOT return here — let the app continue
   } else {
     console.log("✅ User authenticated, setting up app...");
   }
 
   // Load data from localStorage FIRST
-  loadAllData();
+  loadLocalData();
 
-  // Cloud sync auto-initialization is handled externally
-  console.log("🔧 Cloud sync auto-initialization enabled");
+  // Then try to sync from Firebase if available
+  setTimeout(async () => {
+    const synced = await syncFromFirebase();
+    if (synced) {
+      // Refresh all views with merged data
+      renderStudents();
+      displayHours();
+      loadMarks();
+      loadAttendance();
+      loadPayments();
+      loadReports();
+      updateStats();
+    }
+  }, 1000);
 
   // Tabs and events
   setupTabs();
@@ -139,10 +275,10 @@ function init() {
   updateStats();
 
   // Attendance edit-safe overrides for cloud sync
-  wireAttendanceEditGuards(); // ✅ NOW THIS WILL WORK
+  wireAttendanceEditGuards();
 
   // Wire cloud sync completion to UI refresh
-  wireCloudSyncEvents(); // ✅ THIS TOO
+  wireCloudSyncEvents();
 
   console.log("✅ App initialized successfully");
 }
@@ -156,9 +292,6 @@ function safeDataInitialization() {
   if (!Array.isArray(appData.marks)) appData.marks = [];
   if (!Array.isArray(appData.attendance)) appData.attendance = [];
   
-  // Initialize allPayments from appData
-  allPayments = Array.isArray(appData.payments) ? appData.payments.slice() : [];
-  
   // Ensure settings exist
   if (!appData.settings) appData.settings = {};
   if (typeof appData.settings.defaultRate !== 'number') {
@@ -166,48 +299,9 @@ function safeDataInitialization() {
   }
 }
 
-// Call this in init() after loadAllData()
-
 // ============================================================================
 // DATA MANAGEMENT
 // ============================================================================
-
-function loadAllData() {
-  try {
-    const stored = JSON.parse(localStorage.getItem("appData")) || null;
-    if (stored && typeof stored === "object") {
-      Object.assign(appData, stored);
-    }
-
-    // Validate student data
-    if (!Array.isArray(appData.students)) {
-      appData.students = [];
-    }
-    
-    // Ensure each student has a rate
-    appData.students.forEach(student => {
-      if (typeof student.rate !== 'number' || isNaN(student.rate)) {
-        student.rate = appData.settings?.defaultRate || 25.0;
-      }
-    });
-
-    // Initialize payments single source of truth from appData
-    allPayments = Array.isArray(appData.payments) ? appData.payments.slice() : [];
-
-    console.log("📥 Local data loaded:", {
-      students: appData.students.length,
-      payments: allPayments.length
-    });
-  } catch (err) {
-    console.warn("⚠️ Failed to load local data:", err);
-    // Initialize empty arrays if load fails
-    appData.students = [];
-    appData.payments = [];
-    appData.hours = [];
-    appData.marks = [];
-    appData.attendance = [];
-  }
-}
 
 function resetAppData() {
     appData = {
@@ -218,29 +312,19 @@ function resetAppData() {
         payments: [],
         settings: { defaultRate: 25.00 }
     };
-    saveAllData();
-}
-
-function saveAllData() {
-    try {
-        const userId = window.Auth.getCurrentUserId();
-        localStorage.setItem(`worklog_data_${userId}`, JSON.stringify(appData));
-        console.log('💾 Data saved');
-    } catch (error) {
-        console.error('❌ Error saving data:', error);
-    }
+    window.hoursEntries = [];
+    saveToAllStorage();
 }
 
 function clearAllData() {
-  // Use individual assignment instead of reassigning appData
   appData.students = [];
   appData.payments = [];
   appData.hours = [];
   appData.marks = [];
   appData.attendance = [];
-  allPayments = []; // Also clear the payments source
+  window.hoursEntries = [];
   
-  saveLocalData();
+  saveToAllStorage();
   renderStudents(); 
   renderPayments(); 
   renderHours(); 
@@ -364,32 +448,7 @@ function loadStudents() {
             return;
         }
         
-        let html = '<div class="students-grid">';
-        
-        appData.students.forEach((student, index) => {
-            html += `
-                <div class="student-card">
-                    <div class="student-header">
-                        <h4 class="student-name">${student.name}</h4>
-                        <span class="student-rate">$${student.rate || '0.00'}/session</span>
-                    </div>
-                    <div class="student-details">
-                        <p><strong>ID:</strong> ${student.id}</p>
-                        <p><strong>Gender:</strong> ${student.gender}</p>
-                        ${student.email ? `<p><strong>Email:</strong> ${student.email}</p>` : ''}
-                        ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''}
-                        ${student.createdAt ? `<p><small>Added: ${new Date(student.createdAt).toLocaleDateString()}</small></p>` : ''}
-                    </div>
-                    <div class="student-actions">
-                        <button class="btn btn-sm btn-edit" onclick="editStudent(${index})">✏️ Edit</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteStudent(${index})">🗑️ Delete</button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        html += '</div>';
-        container.innerHTML = html;
+        renderStudents();
         
     } catch (error) {
         console.error('❌ Error loading students:', error);
@@ -419,14 +478,13 @@ function addStudent() {
     gender, 
     email, 
     phone, 
-    rate: rate || appData.settings.defaultRate || 25.0 // Use default if no rate provided
+    rate: rate || appData.settings.defaultRate || 25.0
   };
   
   appData.students.push(student);
-  saveLocalData();
-
+  saveToAllStorage();
   renderStudents();
-  updateStats(); // ADD THIS to update the stats display
+  updateStats();
   clearStudentForm();
   console.log("➕ Student added:", student);
 }
@@ -508,8 +566,8 @@ function updateStudent(index) {
             updatedAt: new Date().toISOString()
         };
 
-        saveAllData();
-        loadStudents();
+        saveToAllStorage();
+        renderStudents();
         cancelStudentEdit();
         
         alert('✅ Student updated successfully!');
@@ -540,8 +598,8 @@ function cancelStudentEdit() {
 function deleteStudent(index) {
     if (confirm('Are you sure you want to delete this student?')) {
         appData.students.splice(index, 1);
-        saveAllData();
-        loadStudents();
+        saveToAllStorage();
+        renderStudents();
         alert('✅ Student deleted successfully!');
     }
 }
@@ -555,18 +613,34 @@ function renderStudents() {
 
   // Render student cards
   if (appData.students.length === 0) {
-    container.innerHTML = "<p>No students registered yet.</p>";
+    container.innerHTML = "<div class='empty-state'><div class='icon'>👨‍🎓</div><h4>No Students</h4><p>No students registered yet.</p></div>";
   } else {
-    container.innerHTML = appData.students.map(s => `
-      <div class="student-card">
-        <strong>${s.name}</strong> (${s.id}) - ${s.gender}<br>
-        Email: ${s.email || "N/A"}, Phone: ${s.phone || "N/A"}<br>
-        Rate: $${(s.rate || 0).toFixed(2)}
-      </div>
-    `).join("");
+    let html = '<div class="students-grid">';
+    appData.students.forEach((student, index) => {
+      html += `
+        <div class="student-card">
+          <div class="student-header">
+            <h4 class="student-name">${student.name}</h4>
+            <span class="student-rate">$${(student.rate || 0).toFixed(2)}/session</span>
+          </div>
+          <div class="student-details">
+            <p><strong>ID:</strong> ${student.id}</p>
+            <p><strong>Gender:</strong> ${student.gender}</p>
+            ${student.email ? `<p><strong>Email:</strong> ${student.email}</p>` : ''}
+            ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''}
+          </div>
+          <div class="student-actions">
+            <button class="btn btn-sm btn-edit" onclick="editStudent(${index})">✏️ Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteStudent(${index})">🗑️ Delete</button>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
   }
 
-  // Update stats - FIXED CALCULATIONS
+  // Update stats
   if (studentsCountEl) {
     studentsCountEl.textContent = appData.students.length;
   }
@@ -582,6 +656,54 @@ function renderStudents() {
   }
 }
 
+// Student filtering
+function filterStudents() {
+    const searchTerm = document.getElementById('studentSearch')?.value.toLowerCase() || '';
+    const container = document.getElementById('studentsContainer');
+    
+    if (!container) return;
+    
+    if (!appData.students || appData.students.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">👨‍🎓</div><h4>No Students</h4><p>No students registered yet.</p></div>';
+        return;
+    }
+    
+    const filtered = appData.students.filter(s => 
+        s.name.toLowerCase().includes(searchTerm) ||
+        s.id.toLowerCase().includes(searchTerm)
+    );
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><h4>No matches</h4><p>No students match your search.</p></div>';
+        return;
+    }
+    
+    let html = '<div class="students-grid">';
+    filtered.forEach((student, index) => {
+        const originalIndex = appData.students.findIndex(s => s.id === student.id && s.name === student.name);
+        html += `
+            <div class="student-card">
+                <div class="student-header">
+                    <h4 class="student-name">${student.name}</h4>
+                    <span class="student-rate">$${(student.rate || 0).toFixed(2)}/session</span>
+                </div>
+                <div class="student-details">
+                    <p><strong>ID:</strong> ${student.id}</p>
+                    <p><strong>Gender:</strong> ${student.gender}</p>
+                    ${student.email ? `<p><strong>Email:</strong> ${student.email}</p>` : ''}
+                    ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''}
+                </div>
+                <div class="student-actions">
+                    <button class="btn btn-sm btn-edit" onclick="editStudent(${originalIndex})">✏️ Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteStudent(${originalIndex})">🗑️ Delete</button>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
 // ============================================================================
 // HOURS TRACKING
 // ============================================================================
@@ -589,7 +711,6 @@ function renderStudents() {
 function loadHours() {
     try {
         console.log('⏱️ Loading hours...');
-        loadHoursFromStorage();
         displayHours();
         updateHoursStats();
     } catch (error) {
@@ -620,32 +741,12 @@ function updateHoursStats() {
                 return entryDate >= oneWeekAgo;
             })
             .reduce((sum, entry) => sum + (entry.total || 0), 0);
-            
-        const monthlyHours = entries
-            .filter(entry => {
-                if (!entry.date) return false;
-                const entryDate = new Date(entry.date);
-                return entryDate >= startOfMonth;
-            })
-            .reduce((sum, entry) => sum + (entry.hours || 0), 0);
-            
-        const monthlyTotal = entries
-            .filter(entry => {
-                if (!entry.date) return false;
-                const entryDate = new Date(entry.date);
-                return entryDate >= startOfMonth;
-            })
-            .reduce((sum, entry) => sum + (entry.total || 0), 0);
         
         const weeklyHoursEl = document.getElementById('weeklyHours');
         const weeklyTotalEl = document.getElementById('weeklyTotal');
-        const monthlyHoursEl = document.getElementById('monthlyHours');
-        const monthlyTotalEl = document.getElementById('monthlyTotal');
         
         if (weeklyHoursEl) weeklyHoursEl.textContent = weeklyHours.toFixed(1);
         if (weeklyTotalEl) weeklyTotalEl.textContent = weeklyTotal.toFixed(2);
-        if (monthlyHoursEl) monthlyHoursEl.textContent = monthlyHours.toFixed(1);
-        if (monthlyTotalEl) monthlyTotalEl.textContent = monthlyTotal.toFixed(2);
         
     } catch (error) {
         console.error('❌ Error updating hours stats:', error);
@@ -697,15 +798,11 @@ function formatDisplayDate(dateString) {
     if (!dateString) return 'No Date';
     
     try {
-        // Parse the date string and create a date object in local timezone
         const date = new Date(dateString);
-        
-        // Use toLocaleDateString with explicit options to ensure correct display
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
-            day: 'numeric',
-            timeZone: 'UTC' // Force UTC to avoid timezone conversion issues
+            day: 'numeric'
         });
     } catch (e) {
         console.error('Error formatting date:', e, 'Date string:', dateString);
@@ -727,12 +824,9 @@ function startEditHours(index) {
     document.getElementById('subject').value = entry.subject || '';
     document.getElementById('topic').value = entry.topic || '';
     
-    // Fix date display - ensure it shows the correct date
     let displayDate = entry.date || '';
     if (displayDate) {
-        // Parse and reformat the date to ensure correct display
         const dateObj = new Date(displayDate);
-        // Convert to YYYY-MM-DD format for the date input
         displayDate = dateObj.toISOString().split('T')[0];
     }
     
@@ -792,7 +886,7 @@ function updateHoursEntry() {
         total: hours * rate
     };
     
-    saveHoursToStorage();
+    saveToAllStorage();
     displayHours();
     cancelHoursEdit();
     
@@ -835,7 +929,7 @@ function logHours() {
     if (!window.hoursEntries) window.hoursEntries = [];
     window.hoursEntries.push(newEntry);
     
-    saveHoursToStorage();
+    saveToAllStorage();
     displayHours();
     cancelHoursEdit();
     
@@ -875,7 +969,7 @@ function cancelHoursEdit() {
 function deleteHours(index) {
     if (confirm('Are you sure you want to delete this entry?')) {
         window.hoursEntries.splice(index, 1);
-        saveHoursToStorage();
+        saveToAllStorage();
         displayHours();
         alert('✅ Entry deleted successfully!');
     }
@@ -890,35 +984,8 @@ function updateTotalDisplay() {
     }
 }
 
-function saveHoursToStorage() {
-    try {
-        localStorage.setItem('worklog_hours', JSON.stringify({
-            hours: window.hoursEntries || [],
-            lastUpdated: new Date().toISOString()
-        }));
-        console.log('💾 Hours saved to storage');
-    } catch (error) {
-        console.error('❌ Error saving hours:', error);
-    }
-}
-
-function loadHoursFromStorage() {
-    try {
-        const saved = localStorage.getItem('worklog_hours');
-        if (saved) {
-            const data = JSON.parse(saved);
-            window.hoursEntries = data.hours || [];
-            console.log('📥 Loaded hours from storage:', window.hoursEntries.length, 'entries');
-            return window.hoursEntries;
-        }
-    } catch (error) {
-        console.error('❌ Error loading hours:', error);
-    }
-    return [];
-}
-
 // ============================================================================
-// MARKS MANAGEMENT - FIXED WITH MISSING FUNCTIONS
+// MARKS MANAGEMENT
 // ============================================================================
 
 function loadMarks() {
@@ -1017,9 +1084,16 @@ function addMark() {
         
         if (!appData.marks) appData.marks = [];
         appData.marks.push(newMark);
-        saveAllData();
+        saveToAllStorage();
         loadMarks();
-        document.getElementById('marksForm').reset();
+        
+        // Clear form
+        document.getElementById('markSubject').value = '';
+        document.getElementById('markTopic').value = '';
+        document.getElementById('markDate').value = '';
+        document.getElementById('score').value = '';
+        document.getElementById('maxScore').value = '100';
+        document.getElementById('markComments').value = '';
         
         alert('✅ Mark added successfully!');
         
@@ -1073,14 +1147,11 @@ function loadAttendance() {
         
         if (!appData.students || appData.students.length === 0) {
             attendanceList.innerHTML = '<div class="empty-state"><div class="icon">👥</div><h4>No Students</h4><p>No students registered. Add students first.</p></div>';
-            
-            if (container) {
-                container.innerHTML = '<div class="empty-state"><div class="icon">📅</div><h4>No Attendance Records</h4><p>No attendance records yet. Add students first.</p></div>';
-            }
+            container.innerHTML = '<div class="empty-state"><div class="icon">📅</div><h4>No Attendance Records</h4><p>No attendance records yet. Add students first.</p></div>';
             return;
         }
         
-        // Build student checklist with proper styling
+        // Build student checklist
         appData.students.forEach(student => {
             const div = document.createElement('div');
             div.className = 'attendance-item';
@@ -1099,15 +1170,12 @@ function loadAttendance() {
         
         // Load attendance records if any exist
         if (!appData.attendance || appData.attendance.length === 0) {
-            if (container) {
-                container.innerHTML = '<div class="empty-state"><div class="icon">📅</div><h4>No Attendance Records</h4><p>No attendance records yet. Track your first session!</p></div>';
-            }
+            container.innerHTML = '<div class="empty-state"><div class="icon">📅</div><h4>No Attendance Records</h4><p>No attendance records yet. Track your first session!</p></div>';
             return;
         }
         
         let html = '<div class="attendance-list">';
         
-        // Show last 10 attendance records
         appData.attendance.slice(-10).reverse().forEach((session, index) => {
             const presentStudents = session.presentStudents.map(id => {
                 const student = appData.students.find(s => s.id === id);
@@ -1154,7 +1222,6 @@ function saveAttendance() {
         
         const presentStudents = [];
         
-        // Get all checked students
         appData.students.forEach(student => {
             const checkbox = document.getElementById(`attend_${student.id}`);
             if (checkbox && checkbox.checked) {
@@ -1177,7 +1244,7 @@ function saveAttendance() {
         
         if (!appData.attendance) appData.attendance = [];
         appData.attendance.push(newAttendance);
-        saveAllData();
+        saveToAllStorage();
         loadAttendance();
         
         // Clear form
@@ -1219,7 +1286,7 @@ function updateAttendanceStats() {
 function deleteAttendance(index) {
     if (confirm('Are you sure you want to delete this attendance record?')) {
         appData.attendance.splice(index, 1);
-        saveAllData();
+        saveToAllStorage();
         loadAttendance();
         alert('✅ Attendance record deleted successfully!');
     }
@@ -1244,7 +1311,6 @@ function clearAttendanceForm() {
     document.getElementById('attendanceSubject').value = '';
     document.getElementById('attendanceTopic').value = '';
     
-    // Deselect all students
     if (appData.students) {
         appData.students.forEach(student => {
             const checkbox = document.getElementById(`attend_${student.id}`);
@@ -1254,7 +1320,7 @@ function clearAttendanceForm() {
 }
 
 // ============================================================================
-// PAYMENTS MANAGEMENT - FIXED WITH MISSING FUNCTIONS
+// PAYMENTS MANAGEMENT
 // ============================================================================
 
 function loadPayments() {
@@ -1343,7 +1409,7 @@ function recordPayment() {
         
         if (!appData.payments) appData.payments = [];
         appData.payments.push(newPayment);
-        saveAllData();
+        saveToAllStorage();
         loadPayments();
         resetPaymentForm();
         
@@ -1389,18 +1455,17 @@ function updatePaymentStats() {
 function deletePayment(index) {
     if (confirm('Are you sure you want to delete this payment record?')) {
         appData.payments.splice(index, 1);
-        saveAllData();
+        saveToAllStorage();
         loadPayments();
         alert('✅ Payment record deleted successfully!');
     }
 }
 
 function renderPaymentsStats(payments) {
-  // Implementation similar to your existing renderPayments but for stats
   const container = document.getElementById("paymentsStats");
   if (!container) return;
   
-  const paymentsToRender = payments || allPayments;
+  const paymentsToRender = payments || appData.payments;
   
   if (paymentsToRender.length === 0) {
     container.innerHTML = "<p>No payments recorded yet.</p>";
@@ -1427,300 +1492,7 @@ function renderPaymentsStats(payments) {
 }
 
 // ============================================================================
-// MISSING FUNCTIONS - Add these to app.js
-// ============================================================================
-
-// Student filtering
-function filterStudents() {
-    const searchTerm = document.getElementById('studentSearch')?.value.toLowerCase() || '';
-    const container = document.getElementById('studentsContainer');
-    
-    if (!container) return;
-    
-    if (!appData.students || appData.students.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="icon">👨‍🎓</div><h4>No Students</h4><p>No students registered yet.</p></div>';
-        return;
-    }
-    
-    const filtered = appData.students.filter(s => 
-        s.name.toLowerCase().includes(searchTerm) ||
-        s.id.toLowerCase().includes(searchTerm)
-    );
-    
-    if (filtered.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><h4>No matches</h4><p>No students match your search.</p></div>';
-        return;
-    }
-    
-    let html = '<div class="students-grid">';
-    filtered.forEach((student, index) => {
-        // Find original index for edit/delete functions
-        const originalIndex = appData.students.findIndex(s => s.id === student.id && s.name === student.name);
-        html += `
-            <div class="student-card">
-                <div class="student-header">
-                    <h4 class="student-name">${student.name}</h4>
-                    <span class="student-rate">$${(student.rate || 0).toFixed(2)}/session</span>
-                </div>
-                <div class="student-details">
-                    <p><strong>ID:</strong> ${student.id}</p>
-                    <p><strong>Gender:</strong> ${student.gender}</p>
-                    ${student.email ? `<p><strong>Email:</strong> ${student.email}</p>` : ''}
-                    ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''}
-                </div>
-                <div class="student-actions">
-                    <button class="btn btn-sm btn-edit" onclick="editStudent(${originalIndex})">✏️ Edit</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteStudent(${originalIndex})">🗑️ Delete</button>
-                </div>
-            </div>
-        `;
-    });
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-// Save local data
-function saveLocalData() {
-    try {
-        const userId = window.Auth?.getCurrentUserId?.() || 'default';
-        localStorage.setItem(`worklog_data_${userId}`, JSON.stringify(appData));
-        console.log('💾 Data saved locally');
-    } catch (error) {
-        console.error('❌ Error saving data:', error);
-    }
-}
-
-// Logout function
-function logout() {
-    if (window.Auth && typeof window.Auth.logoutUser === 'function') {
-        window.Auth.logoutUser();
-    } else {
-        localStorage.removeItem('worklog_session');
-        localStorage.removeItem('isAuthenticated');
-        window.location.href = 'auth.html';
-    }
-}
-
-// Export user data
-function exportUserData() {
-    try {
-        const dataStr = JSON.stringify({
-            appData,
-            hoursEntries: window.hoursEntries || [],
-            exportDate: new Date().toISOString(),
-            version: '1.0'
-        }, null, 2);
-        
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `worklog_backup_${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        
-        showNotification('📤 Data exported successfully!', 'success');
-    } catch (error) {
-        console.error('Export error:', error);
-        showNotification('Error exporting data', 'error');
-    }
-}
-
-// Show notification (if not using toast container)
-function showNotification(message, type = 'info') {
-    // Try to use toast container first
-    const toastContainer = document.getElementById('toastContainer');
-    if (toastContainer) {
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.textContent = message;
-        toastContainer.appendChild(toast);
-        
-        setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    } else {
-        // Fallback to alert
-        alert(`${type.toUpperCase()}: ${message}`);
-    }
-}
-
-// Sync functions
-window.syncNow = async function() {
-    try {
-        if (!window.cloudSync || !window.cloudSync.isCloudEnabled()) {
-            showNotification('Please sign in to sync', 'error');
-            return;
-        }
-        
-        showSpinner?.('Syncing...');
-        await window.cloudSync.syncData({
-            students: appData.students,
-            hours: window.hoursEntries || [],
-            marks: appData.marks,
-            attendance: appData.attendance,
-            payments: appData.payments,
-            settings: appData.settings
-        });
-        hideSpinner?.();
-        showNotification('✅ Sync completed!', 'success');
-    } catch (error) {
-        hideSpinner?.();
-        showNotification('Sync failed: ' + error.message, 'error');
-    }
-};
-
-window.backupToCloud = window.syncNow;
-
-window.restoreFromCloud = async function() {
-    try {
-        if (!window.cloudSync || !window.cloudSync.isCloudEnabled()) {
-            showNotification('Please sign in to restore', 'error');
-            return;
-        }
-        
-        if (!confirm('This will overwrite your current data. Continue?')) {
-            return;
-        }
-        
-        showSpinner?.('Restoring...');
-        const cloudData = await window.cloudSync.loadData();
-        
-        if (cloudData) {
-            // Restore data
-            if (cloudData.students) appData.students = cloudData.students;
-            if (cloudData.hours) window.hoursEntries = cloudData.hours;
-            if (cloudData.marks) appData.marks = cloudData.marks;
-            if (cloudData.attendance) appData.attendance = cloudData.attendance;
-            if (cloudData.payments) appData.payments = cloudData.payments;
-            if (cloudData.settings) appData.settings = cloudData.settings;
-            
-            saveLocalData();
-            saveHoursToStorage();
-            
-            // Refresh UI
-            loadStudents();
-            loadHours();
-            loadMarks();
-            loadAttendance();
-            loadPayments();
-            
-            showNotification('✅ Data restored successfully!', 'success');
-        } else {
-            showNotification('No cloud data found', 'info');
-        }
-        hideSpinner?.();
-    } catch (error) {
-        hideSpinner?.();
-        showNotification('Restore failed: ' + error.message, 'error');
-    }
-};
-
-window.viewSyncStats = function() {
-    const status = window.cloudSync?.getSyncStatus?.() || { enabled: false };
-    showNotification(
-        `Cloud: ${status.enabled ? 'Connected' : 'Offline'}\n` +
-        `Last Sync: ${status.lastSync?.toLocaleString() || 'Never'}`,
-        'info'
-    );
-};
-
-// Spinner functions
-function showSpinner(message = 'Loading...') {
-    const spinner = document.getElementById('spinner');
-    if (spinner) {
-        spinner.classList.add('active');
-        const content = spinner.querySelector('.spinner-content');
-        if (content) content.textContent = message;
-    }
-}
-
-function hideSpinner() {
-    const spinner = document.getElementById('spinner');
-    if (spinner) {
-        spinner.classList.remove('active');
-    }
-}
-
-// Update auth button and user menu
-function updateAuthUI() {
-    const authButton = document.getElementById('authButton');
-    const userMenu = document.getElementById('userMenu');
-    const userName = document.getElementById('userName');
-    
-    if (!authButton) return;
-    
-    const isLoggedIn = window.Auth?.isAuthenticated?.() || localStorage.getItem('isAuthenticated') === 'true';
-    const currentUser = window.Auth?.getCurrentUser?.();
-    
-    if (isLoggedIn && currentUser) {
-        authButton.innerHTML = `👤 ${currentUser.name || 'User'}`;
-        authButton.onclick = (e) => {
-            e.stopPropagation();
-            if (userMenu) {
-                userMenu.classList.toggle('show');
-            }
-        };
-        
-        if (userName) {
-            userName.textContent = currentUser.name || 'User';
-        }
-        
-        // Close menu when clicking outside
-        document.addEventListener('click', (e) => {
-            if (userMenu && !authButton.contains(e.target) && !userMenu.contains(e.target)) {
-                userMenu.classList.remove('show');
-            }
-        });
-    } else {
-        authButton.innerHTML = '🔐 Login';
-        authButton.onclick = () => window.location.href = 'auth.html';
-        if (userMenu) {
-            userMenu.classList.remove('show');
-        }
-    }
-}
-
-// Initialize auth UI on load
-document.addEventListener('DOMContentLoaded', () => {
-    updateAuthUI();
-    
-    // Update sync status periodically
-    setInterval(() => {
-        const syncStatus = document.getElementById('syncStatus');
-        const syncIndicator = document.getElementById('syncIndicator');
-        const syncStatusText = document.getElementById('syncStatusText');
-        
-        if (window.cloudSync) {
-            const status = window.cloudSync.getSyncStatus?.();
-            if (status?.enabled) {
-                syncStatusText.textContent = `Connected as ${status.user}`;
-                syncIndicator.className = 'sync-indicator sync-connected';
-            } else {
-                syncStatusText.textContent = 'Not connected';
-                syncIndicator.className = 'sync-indicator sync-offline';
-            }
-        }
-    }, 1000);
-});
-
-// ============================================================================
-// REMOVE DUPLICATE FUNCTIONS
-// ============================================================================
-// The following functions are defined twice in your app.js:
-// - showMonthlyBreakdown (lines ~1650 and ~2950)
-// - showWeeklyBreakdown (lines ~1750 and ~3050)
-// - showBiWeeklyBreakdown (lines ~1850 and ~3150)
-// - showSubjectBreakdown (lines ~1950 and ~3250)
-// - and many more...
-//
-// Keep only the first occurrence of each and remove the duplicates.
-// The duplicate versions start around line 2900.
-
-// ============================================================================
-// REPORTS SYSTEM - COMPLETE FIXED VERSION
+// REPORTS SYSTEM
 // ============================================================================
 
 function loadReports() {
@@ -1846,7 +1618,7 @@ function generateCurrentMonthReport() {
 }
 
 // ============================================================================
-// REPORT TYPES - CONSISTENT STYLING
+// REPORT TYPES
 // ============================================================================
 
 function showMonthlyBreakdown() {
@@ -2388,10 +2160,8 @@ function filterHoursByMonth(year, month) {
 }
 
 function getHoursDataForReports() {
-    // Convert window.hoursEntries to format expected by reports
     return (window.hoursEntries || []).map(entry => ({
         ...entry,
-        // Ensure all required fields exist
         hours: entry.hours || 0,
         rate: entry.rate || 0,
         total: entry.total || (entry.hours || 0) * (entry.rate || 0),
@@ -2400,748 +2170,6 @@ function getHoursDataForReports() {
         workType: entry.workType || 'hourly',
         date: entry.date || new Date().toISOString().split('T')[0]
     }));
-}
-
-function calculateMonthlyStats(hours, marks, attendance, payments) {
-    const totalHours = hours.reduce((sum, entry) => sum + (entry.hours || 0), 0);
-    const totalEarnings = hours.reduce((sum, entry) => sum + (entry.total || 0), 0);
-    const avgHourlyRate = totalHours > 0 ? totalEarnings / totalHours : 0;
-    
-    const totalMarks = marks.length;
-    const avgMark = totalMarks > 0 
-        ? (marks.reduce((sum, mark) => sum + (mark.percentage || 0), 0) / totalMarks)
-        : 0;
-    
-    const totalSessions = attendance.length;
-    const totalStudentsPresent = attendance.reduce((sum, session) => 
-        sum + (session.presentStudents ? session.presentStudents.length : 0), 0
-    );
-    const avgStudentsPerSession = totalSessions > 0 ? totalStudentsPresent / totalSessions : 0;
-    
-    const totalPayments = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-    
-    return {
-        totalHours: totalHours.toFixed(1),
-        totalEarnings: totalEarnings.toFixed(2),
-        avgHourlyRate: avgHourlyRate.toFixed(2),
-        totalMarks,
-        avgMark: avgMark.toFixed(1),
-        totalSessions,
-        totalStudentsPresent,
-        avgStudentsPerSession: avgStudentsPerSession.toFixed(1),
-        totalPayments: totalPayments.toFixed(2)
-    };
-}
-
-function calculateBiWeeklyStats(periodData) {
-    const totalHours = periodData.reduce((sum, entry) => sum + (entry.hours || 0), 0);
-    const totalEarnings = periodData.reduce((sum, entry) => sum + (entry.total || 0), 0);
-    const avgRate = totalHours > 0 ? totalEarnings / totalHours : 0;
-    
-    const subjects = [...new Set(periodData.map(entry => entry.subject).filter(Boolean))];
-    const organizations = [...new Set(periodData.map(entry => entry.organization).filter(Boolean))];
-    
-    return {
-        totalHours,
-        totalEarnings,
-        avgRate,
-        entryCount: periodData.length,
-        subjects,
-        organizations,
-        recentEntries: periodData.slice(-3).reverse()
-    };
-}
-
-function groupHoursByWeek(hours, year, month) {
-    const weeks = [];
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    
-    let currentWeekStart = new Date(firstDay);
-    currentWeekStart.setDate(firstDay.getDate() - firstDay.getDay());
-    
-    while (currentWeekStart <= lastDay) {
-        const weekEnd = new Date(currentWeekStart);
-        weekEnd.setDate(currentWeekStart.getDate() + 6);
-        
-        const weekHours = hours.filter(entry => {
-            if (!entry.date) return false;
-            const entryDate = new Date(entry.date);
-            return entryDate >= currentWeekStart && entryDate <= weekEnd;
-        });
-        
-        if (weekHours.length > 0) {
-            const totalHours = weekHours.reduce((sum, entry) => sum + (entry.hours || 0), 0);
-            const totalEarnings = weekHours.reduce((sum, entry) => sum + (entry.total || 0), 0);
-            const subjects = [...new Set(weekHours.map(entry => entry.subject).filter(Boolean))];
-            
-            weeks.push({
-                weekLabel: `Week of ${currentWeekStart.getMonth() + 1}/${currentWeekStart.getDate()}`,
-                hours: totalHours,
-                earnings: totalEarnings,
-                subjects: subjects
-            });
-        }
-        
-        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-    }
-    
-    return weeks;
-}
-
-function calculateSubjectStats(hours, marks) {
-    const subjectMap = {};
-    
-    hours.forEach(entry => {
-        const subject = entry.subject || 'Other';
-        if (!subjectMap[subject]) {
-            subjectMap[subject] = {
-                name: subject,
-                hours: 0,
-                earnings: 0,
-                sessions: 0,
-                marks: [],
-                totalScore: 0,
-                totalMaxScore: 0
-            };
-        }
-        
-        subjectMap[subject].hours += entry.hours || 0;
-        subjectMap[subject].earnings += entry.total || 0;
-        subjectMap[subject].sessions += 1;
-    });
-    
-    marks.forEach(mark => {
-        const subject = mark.subject || 'Other';
-        if (!subjectMap[subject]) {
-            subjectMap[subject] = {
-                name: subject,
-                hours: 0,
-                earnings: 0,
-                sessions: 0,
-                marks: [],
-                totalScore: 0,
-                totalMaxScore: 0
-            };
-        }
-        
-        subjectMap[subject].marks.push(mark);
-        subjectMap[subject].totalScore += mark.score || 0;
-        subjectMap[subject].totalMaxScore += mark.maxScore || 1;
-    });
-    
-    return Object.values(subjectMap).map(subject => {
-        const avgMark = subject.totalMaxScore > 0 
-            ? ((subject.totalScore / subject.totalMaxScore) * 100).toFixed(1)
-            : '0';
-            
-        return {
-            ...subject,
-            avgMark: avgMark
-        };
-    });
-}
-
-function generateRecentActivities(hours, marks) {
-    const recentHours = hours.slice(-5).reverse();
-    const recentMarks = marks.slice(-5).reverse();
-    
-    let html = '';
-    
-    if (recentHours.length > 0) {
-        html += '<div style="margin-bottom: 20px;"><strong>Recent Work:</strong><ul style="margin: 8px 0 0 0; padding-left: 20px;">';
-        recentHours.forEach(entry => {
-            html += `<li style="margin-bottom: 5px; color: #495057;">${entry.organization} - ${entry.hours}h - $${(entry.total || 0).toFixed(2)}</li>`;
-        });
-        html += '</ul></div>';
-    }
-    
-    if (recentMarks.length > 0) {
-        html += '<div><strong>Recent Assessments:</strong><ul style="margin: 8px 0 0 0; padding-left: 20px;">';
-        recentMarks.forEach(mark => {
-            const student = appData.students?.find(s => s.id === mark.studentId);
-            html += `<li style="margin-bottom: 5px; color: #495057;">${student?.name || 'Unknown'}: ${mark.score}/${mark.maxScore} (${mark.percentage}%)</li>`;
-        });
-        html += '</ul></div>';
-    }
-    
-    if (!html) {
-        html = '<p style="color: #666; text-align: center;">No recent activity for this month.</p>';
-    }
-    
-    return html;
-}
-
-// ============================================================================
-// NEW UTILITY FUNCTIONS FOR HOURS DATA COMPATIBILITY
-// ============================================================================
-
-function getHoursDataForReports() {
-    // Convert window.hoursEntries to format expected by reports
-    return (window.hoursEntries || []).map(entry => ({
-        ...entry,
-        // Ensure all required fields exist
-        hours: entry.hours || 0,
-        rate: entry.rate || 0,
-        total: entry.total || (entry.hours || 0) * (entry.rate || 0),
-        organization: entry.organization || 'Unknown',
-        subject: entry.subject || 'Other',
-        workType: entry.workType || 'hourly',
-        date: entry.date || new Date().toISOString().split('T')[0]
-    }));
-}
-
-function filterHoursByMonth(year, month) {
-    const hoursData = getHoursDataForReports();
-    return hoursData.filter(entry => {
-        if (!entry.date) return false;
-        try {
-            const entryDate = new Date(entry.date);
-            return entryDate.getFullYear() === year && entryDate.getMonth() === month;
-        } catch (e) {
-            return false;
-        }
-    });
-}
-
-// Update all report functions to use filterHoursByMonth instead of filterDataByMonth(appData.hours)
-
-// ============================================================================
-// REPORT TYPES - CONSISTENT STYLING
-// ============================================================================
-
-function showMonthlyBreakdown() {
-    console.log('📈 Switching to monthly breakdown');
-    const currentMonth = parseInt(document.getElementById('reportMonth')?.value || new Date().getMonth());
-    const currentYear = parseInt(document.getElementById('reportYear')?.value || new Date().getFullYear());
-    
-    const container = document.getElementById('breakdownContainer');
-    if (!container) return;
-    
-    const monthName = monthNames[currentMonth];
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    
-    const monthlyHours = filterDataByMonth(appData.hours || [], currentYear, currentMonth);
-    const monthlyMarks = filterDataByMonth(appData.marks || [], currentYear, currentMonth);
-    const monthlyAttendance = filterDataByMonth(appData.attendance || [], currentYear, currentMonth);
-    const monthlyPayments = filterDataByMonth(appData.payments || [], currentYear, currentMonth);
-    
-    const stats = calculateMonthlyStats(monthlyHours, monthlyMarks, monthlyAttendance, monthlyPayments);
-    
-    container.innerHTML = `
-        <div class="report-container">
-            <div class="report-header">
-                <h2>📈 Monthly Report</h2>
-                <p>${monthName} ${currentYear} • Complete Overview</p>
-            </div>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <span class="stat-value">${stats.totalHours}h</span>
-                    <div class="stat-label">Total Hours</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value">$${stats.totalEarnings}</span>
-                    <div class="stat-label">Total Earnings</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value">$${stats.avgHourlyRate}/h</span>
-                    <div class="stat-label">Avg Hourly Rate</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value">${stats.totalSessions}</span>
-                    <div class="stat-label">Sessions</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value">${stats.totalMarks}</span>
-                    <div class="stat-label">Assessments</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value">${stats.avgMark}%</span>
-                    <div class="stat-label">Avg Score</div>
-                </div>
-            </div>
-            
-            <div class="report-section">
-                <h3>Activity Summary</h3>
-                <div class="comparison-grid">
-                    <div class="comparison-card">
-                        <div class="comparison-header">
-                            <h4>📊 Work Activity</h4>
-                        </div>
-                        <div class="metric-grid">
-                            <div class="metric-item">
-                                <span class="metric-value">${monthlyHours.length}</span>
-                                <div class="metric-label">Entries</div>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-value">${stats.totalStudentsPresent}</span>
-                                <div class="metric-label">Students Present</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="comparison-card">
-                        <div class="comparison-header">
-                            <h4>💰 Financial Summary</h4>
-                        </div>
-                        <div class="metric-grid">
-                            <div class="metric-item">
-                                <span class="metric-value">$${stats.totalPayments}</span>
-                                <div class="metric-label">Payments</div>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-value">${stats.avgStudentsPerSession}</span>
-                                <div class="metric-label">Avg/Session</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="report-section">
-                <h3>Recent Activity</h3>
-                <div class="details-panel">
-                    ${generateRecentActivities(monthlyHours, monthlyMarks)}
-                </div>
-            </div>
-        </div>
-        
-        ${renderReportNavigation('📈 Monthly')}
-    `;
-}
-
-function showWeeklyBreakdown() {
-    console.log('📅 Switching to weekly breakdown');
-    const currentMonth = parseInt(document.getElementById('reportMonth')?.value || new Date().getMonth());
-    const currentYear = parseInt(document.getElementById('reportYear')?.value || new Date().getFullYear());
-    
-    const container = document.getElementById('breakdownContainer');
-    if (!container) return;
-    
-    const monthName = monthNames[currentMonth];
-    const monthlyHours = filterDataByMonth(appData.hours || [], currentYear, currentMonth);
-    const weeks = groupHoursByWeek(monthlyHours, currentYear, currentMonth);
-    
-    container.innerHTML = `
-        <div class="report-container">
-            <div class="report-header">
-                <h2>📅 Weekly Breakdown</h2>
-                <p>${monthName} ${currentYear} • Weekly Performance</p>
-            </div>
-            
-            ${weeks.length > 0 ? `
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <span class="stat-value">${weeks.length}</span>
-                        <div class="stat-label">Weeks</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">${monthlyHours.length}</span>
-                        <div class="stat-label">Total Entries</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">${weeks.reduce((sum, week) => sum + week.hours, 0).toFixed(1)}h</span>
-                        <div class="stat-label">Total Hours</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">$${weeks.reduce((sum, week) => sum + week.earnings, 0).toFixed(2)}</span>
-                        <div class="stat-label">Total Earnings</div>
-                    </div>
-                </div>
-                
-                <div class="report-section">
-                    <h3>Weekly Summary</h3>
-                    <div class="comparison-grid">
-                        ${weeks.map((week, index) => `
-                            <div class="comparison-card">
-                                <div class="comparison-header">
-                                    <h4>Week ${index + 1}</h4>
-                                    <div class="period">${week.weekLabel}</div>
-                                </div>
-                                <div class="metric-grid">
-                                    <div class="metric-item">
-                                        <span class="metric-value">${week.hours.toFixed(1)}h</span>
-                                        <div class="metric-label">Hours</div>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="metric-value">$${week.earnings.toFixed(2)}</span>
-                                        <div class="metric-label">Earnings</div>
-                                    </div>
-                                </div>
-                                ${week.subjects.length > 0 ? `
-                                    <div class="details-panel">
-                                        <h5>Subjects</h5>
-                                        <div style="text-align: center;">
-                                            ${week.subjects.slice(0, 3).map(subj => 
-                                                `<span class="tag">${subj}</span>`
-                                            ).join('')}
-                                        </div>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : `
-                <div class="report-section">
-                    <div class="empty-state">
-                        <div class="icon">📊</div>
-                        <h4>No Weekly Data</h4>
-                        <p>No hours data available for ${monthName} ${currentYear}.</p>
-                        <p>Add work entries to see weekly breakdowns.</p>
-                    </div>
-                </div>
-            `}
-        </div>
-        
-        ${renderReportNavigation('📅 Weekly')}
-    `;
-}
-
-function showBiWeeklyBreakdown() {
-    console.log('📆 Switching to bi-weekly breakdown');
-    const currentMonth = parseInt(document.getElementById('reportMonth')?.value || new Date().getMonth());
-    const currentYear = parseInt(document.getElementById('reportYear')?.value || new Date().getFullYear());
-    
-    const container = document.getElementById('breakdownContainer');
-    if (!container) return;
-    
-    const monthName = monthNames[currentMonth];
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    
-    container.innerHTML = `
-        <div class="report-container">
-            <div class="report-header">
-                <h2>📆 Bi-Weekly Report</h2>
-                <p>${monthName} ${currentYear} • Two-Period Analysis</p>
-            </div>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <span class="stat-value">${(appData.hours || []).length}</span>
-                    <div class="stat-label">Total Entries</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value">${(appData.students || []).length}</span>
-                    <div class="stat-label">Students</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value">${(appData.marks || []).length}</span>
-                    <div class="stat-label">Assessments</div>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-value">${(appData.attendance || []).length}</span>
-                    <div class="stat-label">Sessions</div>
-                </div>
-            </div>
-            
-            <div class="report-section">
-                <h3>Bi-Weekly Analysis</h3>
-                <p style="text-align: center; color: #6c757d; margin-bottom: 25px;">
-                    Compare performance between the first half (1st-15th) and second half (16th-${daysInMonth}th) of ${monthName}
-                </p>
-                
-                <div style="text-align: center;">
-                    <button class="btn btn-primary" onclick="showDetailedBiWeeklyAnalysis()">
-                        🔍 Show Detailed Analysis
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        ${renderReportNavigation('📆 Bi-Weekly')}
-    `;
-}
-
-function showDetailedBiWeeklyAnalysis() {
-    console.log('🔍 Showing detailed bi-weekly analysis...');
-    
-    const currentMonth = parseInt(document.getElementById('reportMonth')?.value || new Date().getMonth());
-    const currentYear = parseInt(document.getElementById('reportYear')?.value || new Date().getFullYear());
-    const monthName = monthNames[currentMonth];
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    
-    const monthlyHours = (appData.hours || []).filter(entry => {
-        if (!entry.date) return false;
-        try {
-            const entryDate = new Date(entry.date);
-            return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear;
-        } catch (e) {
-            return false;
-        }
-    });
-    
-    const firstHalf = monthlyHours.filter(entry => {
-        if (!entry.date) return false;
-        const day = new Date(entry.date).getDate();
-        return day <= 15;
-    });
-    
-    const secondHalf = monthlyHours.filter(entry => {
-        if (!entry.date) return false;
-        const day = new Date(entry.date).getDate();
-        return day > 15;
-    });
-    
-    const firstHalfStats = calculateBiWeeklyStats(firstHalf);
-    const secondHalfStats = calculateBiWeeklyStats(secondHalf);
-    
-    const container = document.getElementById('breakdownContainer');
-    container.innerHTML = `
-        <div class="report-container">
-            <div class="report-header">
-                <h2>📆 Detailed Bi-Weekly Analysis</h2>
-                <p>${monthName} ${currentYear} • Period Comparison</p>
-            </div>
-            
-            <div class="comparison-grid">
-                <div class="comparison-card">
-                    <div class="comparison-header">
-                        <h4>📅 First Half</h4>
-                        <div class="period">1st - 15th ${monthName}</div>
-                    </div>
-                    
-                    <div class="metric-grid">
-                        <div class="metric-item">
-                            <span class="metric-value">${firstHalfStats.entryCount}</span>
-                            <div class="metric-label">Entries</div>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-value">${firstHalfStats.totalHours.toFixed(1)}h</span>
-                            <div class="metric-label">Hours</div>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-value">$${firstHalfStats.totalEarnings.toFixed(2)}</span>
-                            <div class="metric-label">Earnings</div>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-value">$${firstHalfStats.avgRate.toFixed(2)}</span>
-                            <div class="metric-label">Avg Rate</div>
-                        </div>
-                    </div>
-                    
-                    ${renderBiWeeklyDetails(firstHalfStats, firstHalf)}
-                </div>
-                
-                <div class="comparison-card">
-                    <div class="comparison-header">
-                        <h4>📅 Second Half</h4>
-                        <div class="period">16th - ${daysInMonth}th ${monthName}</div>
-                    </div>
-                    
-                    <div class="metric-grid">
-                        <div class="metric-item">
-                            <span class="metric-value">${secondHalfStats.entryCount}</span>
-                            <div class="metric-label">Entries</div>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-value">${secondHalfStats.totalHours.toFixed(1)}h</span>
-                            <div class="metric-label">Hours</div>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-value">$${secondHalfStats.totalEarnings.toFixed(2)}</span>
-                            <div class="metric-label">Earnings</div>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-value">$${secondHalfStats.avgRate.toFixed(2)}</span>
-                            <div class="metric-label">Avg Rate</div>
-                        </div>
-                    </div>
-                    
-                    ${renderBiWeeklyDetails(secondHalfStats, secondHalf)}
-                </div>
-            </div>
-            
-            <div class="report-section">
-                <h3>Monthly Summary</h3>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <span class="stat-value">${monthlyHours.length}</span>
-                        <div class="stat-label">Total Entries</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">${(firstHalfStats.totalHours + secondHalfStats.totalHours).toFixed(1)}h</span>
-                        <div class="stat-label">Total Hours</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">$${(firstHalfStats.totalEarnings + secondHalfStats.totalEarnings).toFixed(2)}</span>
-                        <div class="stat-label">Total Earnings</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="button-group">
-            <button class="btn-report" onclick="showBiWeeklyBreakdown()">← Simple View</button>
-            <button class="btn-report" onclick="showMonthlyBreakdown()">📈 Monthly Report</button>
-        </div>
-    `;
-}
-
-function showSubjectBreakdown() {
-    console.log('📚 Switching to subject breakdown');
-    const currentMonth = parseInt(document.getElementById('reportMonth')?.value || new Date().getMonth());
-    const currentYear = parseInt(document.getElementById('reportYear')?.value || new Date().getFullYear());
-    
-    const container = document.getElementById('breakdownContainer');
-    if (!container) return;
-    
-    const monthName = monthNames[currentMonth];
-    const monthlyHours = filterDataByMonth(appData.hours || [], currentYear, currentMonth);
-    const monthlyMarks = filterDataByMonth(appData.marks || [], currentYear, currentMonth);
-    const subjectStats = calculateSubjectStats(monthlyHours, monthlyMarks);
-    
-    container.innerHTML = `
-        <div class="report-container">
-            <div class="report-header">
-                <h2>📚 Subject Breakdown</h2>
-                <p>${monthName} ${currentYear} • Subject Performance</p>
-            </div>
-            
-            ${subjectStats.length > 0 ? `
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <span class="stat-value">${subjectStats.length}</span>
-                        <div class="stat-label">Subjects</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">${subjectStats.reduce((sum, subj) => sum + subj.sessions, 0)}</span>
-                        <div class="stat-label">Total Sessions</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">${subjectStats.reduce((sum, subj) => sum + subj.hours, 0).toFixed(1)}h</span>
-                        <div class="stat-label">Total Hours</div>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">$${subjectStats.reduce((sum, subj) => sum + subj.earnings, 0).toFixed(2)}</span>
-                        <div class="stat-label">Total Earnings</div>
-                    </div>
-                </div>
-                
-                <div class="report-section">
-                    <h3>Subject Performance</h3>
-                    <div class="comparison-grid">
-                        ${subjectStats.map(subject => `
-                            <div class="comparison-card">
-                                <div class="comparison-header">
-                                    <h4>${subject.name}</h4>
-                                </div>
-                                <div class="metric-grid">
-                                    <div class="metric-item">
-                                        <span class="metric-value">${subject.avgMark}%</span>
-                                        <div class="metric-label">Avg Score</div>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="metric-value">${subject.hours.toFixed(1)}h</span>
-                                        <div class="metric-label">Hours</div>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="metric-value">$${subject.earnings.toFixed(2)}</span>
-                                        <div class="metric-label">Earnings</div>
-                                    </div>
-                                    <div class="metric-item">
-                                        <span class="metric-value">${subject.sessions}</span>
-                                        <div class="metric-label">Sessions</div>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : `
-                <div class="report-section">
-                    <div class="empty-state">
-                        <div class="icon">📚</div>
-                        <h4>No Subject Data</h4>
-                        <p>No subject data available for ${monthName} ${currentYear}.</p>
-                        <p>Add hours and marks with subjects to see breakdowns.</p>
-                    </div>
-                </div>
-            `}
-        </div>
-        
-        ${renderReportNavigation('📚 Subject')}
-    `;
-}
-
-// ============================================================================
-// UTILITY FUNCTIONS FOR REPORTS
-// ============================================================================
-
-function renderReportNavigation(activeReport) {
-    const reports = [
-        { icon: '📅', name: 'Weekly', active: activeReport === '📅 Weekly' },
-        { icon: '📆', name: 'Bi-Weekly', active: activeReport === '📆 Bi-Weekly' },
-        { icon: '📈', name: 'Monthly', active: activeReport === '📈 Monthly' },
-        { icon: '📚', name: 'Subject', active: activeReport === '📚 Subject' }
-    ];
-    
-    return `
-        <div class="button-group">
-            ${reports.map(report => `
-                <button class="btn-report ${report.active ? 'active' : ''}" 
-                        onclick="show${report.name.replace('-', '')}Breakdown()">
-                    ${report.icon} ${report.name}
-                </button>
-            `).join('')}
-        </div>
-    `;
-}
-
-function renderBiWeeklyDetails(stats, data) {
-    return `
-        <div class="details-panel">
-            <h5>Activity Details</h5>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                <div style="text-align: center;">
-                    <strong>Subjects</strong><br>
-                    <span style="color: #6c757d; font-size: 0.9em;">${stats.subjects.length} unique</span>
-                </div>
-                <div style="text-align: center;">
-                    <strong>Organizations</strong><br>
-                    <span style="color: #6c757d; font-size: 0.9em;">${stats.organizations.length} unique</span>
-                </div>
-            </div>
-            
-            ${stats.subjects.length > 0 ? `
-            <div style="margin-bottom: 15px;">
-                <strong style="display: block; margin-bottom: 8px; text-align: center;">Top Subjects</strong>
-                <div style="text-align: center;">
-                    ${stats.subjects.slice(0, 3).map(subj => 
-                        `<span class="tag">${subj}</span>`
-                    ).join('')}
-                </div>
-            </div>
-            ` : ''}
-            
-            ${data.length > 0 ? `
-            <div>
-                <strong style="display: block; margin-bottom: 8px; text-align: center;">Recent Activity</strong>
-                <div class="activity-list">
-                    ${stats.recentEntries.map(entry => 
-                        `<div class="activity-item">
-                            • ${entry.organization}: ${entry.hours}h ($${entry.total})
-                        </div>`
-                    ).join('')}
-                </div>
-            </div>
-            ` : '<div style="text-align: center; color: #6c757d; padding: 15px;">No activity this period</div>'}
-        </div>
-    `;
-}
-
-function filterDataByMonth(data, year, month) {
-    return data.filter(item => {
-        if (!item.date) return false;
-        try {
-            const itemDate = new Date(item.date);
-            return itemDate.getFullYear() === year && itemDate.getMonth() === month;
-        } catch (e) {
-            return false;
-        }
-    });
 }
 
 function calculateMonthlyStats(hours, marks, attendance, payments) {
@@ -3321,8 +2349,11 @@ function generateRecentActivities(hours, marks) {
 function loadDefaultRate() {
     const defaultRate = appData.settings.defaultRate || 25.00;
     
-    document.getElementById('defaultBaseRate').value = defaultRate;
-    document.getElementById('currentDefaultRate').textContent = defaultRate.toFixed(2);
+    const defaultRateInput = document.getElementById('defaultBaseRate');
+    const currentRateDisplay = document.getElementById('currentDefaultRate');
+    
+    if (defaultRateInput) defaultRateInput.value = defaultRate;
+    if (currentRateDisplay) currentRateDisplay.textContent = defaultRate.toFixed(2);
     
     const studentRateInput = document.getElementById('studentBaseRate');
     if (studentRateInput && !studentRateInput.value) {
@@ -3344,7 +2375,7 @@ function saveDefaultRate() {
     }
     
     appData.settings.defaultRate = defaultRate;
-    saveAllData();
+    saveToAllStorage();
     loadDefaultRate();
     
     alert('✅ Default rate saved successfully!');
@@ -3360,6 +2391,196 @@ function useDefaultRate() {
     }
     
     alert(`📝 Default rate ($${defaultRate}) filled in the form!`);
+}
+
+// ============================================================================
+// UI HELPER FUNCTIONS
+// ============================================================================
+
+function logout() {
+    if (window.Auth && typeof window.Auth.logoutUser === 'function') {
+        window.Auth.logoutUser();
+    } else {
+        localStorage.removeItem('worklog_session');
+        localStorage.removeItem('isAuthenticated');
+        window.location.href = 'auth.html';
+    }
+}
+
+function exportUserData() {
+    try {
+        const dataStr = JSON.stringify({
+            appData,
+            hoursEntries: window.hoursEntries || [],
+            exportDate: new Date().toISOString(),
+            version: '1.0'
+        }, null, 2);
+        
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `worklog_backup_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        showNotification('📤 Data exported successfully!', 'success');
+    } catch (error) {
+        console.error('Export error:', error);
+        showNotification('Error exporting data', 'error');
+    }
+}
+
+function showNotification(message, type = 'info') {
+    const toastContainer = document.getElementById('toastContainer');
+    if (toastContainer) {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    } else {
+        alert(`${type.toUpperCase()}: ${message}`);
+    }
+}
+
+// Sync functions
+window.syncNow = async function() {
+    try {
+        if (!window.cloudSync || !window.cloudSync.isCloudEnabled()) {
+            showNotification('Please sign in to sync', 'error');
+            return;
+        }
+        
+        showSpinner?.('Syncing...');
+        await window.cloudSync.syncData({
+            students: appData.students,
+            hours: window.hoursEntries || [],
+            marks: appData.marks,
+            attendance: appData.attendance,
+            payments: appData.payments,
+            settings: appData.settings
+        });
+        hideSpinner?.();
+        updateSyncStatus('connected', 'Synced');
+        showNotification('✅ Sync completed!', 'success');
+    } catch (error) {
+        hideSpinner?.();
+        showNotification('Sync failed: ' + error.message, 'error');
+    }
+};
+
+window.backupToCloud = window.syncNow;
+
+window.restoreFromCloud = async function() {
+    try {
+        if (!window.cloudSync || !window.cloudSync.isCloudEnabled()) {
+            showNotification('Please sign in to restore', 'error');
+            return;
+        }
+        
+        if (!confirm('This will overwrite your current data. Continue?')) {
+            return;
+        }
+        
+        showSpinner?.('Restoring...');
+        const cloudData = await window.cloudSync.loadData();
+        
+        if (cloudData) {
+            if (cloudData.students) appData.students = cloudData.students;
+            if (cloudData.hours) window.hoursEntries = cloudData.hours;
+            if (cloudData.marks) appData.marks = cloudData.marks;
+            if (cloudData.attendance) appData.attendance = cloudData.attendance;
+            if (cloudData.payments) appData.payments = cloudData.payments;
+            if (cloudData.settings) appData.settings = cloudData.settings;
+            
+            saveLocalData();
+            
+            // Refresh UI
+            renderStudents();
+            displayHours();
+            loadMarks();
+            loadAttendance();
+            loadPayments();
+            updateStats();
+            
+            updateSyncStatus('connected', 'Restored');
+            showNotification('✅ Data restored successfully!', 'success');
+        } else {
+            showNotification('No cloud data found', 'info');
+        }
+        hideSpinner?.();
+    } catch (error) {
+        hideSpinner?.();
+        showNotification('Restore failed: ' + error.message, 'error');
+    }
+};
+
+window.viewSyncStats = function() {
+    const status = window.cloudSync?.getSyncStatus?.() || { enabled: false };
+    showNotification(
+        `Cloud: ${status.enabled ? 'Connected' : 'Offline'}\n` +
+        `Last Sync: ${status.lastSync?.toLocaleString() || 'Never'}`,
+        'info'
+    );
+};
+
+function showSpinner(message = 'Loading...') {
+    const spinner = document.getElementById('spinner');
+    if (spinner) {
+        spinner.classList.add('active');
+        const content = spinner.querySelector('.spinner-content');
+        if (content) content.textContent = message;
+    }
+}
+
+function hideSpinner() {
+    const spinner = document.getElementById('spinner');
+    if (spinner) {
+        spinner.classList.remove('active');
+    }
+}
+
+function updateAuthUI() {
+    const authButton = document.getElementById('authButton');
+    const userMenu = document.getElementById('userMenu');
+    const userName = document.getElementById('userName');
+    
+    if (!authButton) return;
+    
+    const isLoggedIn = window.Auth?.isAuthenticated?.() || localStorage.getItem('isAuthenticated') === 'true';
+    const currentUser = window.Auth?.getCurrentUser?.();
+    
+    if (isLoggedIn && currentUser) {
+        authButton.innerHTML = `👤 ${currentUser.name || 'User'}`;
+        authButton.onclick = (e) => {
+            e.stopPropagation();
+            if (userMenu) {
+                userMenu.classList.toggle('show');
+            }
+        };
+        
+        if (userName) {
+            userName.textContent = currentUser.name || 'User';
+        }
+        
+        document.addEventListener('click', (e) => {
+            if (userMenu && !authButton.contains(e.target) && !userMenu.contains(e.target)) {
+                userMenu.classList.remove('show');
+            }
+        });
+    } else {
+        authButton.innerHTML = '🔐 Login';
+        authButton.onclick = () => window.location.href = 'auth.html';
+        if (userMenu) {
+            userMenu.classList.remove('show');
+        }
+    }
 }
 
 // ============================================================================
@@ -3386,10 +2607,15 @@ function setupEventListeners() {
         hoursInput.addEventListener('input', calculateTotal);
         rateInput.addEventListener('input', calculateTotal);
     }
+    
+    // Search input
+    const searchInput = document.getElementById('studentSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterStudents);
+    }
 }
 
 function updateStats() {
-  // Update dashboard/global stats
   const studentsCountEl = document.getElementById("studentsCount");
   const avgRateEl = document.getElementById("avgRate");
   
@@ -3410,11 +2636,6 @@ function updateStats() {
 // GLOBAL FUNCTION EXPORTS
 // ============================================================================
 
-// Make all functions globally available
-// ============================================================================
-// GLOBAL FUNCTION EXPORTS - ORGANIZED BY SECTION
-// ============================================================================
-
 // Core App Functions
 window.init = init;
 
@@ -3433,6 +2654,7 @@ window.updateStudent = updateStudent;
 window.deleteStudent = deleteStudent;
 window.clearStudentForm = clearStudentForm;
 window.cancelStudentEdit = cancelStudentEdit;
+window.filterStudents = filterStudents;
 
 // Hours Tracking
 window.logHours = logHours;
@@ -3470,12 +2692,18 @@ window.showDetailedBiWeeklyAnalysis = showDetailedBiWeeklyAnalysis;
 window.initializeMonthlyReport = initializeMonthlyReport;
 window.onMonthChange = onMonthChange;
 window.generateCurrentMonthReport = generateCurrentMonthReport;
+
+// UI Functions
+window.logout = logout;
+window.exportUserData = exportUserData;
+window.showNotification = showNotification;
+window.updateAuthUI = updateAuthUI;
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🏁 DOM fully loaded, initializing app...');
     
     // Initialize hours system
-    loadHoursFromStorage();
     displayHours();
     
     // Setup auto-calculation for hours form
