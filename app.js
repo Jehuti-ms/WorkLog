@@ -1427,6 +1427,299 @@ function renderPaymentsStats(payments) {
 }
 
 // ============================================================================
+// MISSING FUNCTIONS - Add these to app.js
+// ============================================================================
+
+// Student filtering
+function filterStudents() {
+    const searchTerm = document.getElementById('studentSearch')?.value.toLowerCase() || '';
+    const container = document.getElementById('studentsContainer');
+    
+    if (!container) return;
+    
+    if (!appData.students || appData.students.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">👨‍🎓</div><h4>No Students</h4><p>No students registered yet.</p></div>';
+        return;
+    }
+    
+    const filtered = appData.students.filter(s => 
+        s.name.toLowerCase().includes(searchTerm) ||
+        s.id.toLowerCase().includes(searchTerm)
+    );
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><h4>No matches</h4><p>No students match your search.</p></div>';
+        return;
+    }
+    
+    let html = '<div class="students-grid">';
+    filtered.forEach((student, index) => {
+        // Find original index for edit/delete functions
+        const originalIndex = appData.students.findIndex(s => s.id === student.id && s.name === student.name);
+        html += `
+            <div class="student-card">
+                <div class="student-header">
+                    <h4 class="student-name">${student.name}</h4>
+                    <span class="student-rate">$${(student.rate || 0).toFixed(2)}/session</span>
+                </div>
+                <div class="student-details">
+                    <p><strong>ID:</strong> ${student.id}</p>
+                    <p><strong>Gender:</strong> ${student.gender}</p>
+                    ${student.email ? `<p><strong>Email:</strong> ${student.email}</p>` : ''}
+                    ${student.phone ? `<p><strong>Phone:</strong> ${student.phone}</p>` : ''}
+                </div>
+                <div class="student-actions">
+                    <button class="btn btn-sm btn-edit" onclick="editStudent(${originalIndex})">✏️ Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteStudent(${originalIndex})">🗑️ Delete</button>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Save local data
+function saveLocalData() {
+    try {
+        const userId = window.Auth?.getCurrentUserId?.() || 'default';
+        localStorage.setItem(`worklog_data_${userId}`, JSON.stringify(appData));
+        console.log('💾 Data saved locally');
+    } catch (error) {
+        console.error('❌ Error saving data:', error);
+    }
+}
+
+// Logout function
+function logout() {
+    if (window.Auth && typeof window.Auth.logoutUser === 'function') {
+        window.Auth.logoutUser();
+    } else {
+        localStorage.removeItem('worklog_session');
+        localStorage.removeItem('isAuthenticated');
+        window.location.href = 'auth.html';
+    }
+}
+
+// Export user data
+function exportUserData() {
+    try {
+        const dataStr = JSON.stringify({
+            appData,
+            hoursEntries: window.hoursEntries || [],
+            exportDate: new Date().toISOString(),
+            version: '1.0'
+        }, null, 2);
+        
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `worklog_backup_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        showNotification('📤 Data exported successfully!', 'success');
+    } catch (error) {
+        console.error('Export error:', error);
+        showNotification('Error exporting data', 'error');
+    }
+}
+
+// Show notification (if not using toast container)
+function showNotification(message, type = 'info') {
+    // Try to use toast container first
+    const toastContainer = document.getElementById('toastContainer');
+    if (toastContainer) {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    } else {
+        // Fallback to alert
+        alert(`${type.toUpperCase()}: ${message}`);
+    }
+}
+
+// Sync functions
+window.syncNow = async function() {
+    try {
+        if (!window.cloudSync || !window.cloudSync.isCloudEnabled()) {
+            showNotification('Please sign in to sync', 'error');
+            return;
+        }
+        
+        showSpinner?.('Syncing...');
+        await window.cloudSync.syncData({
+            students: appData.students,
+            hours: window.hoursEntries || [],
+            marks: appData.marks,
+            attendance: appData.attendance,
+            payments: appData.payments,
+            settings: appData.settings
+        });
+        hideSpinner?.();
+        showNotification('✅ Sync completed!', 'success');
+    } catch (error) {
+        hideSpinner?.();
+        showNotification('Sync failed: ' + error.message, 'error');
+    }
+};
+
+window.backupToCloud = window.syncNow;
+
+window.restoreFromCloud = async function() {
+    try {
+        if (!window.cloudSync || !window.cloudSync.isCloudEnabled()) {
+            showNotification('Please sign in to restore', 'error');
+            return;
+        }
+        
+        if (!confirm('This will overwrite your current data. Continue?')) {
+            return;
+        }
+        
+        showSpinner?.('Restoring...');
+        const cloudData = await window.cloudSync.loadData();
+        
+        if (cloudData) {
+            // Restore data
+            if (cloudData.students) appData.students = cloudData.students;
+            if (cloudData.hours) window.hoursEntries = cloudData.hours;
+            if (cloudData.marks) appData.marks = cloudData.marks;
+            if (cloudData.attendance) appData.attendance = cloudData.attendance;
+            if (cloudData.payments) appData.payments = cloudData.payments;
+            if (cloudData.settings) appData.settings = cloudData.settings;
+            
+            saveLocalData();
+            saveHoursToStorage();
+            
+            // Refresh UI
+            loadStudents();
+            loadHours();
+            loadMarks();
+            loadAttendance();
+            loadPayments();
+            
+            showNotification('✅ Data restored successfully!', 'success');
+        } else {
+            showNotification('No cloud data found', 'info');
+        }
+        hideSpinner?.();
+    } catch (error) {
+        hideSpinner?.();
+        showNotification('Restore failed: ' + error.message, 'error');
+    }
+};
+
+window.viewSyncStats = function() {
+    const status = window.cloudSync?.getSyncStatus?.() || { enabled: false };
+    showNotification(
+        `Cloud: ${status.enabled ? 'Connected' : 'Offline'}\n` +
+        `Last Sync: ${status.lastSync?.toLocaleString() || 'Never'}`,
+        'info'
+    );
+};
+
+// Spinner functions
+function showSpinner(message = 'Loading...') {
+    const spinner = document.getElementById('spinner');
+    if (spinner) {
+        spinner.classList.add('active');
+        const content = spinner.querySelector('.spinner-content');
+        if (content) content.textContent = message;
+    }
+}
+
+function hideSpinner() {
+    const spinner = document.getElementById('spinner');
+    if (spinner) {
+        spinner.classList.remove('active');
+    }
+}
+
+// Update auth button and user menu
+function updateAuthUI() {
+    const authButton = document.getElementById('authButton');
+    const userMenu = document.getElementById('userMenu');
+    const userName = document.getElementById('userName');
+    
+    if (!authButton) return;
+    
+    const isLoggedIn = window.Auth?.isAuthenticated?.() || localStorage.getItem('isAuthenticated') === 'true';
+    const currentUser = window.Auth?.getCurrentUser?.();
+    
+    if (isLoggedIn && currentUser) {
+        authButton.innerHTML = `👤 ${currentUser.name || 'User'}`;
+        authButton.onclick = (e) => {
+            e.stopPropagation();
+            if (userMenu) {
+                userMenu.classList.toggle('show');
+            }
+        };
+        
+        if (userName) {
+            userName.textContent = currentUser.name || 'User';
+        }
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (userMenu && !authButton.contains(e.target) && !userMenu.contains(e.target)) {
+                userMenu.classList.remove('show');
+            }
+        });
+    } else {
+        authButton.innerHTML = '🔐 Login';
+        authButton.onclick = () => window.location.href = 'auth.html';
+        if (userMenu) {
+            userMenu.classList.remove('show');
+        }
+    }
+}
+
+// Initialize auth UI on load
+document.addEventListener('DOMContentLoaded', () => {
+    updateAuthUI();
+    
+    // Update sync status periodically
+    setInterval(() => {
+        const syncStatus = document.getElementById('syncStatus');
+        const syncIndicator = document.getElementById('syncIndicator');
+        const syncStatusText = document.getElementById('syncStatusText');
+        
+        if (window.cloudSync) {
+            const status = window.cloudSync.getSyncStatus?.();
+            if (status?.enabled) {
+                syncStatusText.textContent = `Connected as ${status.user}`;
+                syncIndicator.className = 'sync-indicator sync-connected';
+            } else {
+                syncStatusText.textContent = 'Not connected';
+                syncIndicator.className = 'sync-indicator sync-offline';
+            }
+        }
+    }, 1000);
+});
+
+// ============================================================================
+// REMOVE DUPLICATE FUNCTIONS
+// ============================================================================
+// The following functions are defined twice in your app.js:
+// - showMonthlyBreakdown (lines ~1650 and ~2950)
+// - showWeeklyBreakdown (lines ~1750 and ~3050)
+// - showBiWeeklyBreakdown (lines ~1850 and ~3150)
+// - showSubjectBreakdown (lines ~1950 and ~3250)
+// - and many more...
+//
+// Keep only the first occurrence of each and remove the duplicates.
+// The duplicate versions start around line 2900.
+
+// ============================================================================
 // REPORTS SYSTEM - COMPLETE FIXED VERSION
 // ============================================================================
 
