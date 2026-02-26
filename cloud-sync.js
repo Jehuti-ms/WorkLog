@@ -1,7 +1,7 @@
-// cloud-sync.js - Fixed version
+// cloud-sync.js - Enhanced version with auto-save
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 console.log("☁️ Cloud Sync loaded");
 
@@ -11,6 +11,7 @@ class CloudSync {
         this.isInitialized = false;
         this.lastSync = null;
         this.syncEnabled = false;
+        this.autoSyncInterval = null;
     }
 
     async init() {
@@ -30,12 +31,19 @@ class CloudSync {
                         this.syncEnabled = true;
                         this.lastSync = new Date();
                         
-                        // Set up auto-sync if needed
+                        // Set up auto-sync every 30 seconds if enabled
                         this.setupAutoSync();
+                        
+                        // Update UI
+                        this.updateSyncUI('connected', `Connected as ${user.email}`);
                     } else {
                         console.log("🔴 Cloud Sync: No user");
                         this.isInitialized = false;
                         this.syncEnabled = false;
+                        this.clearAutoSync();
+                        
+                        // Update UI
+                        this.updateSyncUI('offline', 'Not connected');
                     }
                     resolve(true);
                 });
@@ -43,13 +51,62 @@ class CloudSync {
 
         } catch (err) {
             console.error("❌ Cloud sync initialization failed:", err);
+            this.updateSyncUI('error', 'Connection failed');
             return false;
         }
     }
 
     setupAutoSync() {
-        // Auto-sync can be set up here if needed
-        console.log("⚡ Auto-sync available");
+        // Clear existing interval
+        this.clearAutoSync();
+        
+        // Set up new interval (every 30 seconds)
+        this.autoSyncInterval = setInterval(() => {
+            if (this.syncEnabled && document.getElementById('autoSyncCheckbox')?.checked) {
+                console.log("🔄 Auto-sync triggered");
+                this.autoSync();
+            }
+        }, 30000); // 30 seconds
+    }
+
+    clearAutoSync() {
+        if (this.autoSyncInterval) {
+            clearInterval(this.autoSyncInterval);
+            this.autoSyncInterval = null;
+        }
+    }
+
+    async autoSync() {
+        try {
+            // Get current app data
+            const appData = {
+                students: window.appData?.students || [],
+                hours: window.hoursEntries || [],
+                marks: window.appData?.marks || [],
+                attendance: window.appData?.attendance || [],
+                payments: window.appData?.payments || [],
+                settings: window.appData?.settings || {}
+            };
+            
+            await this.syncData(appData);
+            this.updateSyncUI('connected', 'Auto-synced');
+        } catch (error) {
+            console.error("❌ Auto-sync failed:", error);
+            this.updateSyncUI('error', 'Auto-sync failed');
+        }
+    }
+
+    updateSyncUI(status, message) {
+        const indicator = document.getElementById('syncIndicator');
+        const statusText = document.getElementById('syncStatusText');
+        
+        if (indicator) {
+            indicator.className = `sync-indicator sync-${status}`;
+        }
+        
+        if (statusText) {
+            statusText.textContent = message || status;
+        }
     }
 
     isCloudEnabled() {
@@ -82,9 +139,11 @@ class CloudSync {
             
             this.lastSync = new Date();
             console.log("✅ Data synced to Firebase");
+            this.updateSyncUI('connected', 'Synced');
             return true;
         } catch (error) {
             console.error("❌ Error syncing to Firebase:", error);
+            this.updateSyncUI('error', 'Sync failed');
             throw error;
         }
     }
@@ -103,6 +162,7 @@ class CloudSync {
                 const data = snapshot.data();
                 this.lastSync = new Date();
                 console.log("✅ Data loaded from Firebase");
+                this.updateSyncUI('connected', 'Loaded from cloud');
                 
                 // Return only the relevant data, excluding metadata
                 const { lastUpdated, email, syncTimestamp, ...appData } = data;
@@ -113,6 +173,7 @@ class CloudSync {
             }
         } catch (error) {
             console.error("❌ Error loading from Firebase:", error);
+            this.updateSyncUI('error', 'Load failed');
             throw error;
         }
     }
@@ -123,6 +184,7 @@ class CloudSync {
         }
 
         try {
+            this.updateSyncUI('syncing', 'Syncing...');
             await this.syncData(appData);
             return true;
         } catch (error) {
